@@ -1,0 +1,100 @@
+.filter-bar {
+    margin-bottom: var(--spacing-lg);
+}
+
+.filter-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filter-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.filter-btn.active {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-color: var(--primary);
+    color: white;
+}
+
+.leave-type {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.leave-type-annual {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+}
+
+.leave-type-sick {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.leave-type-personal {
+    background-color: rgba(139, 92, 246, 0.1);
+    color: var(--secondary);
+}
+
+.leave-type-unpaid {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: var(--gray-600);
+}
+
+.status-pending {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.status-approved {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.status-rejected {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.reason-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-approve {
+    color: var(--success);
+    font-weight: bold;
+}
+
+.btn-approve:hover {
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.btn-reject {
+    color: var(--error);
+    font-weight: bold;
+}
+
+.btn-reject:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
