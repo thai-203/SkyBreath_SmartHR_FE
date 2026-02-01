@@ -1,18 +1,18 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+import {
+    Building2,
+    ChevronDown,
+    ChevronRight,
+    LayoutDashboard,
+    Settings,
+    Users,
+    X,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
-import {
-    LayoutDashboard,
-    Building2,
-    Users,
-    Settings,
-    ChevronDown,
-    ChevronRight,
-    X,
-} from "lucide-react";
 
 const menuItems = [
     {
@@ -36,6 +36,15 @@ const menuItems = [
         children: [
             { title: "Danh sách", href: "/employees" },
             { title: "Thêm mới", href: "/employees/create" },
+        ],
+    },
+    {
+        title: "Vai trò",
+        icon: Users,
+        href: "/roles",
+        children: [
+            { title: "Danh sách", href: "/roles" },
+            { title: "Thêm mới", href: "/roles/create" },
         ],
     },
     {
