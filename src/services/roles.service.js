@@ -1,56 +1,40 @@
-import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import api from '@/lib/api';
 
 export const RoleService = {
     async getRoles() {
-        const response = await axios.get(`${API_URL}/roles`, {
-            withCredentials: true,
-        });
+        const response = await api.get('/roles');
         return response.data;
     },
 
     async createRole(data) {
-        const response = await axios.post(`${API_URL}/roles`, data, {
-            withCredentials: true,
-        });
+        const response = await api.post('/roles', data);
         return response.data;
     },
 
     async updateRole(id, data) {
-        const response = await axios.put(`${API_URL}/roles/${id}`, data, {
-            withCredentials: true,
-        });
+        const response = await api.put(`/roles/${id}`, data);
         return response.data;
     },
 
     async deleteRole(id) {
-        const response = await axios.delete(`${API_URL}/roles/${id}`, {
-            withCredentials: true,
-        });
+        const response = await api.delete(`/roles/${id}`);
         return response.data;
     },
 
     async getPermissions(id) {
-        const response = await axios.get(`${API_URL}/roles/${id}/permissions`, {
-            withCredentials: true,
-        });
+        const response = await api.get(`/roles/${id}/permissions`);
         return response.data;
     },
 
     async assignPermissions(id, permissionIds) {
-        const response = await axios.post(`${API_URL}/roles/${id}/permissions`, { permissionIds }, {
-            withCredentials: true,
-        });
+        const response = await api.post(`/roles/${id}/permissions`, { permissionIds });
         return response.data;
     },
 };
 
 export const PermissionService = {
     async getPermissions() {
-        const response = await axios.get(`${API_URL}/permissions`, {
-            withCredentials: true,
-        });
+        const response = await api.get('/permissions');
         return response.data;
     }
 };

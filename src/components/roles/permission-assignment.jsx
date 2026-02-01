@@ -31,8 +31,12 @@ export default function PermissionAssignmentDialog({ role, open, onOpenChange })
     const loadData = async () => {
         setIsLoading(true);
         try {
+            console.log('Loading permissions for role:', role.id);
             const allPermissionsMsg = await PermissionService.getPermissions();
             const rolePermissionsMsg = await RoleService.getPermissions(role.id);
+
+            console.log('All permissions:', allPermissionsMsg);
+            console.log('Role permissions:', rolePermissionsMsg);
 
             const allPermissions = allPermissionsMsg.data || [];
             const rolePermissionIds = (rolePermissionsMsg.data || []).map(p => p.id);
@@ -40,8 +44,9 @@ export default function PermissionAssignmentDialog({ role, open, onOpenChange })
             setPermissions(allPermissions);
             setSelectedPermissions(rolePermissionIds);
         } catch (error) {
-            console.error(error);
-            toast.error('Failed to load permissions');
+            console.error('Error loading permissions:', error);
+            const message = error.response?.data?.message || error.message || 'Failed to load permissions';
+            toast.error(message);
         } finally {
             setIsLoading(false);
         }
