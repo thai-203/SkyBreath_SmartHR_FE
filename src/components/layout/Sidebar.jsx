@@ -35,8 +35,7 @@ const menuItems = [
         icon: Users,
         href: "/employees",
         children: [
-            { title: "Danh sách", href: "/employees" },
-            { title: "Thêm mới", href: "/employees/create" },
+            { title: "Danh sách", href: "/employees" }
         ],
     },
     {
