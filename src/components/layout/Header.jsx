@@ -17,6 +17,7 @@ export function Header({ onMenuClick }) {
         dashboard: "Trang chủ",
         departments: "Phòng ban",
         employees: "Nhân viên",
+        contracts: "Hợp đồng lao động",
         settings: "Cài đặt",
         chart: "Sơ đồ tổ chức",
         create: "Thêm mới",
