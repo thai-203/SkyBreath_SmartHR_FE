@@ -8,6 +8,7 @@ import {
     LayoutDashboard,
     Building2,
     Users,
+    FileText,
     Settings,
     ChevronDown,
     ChevronRight,
@@ -37,6 +38,11 @@ const menuItems = [
             { title: "Danh sách", href: "/employees" },
             { title: "Thêm mới", href: "/employees/create" },
         ],
+    },
+    {
+        title: "Hợp đồng",
+        icon: FileText,
+        href: "/contracts",
     },
     {
         title: "Cài đặt",
