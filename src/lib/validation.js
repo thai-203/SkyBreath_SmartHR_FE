@@ -29,9 +29,19 @@ export const maxLength = (max, message) => (value) => {
 export const unique = (list, currentId, message = "Giá trị này đã tồn tại") => (value) => {
     if (!value) return null;
     const exists = list.some(item =>
-        item.label.toLowerCase() === value.trim().toLowerCase() &&
+        item.label?.toLowerCase() === value.trim().toLowerCase() &&
         item.value !== currentId
     );
+    return exists ? message : null;
+};
+
+export const uniqueField = (list, field, currentId, message = "Giá trị này đã tồn tại") => (value) => {
+    if (!value) return null;
+    const val = value.trim().toLowerCase();
+    const exists = list.some(item => {
+        const itemVal = item[field]?.toString().toLowerCase();
+        return itemVal === val && item.id !== currentId;
+    });
     return exists ? message : null;
 };
 
