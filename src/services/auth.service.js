@@ -2,7 +2,11 @@ import api from "@/lib/api";
 
 export const authService = {
   login: async (email, password) => {
-    const response = await api.post("/auth/login", { email, password });
+    const response = await api.post(
+      "/auth/login",
+      { email, password },
+      { skipAuthRedirect: true },
+    );
     return response.data;
   },
 
@@ -10,6 +14,27 @@ export const authService = {
     await api.post("/auth/logout");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+  },
+
+  forgotPassword: async (email) => {
+    const response = await api.post(
+      "/auth/forgot-password",
+      { email },
+      { skipAuthRedirect: true },
+    );
+    return response.data;
+  },
+
+  resetPassword: async (token, newPassword) => {
+    const response = await api.post(
+      "/auth/reset-password",
+      {
+        token,
+        newPassword,
+      },
+      { skipAuthRedirect: true },
+    );
+    return response.data;
   },
 
   getCurrentUser: () => {
