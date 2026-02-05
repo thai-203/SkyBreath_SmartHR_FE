@@ -153,6 +153,7 @@ export default function DepartmentsPage() {
             success(response.message);
             setIsCreateOpen(false);
             fetchDepartments();
+            fetchDropdownData();
         } catch (err) {
             error(err.response?.data?.message || "Có lỗi xảy ra");
         } finally {
@@ -173,6 +174,7 @@ export default function DepartmentsPage() {
             success(response.message);
             setIsEditOpen(false);
             fetchDepartments();
+            fetchDropdownData();
         } catch (err) {
             error(err.response?.data?.message || "Có lỗi xảy ra");
         } finally {
@@ -187,6 +189,7 @@ export default function DepartmentsPage() {
             success(response.message);
             setIsDeleteOpen(false);
             fetchDepartments();
+            fetchDropdownData();
         } catch (err) {
             error(err.response?.data?.message || "Có lỗi xảy ra");
         } finally {
