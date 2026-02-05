@@ -29,9 +29,14 @@ export default function DepartmentTable({
     const columns = useMemo(
         () => [
             {
-                accessorKey: "id",
-                header: "ID",
+                id: "stt",
+                header: "STT",
                 size: 60,
+                cell: ({ row }) => (
+                    <span className="text-slate-500">
+                        {pagination.pageIndex * pagination.pageSize + row.index + 1}
+                    </span>
+                ),
             },
             {
                 accessorKey: "departmentName",
@@ -90,7 +95,7 @@ export default function DepartmentTable({
                 ),
             },
         ],
-        [onEdit, onDelete, onViewDetail]
+        [onEdit, onDelete, onViewDetail, pagination]
     );
 
     const table = useReactTable({
