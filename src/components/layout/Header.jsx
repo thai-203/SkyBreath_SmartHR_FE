@@ -22,6 +22,7 @@ export function Header({ onMenuClick }) {
     chart: "Sơ đồ tổ chức",
     create: "Thêm mới",
     edit: "Chỉnh sửa",
+    security: "Bảo mật",
   };
 
   const pathParts = pathname.split("/").filter(Boolean);
