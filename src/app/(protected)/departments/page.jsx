@@ -6,12 +6,13 @@ import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
 import { departmentsService, employeesService } from "@/services";
 import { Plus, Download } from "lucide-react";
-import { validate, required, unique } from "@/lib/validation";
+import { validate, required, unique, regex } from "@/lib/validation";
 
 // Local components
 import DepartmentTable from "./components/DepartmentTable";
 import DepartmentFormModal from "./components/DepartmentFormModal";
 import DepartmentDeleteModal from "./components/DepartmentDeleteModal";
+import DepartmentDetailModal from "./components/DepartmentDetailModal";
 
 const initialFormData = {
     departmentName: "",
@@ -33,6 +34,7 @@ export default function DepartmentsPage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
@@ -117,10 +119,16 @@ export default function DepartmentsPage() {
         setIsDeleteOpen(true);
     };
 
+    const handleViewDetail = (department) => {
+        setSelectedDepartment(department);
+        setIsDetailOpen(true);
+    };
+
     const validateForm = () => {
         const validationErrors = validate(formData, {
             departmentName: [
                 required("Tên phòng ban là bắt buộc"),
+                regex(/^[a-zA-Z0-9À-ỹ\s]+$/, "Tên phòng ban chỉ được chứa chữ cái, số và khoảng trắng"),
                 unique(departmentList, selectedDepartment?.id, "Tên phòng ban đã tồn tại"),
             ],
         });
@@ -240,6 +248,7 @@ export default function DepartmentsPage() {
                 totalPages={totalPages}
                 onEdit={handleEdit}
                 onDelete={handleDeleteClick}
+                onViewDetail={handleViewDetail}
             />
 
             {/* Create Modal */}
@@ -278,6 +287,13 @@ export default function DepartmentsPage() {
                 onConfirm={handleDelete}
                 department={selectedDepartment}
                 loading={formLoading}
+            />
+
+            {/* Detail Modal */}
+            <DepartmentDetailModal
+                isOpen={isDetailOpen}
+                onClose={() => setIsDetailOpen(false)}
+                department={selectedDepartment}
             />
         </div>
     );
