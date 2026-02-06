@@ -35,7 +35,13 @@ export default function RolesPage() {
                 </Link>
             </div>
 
-            <RolePermissionMatrix key={refreshKey} />
+            <RolePermissionMatrix
+                key={refreshKey}
+                onEditRole={(role) => {
+                    setEditRole(role);
+                    setIsEditOpen(true);
+                }}
+            />
 
             <EditRoleDialog
                 role={editRole}
