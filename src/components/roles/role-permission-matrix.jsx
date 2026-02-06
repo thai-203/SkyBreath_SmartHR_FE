@@ -3,10 +3,11 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { PermissionService, RoleService } from '@/services/roles.service';
-import { CheckCircle2, Loader2, Pencil, Shield, Trash2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Pencil, Search, Shield, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -18,16 +19,26 @@ export default function RolePermissionMatrix({ onEditRole }) {
     const [isLoadingRoles, setIsLoadingRoles] = useState(true);
     const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
     useEffect(() => {
         fetchInitialData();
-    }, []);
+    }, [debouncedSearch]);
 
     const fetchInitialData = async () => {
         try {
             setIsLoadingRoles(true);
             const [rolesData, permsData] = await Promise.all([
-                RoleService.getRoles(),
+                RoleService.getRoles(debouncedSearch),
                 PermissionService.getPermissions()
             ]);
 
@@ -139,6 +150,26 @@ export default function RolePermissionMatrix({ onEditRole }) {
                             Chọn một vai trò để phân quyền :
                         </p>
                     </CardHeader>
+                    <div className="px-4 pb-4">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder="Tìm kiếm vai trò..."
+                                className="pl-9 pr-8"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
                     <Separator />
                     <ScrollArea className="flex-1">
                         <div className="p-2 space-y-1">
@@ -189,6 +220,11 @@ export default function RolePermissionMatrix({ onEditRole }) {
                                     </div>
                                 </div>
                             ))}
+                            {roles.length === 0 && !isLoadingRoles && (
+                                <div className="text-center py-8">
+                                    <p className="text-sm text-muted-foreground">Không tìm thấy vai trò nào.</p>
+                                </div>
+                            )}
                         </div>
                     </ScrollArea>
                 </Card>
