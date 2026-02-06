@@ -110,7 +110,7 @@ export default function RolePermissionMatrix() {
                     <CardHeader className="pb-3">
                         <CardTitle className="text-lg">Danh sách vai trò</CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Chọn một vai trò để phân quyền
+                            Chọn một vai trò để phân quyền :
                         </p>
                     </CardHeader>
                     <Separator />
