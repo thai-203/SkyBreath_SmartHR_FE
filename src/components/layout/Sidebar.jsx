@@ -43,8 +43,7 @@ const menuItems = [
         icon: Users,
         href: "/roles",
         children: [
-            { title: "Danh sách", href: "/roles" },
-            { title: "Thêm mới", href: "/roles/create" },
+            { title: "Danh sách", href: "/roles" }
         ],
     },
     {

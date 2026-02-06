@@ -1,57 +1,41 @@
 'use client';
 
 import EditRoleDialog from '@/components/roles/edit-role-dialog';
-import PermissionAssignmentDialog from '@/components/roles/permission-assignment';
-import RoleListTable from '@/components/roles/role-list-table';
+import RolePermissionMatrix from '@/components/roles/role-permission-matrix';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
 export default function RolesPage() {
     const [editRole, setEditRole] = useState(null);
-    const [permissionRole, setPermissionRole] = useState(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [isPermissionOpen, setIsPermissionOpen] = useState(false);
-
-    // Ref key to force table refresh
     const [refreshKey, setRefreshKey] = useState(0);
-
-    const handleEdit = (role) => {
-        setEditRole(role);
-        setIsEditOpen(true);
-    };
-
-    const handleManagePermissions = (role) => {
-        setPermissionRole(role);
-        setIsPermissionOpen(true);
-    };
 
     const handleSuccess = () => {
         setRefreshKey(prev => prev + 1);
     };
 
     return (
-        <div className="container mx-auto py-10 space-y-8">
-            <div className="flex justify-between items-center">
+        <div className="container mx-auto py-8 space-y-6 max-w-7xl">
+            <div className="flex justify-between items-center bg-gray-50/50 p-4 rounded-xl border border-gray-100 shadow-sm">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Roles & Permissions</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Manage system roles and their access permissions.
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+                        <Shield className="h-6 w-6 text-blue-600" />
+                        Roles & Permissions
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Quản lý các vai trò hệ thống và cấu hình quyền truy cập theo từng phân hệ.
                     </p>
                 </div>
                 <Link href="/roles/create">
-                    <Button>
-                        <Plus className="mr-2 h-4 w-4" /> Create Role
+                    <Button className="bg-blue-600 hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]">
+                        <Plus className="mr-2 h-4 w-4" /> Create New Role
                     </Button>
                 </Link>
             </div>
 
-            <RoleListTable
-                key={refreshKey}
-                onEdit={handleEdit}
-                onManagePermissions={handleManagePermissions}
-            />
+            <RolePermissionMatrix key={refreshKey} />
 
             <EditRoleDialog
                 role={editRole}
@@ -59,12 +43,7 @@ export default function RolesPage() {
                 onOpenChange={setIsEditOpen}
                 onSuccess={handleSuccess}
             />
-
-            <PermissionAssignmentDialog
-                role={permissionRole}
-                open={isPermissionOpen}
-                onOpenChange={setIsPermissionOpen}
-            />
         </div>
     );
 }
+
