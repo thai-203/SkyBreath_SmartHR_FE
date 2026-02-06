@@ -6,11 +6,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { PermissionService, RoleService } from '@/services/roles.service';
-import { CheckCircle2, Loader2, Shield, Trash2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Pencil, Shield, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-export default function RolePermissionMatrix() {
+export default function RolePermissionMatrix({ onEditRole }) {
     const [roles, setRoles] = useState([]);
     const [allPermissions, setAllPermissions] = useState([]);
     const [selectedRole, setSelectedRole] = useState(null);
@@ -85,6 +85,32 @@ export default function RolePermissionMatrix() {
         }
     };
 
+    const handleDelete = async (id) => {
+        if (!confirm('Are you sure you want to delete this role? This action cannot be undone.')) return;
+
+        try {
+            await RoleService.deleteRole(id);
+            toast.success('Role deleted successfully');
+
+            // Refresh list
+            const rolesData = await RoleService.getRoles();
+            const fetchedRoles = rolesData.data || [];
+            setRoles(fetchedRoles);
+
+            // If deleted role was selected, select the first one if available
+            if (selectedRole?.id === id) {
+                if (fetchedRoles.length > 0) {
+                    handleSelectRole(fetchedRoles[0]);
+                } else {
+                    setSelectedRole(null);
+                    setSelectedPermissions([]);
+                }
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete role');
+        }
+    };
+
     // Group permissions by module
     const groupedPermissions = allPermissions.reduce((acc, perm) => {
         const module = perm.module || 'General';
@@ -135,7 +161,18 @@ export default function RolePermissionMatrix() {
                                         </span>
                                     </div>
                                     <div className="flex items-center space-x-1">
-                                        {selectedRole?.id === role.id && <CheckCircle2 className="h-4 w-4" />}
+                                        {selectedRole?.id === role.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 opacity-0 group-hover:opacity-100 text-blue-600 hover:bg-blue-50"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onEditRole?.(role);
+                                            }}
+                                        >
+                                            <Pencil className="h-3 w-3" />
+                                        </Button>
                                         {!role.isSystem && (
                                             <Button
                                                 variant="ghost"
@@ -143,7 +180,7 @@ export default function RolePermissionMatrix() {
                                                 className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    // handleDelete(role.id)
+                                                    handleDelete(role.id);
                                                 }}
                                             >
                                                 <Trash2 className="h-3 w-3" />
