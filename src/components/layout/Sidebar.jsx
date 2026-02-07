@@ -47,6 +47,10 @@ const menuItems = [
         title: "Cài đặt",
         icon: Settings,
         href: "/settings",
+        children: [
+            { title: "Tổng quan", href: "/settings" },
+            { title: "Bảo mật", href: "/settings/security" },
+        ],
     },
 ];
 

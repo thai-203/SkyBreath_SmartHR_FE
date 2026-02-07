@@ -30,6 +30,16 @@ export default function EmployeeTable({
     const columns = useMemo(
         () => [
             {
+                id: "stt",
+                header: "STT",
+                size: 60,
+                cell: ({ row }) => (
+                    <span className="text-slate-500">
+                        {pagination.pageIndex * pagination.pageSize + row.index + 1}
+                    </span>
+                ),
+            },
+            {
                 accessorKey: "avatar",
                 header: "Ảnh",
                 size: 60,
@@ -119,7 +129,7 @@ export default function EmployeeTable({
                 ),
             },
         ],
-        [onEdit, onDelete]
+        [onEdit, onDelete, pagination]
     );
 
     const table = useReactTable({
