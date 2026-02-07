@@ -2,43 +2,14 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { 
-  User, Calendar, Briefcase, DollarSign, ShieldCheck, 
-  FileText, Clock, Settings, Paperclip, Search, AlertCircle
+  User, Briefcase, DollarSign, ShieldCheck, 
+  FileText, Clock, Paperclip, AlertCircle, Landmark, Search, PenTool, Layers
 } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { Select } from "@/components/common/Select";
 import { Label } from "@/components/common/Label";
-
-// --- Constants ---
-const CONTRACT_TYPES = [
-  { value: "probation", label: "Thử việc" },
-  { value: "fixed_6m", label: "Xác định thời hạn (6 tháng)" },
-  { value: "fixed_12m", label: "Xác định thời hạn (12 tháng)" },
-  { value: "fixed_24m", label: "Xác định thời hạn (24 tháng)" },
-  { value: "permanent", label: "Hợp đồng vĩnh viễn" },
-  { value: "seasonal", label: "Thời vụ / Cộng tác viên" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "active", label: "Đang hiệu lực" },
-  { value: "expiring", label: "Sắp hết hạn" },
-  { value: "expired", label: "Hết hạn" },
-  { value: "terminated", label: "Đã chấm dứt" },
-];
-
-const WORK_MODELS = [
-  { value: "fulltime", label: "Toàn thời gian" },
-  { value: "parttime", label: "Bán thời gian" },
-  { value: "remote", label: "Remote" },
-  { value: "hybrid", label: "Hybrid" },
-];
-
-const PAYMENT_METHODS = [
-  { value: "transfer", label: "Chuyển khoản" },
-  { value: "cash", label: "Tiền mặt" },
-];
 
 export default function ContractFormModal({
   isOpen,
@@ -47,15 +18,31 @@ export default function ContractFormModal({
   formData,
   onFormChange,
   contractList = [],
-  employeeList = [],
+  employeeList = [], 
+  jobGradesList = [],    
+  departmentsList = [],
   loading,
   mode = "create",
 }) {
   const [activeTab, setActiveTab] = useState("general");
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [localErrors, setLocalErrors] = useState({});
+  const [errors, setErrors] = useState({});
   const dropdownRef = useRef(null);
+
+  const contractTypeLabels = {
+  permanent: "Hợp đồng vĩnh viễn",
+  temporary: "Hợp đồng tạm thời",
+  seasonal: "Hợp đồng theo mùa",
+  probation: "Hợp đồng thử việc",
+};
+
+  useEffect(() => {
+    if (!isOpen) {
+      setErrors({});
+      setSearchTerm("");
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -67,7 +54,6 @@ export default function ContractFormModal({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropdownOpen]);
 
-  // --- Logic Xử lý Nhân viên ---
   const existingEmployeeIds = useMemo(() => {
     return new Set(contractList.map((item) => String((item.data || item).employeeId)));
   }, [contractList]);
@@ -75,228 +61,287 @@ export default function ContractFormModal({
   const filteredEmployees = useMemo(() => {
     return employeeList.filter((emp) => {
       const isAlreadyContracted = existingEmployeeIds.has(String(emp.value));
-      const matchesSearch = emp.label.toLowerCase().includes(searchTerm.toLowerCase());
-      if (mode === "create") return !isAlreadyContracted && matchesSearch;
+      const employeeData = emp.data || {};
+      const name = employeeData.fullName || emp.label || "";
+      const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (mode === "create") {
+        return !isAlreadyContracted && matchesSearch;
+      }
       return matchesSearch;
     });
   }, [employeeList, existingEmployeeIds, searchTerm, mode]);
 
-  // --- Handlers ---
-  const handleInputChange = (field, value) => {
-    onFormChange({ ...formData, [field]: value });
-    if (localErrors[field]) {
-      const newErrors = { ...localErrors };
-      delete newErrors[field];
-      setLocalErrors(newErrors);
-    }
-  };
-
-  const handleSelectEmployee = (emp) => {
-    handleInputChange("employeeId", emp.value);
-    setSearchTerm(emp.label);
-    setIsDropdownOpen(false);
-  };
-
-  // --- Validation ---
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.employeeId) errors.employeeId = "Bắt buộc chọn nhân viên";
-    if (!formData.contractNumber) errors.contractNumber = "Mã hợp đồng bắt buộc";
-    if (!formData.startDate) errors.startDate = "Ngày bắt đầu bắt buộc";
-    if (!formData.baseSalary) errors.baseSalary = "Mức lương bắt buộc";
-
-    // Check trùng mã hợp đồng
-    const isDuplicate = contractList.some(item => {
-        const c = item.data || item;
-        if (mode === "edit" && String(c.id) === String(formData.id)) return false;
-        return String(c.contractNumber).toLowerCase() === String(formData.contractNumber).toLowerCase();
+  // Logic lọc Job Grades dựa trên phòng ban
+  const filteredJobGrades = useMemo(() => {
+    if (!formData.departmentId) return [];
+    
+    return jobGradesList.filter(grade => {
+      // Truy cập vào grade.data.departmentId theo cấu trúc bạn gửi
+      const deptIdInGrade = grade.data?.departmentId; 
+      return String(deptIdInGrade) === String(formData.departmentId);
     });
-    if (isDuplicate) errors.contractNumber = "Mã hợp đồng này đã tồn tại";
+  }, [jobGradesList, formData.departmentId]);
 
-    setLocalErrors(errors);
-    if (Object.keys(errors).length > 0) {
-        setActiveTab("general"); // Quay về tab đầu để hiện lỗi
-        return false;
-    }
-    return true;
-  };
-
-  // --- Effects ---
   useEffect(() => {
     if (isOpen) {
       const emp = employeeList.find(e => String(e.value) === String(formData.employeeId));
       setSearchTerm(emp ? emp.label : "");
-      setLocalErrors({});
       setActiveTab("general");
     }
-    console.log("Form Data on Open:", formData);
   }, [isOpen, formData.employeeId, employeeList]);
 
-  // --- Render Sections ---
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.employeeId) newErrors.employeeId = "Vui lòng chọn nhân viên";
+    if (!formData.contractNumber?.trim()) {
+      newErrors.contractNumber = "Mã hợp đồng không được để trống";
+    } else {
+      const isDuplicate = contractList.some(contract => {
+        const cData = contract.data || contract;
+        if (mode === "edit" && contract.id === formData.id) return false;
+        return cData.contractNumber === formData.contractNumber?.trim();
+      });
+      if (isDuplicate) newErrors.contractNumber = "Mã hợp đồng này đã tồn tại trên hệ thống";
+    }
+    if (!formData.effectiveFrom) newErrors.effectiveFrom = "Vui lòng chọn ngày hiệu lực";
+    if (!formData.baseSalary || Number(formData.baseSalary) <= 0) {
+      newErrors.baseSalary = "Lương cơ bản phải lớn hơn 0";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleHandleSubmit = () => {
+    if (validateForm()) {
+      onSubmit();
+    } else {
+      if (errors.baseSalary) setActiveTab("salary");
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    let newData = { ...formData, [field]: value };
+    
+    if (field === "departmentId") {
+      newData.jobGradeId = null;
+    }
+
+    onFormChange(newData);
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: null }));
+    }
+  };
+
+  const handleSelectEmployee = (emp) => {
+    const employeeData = emp.data || {};
+    onFormChange({ 
+      ...formData, 
+      employeeId: emp.value,
+      departmentId: employeeData.departmentId || formData.departmentId,
+      jobGradeId: employeeData.jobGradeId || formData.jobGradeId,
+    });
+    setSearchTerm(emp.label);
+    setIsDropdownOpen(false);
+  };
+
+  const selectedEmployeeData = useMemo(() => {
+    const emp = employeeList.find(e => String(e.value) === String(formData.employeeId));
+    return emp?.data || {};
+  }, [employeeList, formData.employeeId]);
+
+  const ErrorMsg = ({ name }) => errors[name] ? (
+    <span className="text-[11px] text-red-500 mt-1 animate-in fade-in slide-in-from-top-1 font-medium italic">
+      {errors[name]}
+    </span>
+  ) : null;
+
   const renderGeneralInfo = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-1">
-      <div className="space-y-1.5 relative" ref={dropdownRef}>
-        <Label>Nhân viên <span className="text-red-500">*</span></Label>
+      <div className="md:col-span-2 space-y-1.5 relative" ref={dropdownRef}>
+        <Label className={errors.employeeId ? "text-red-600" : ""}>Nhân viên ký kết <span className="text-red-500">*</span></Label>
         <div className="relative">
-          <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <User className={`absolute left-3 top-2.5 h-4 w-4 ${errors.employeeId ? "text-red-400" : "text-slate-400"}`} />
           <input
             type="text"
-            placeholder="Tìm theo tên hoặc mã..."
+            placeholder={mode === "create" ? "Tìm nhân viên chưa có hợp đồng..." : "Tên nhân viên..."}
             value={searchTerm}
             disabled={mode === "edit"}
             onChange={(e) => { setSearchTerm(e.target.value); setIsDropdownOpen(true); }}
             onFocus={() => setIsDropdownOpen(true)}
-            className={`w-full rounded-lg border pl-10 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 ${localErrors.employeeId ? 'border-red-500 bg-red-50/50' : 'border-slate-200'}`}
+            className={`w-full rounded-lg border pl-10 pr-3 py-2 text-sm outline-none transition-all ${
+              errors.employeeId ? "border-red-500 bg-red-50 focus:ring-red-200" : "border-slate-200 focus:ring-indigo-500/20"
+            } disabled:bg-slate-50`}
           />
           {isDropdownOpen && mode === "create" && (
             <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-              {filteredEmployees.length > 0 ? filteredEmployees.map(emp => (
-                <div key={emp.value} onMouseDown={() => handleSelectEmployee(emp)} className="px-4 py-2.5 text-sm hover:bg-indigo-50 cursor-pointer flex items-center gap-2 border-b border-slate-50 last:border-none">
-                  <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">{emp.label.charAt(0)}</div>
-                  <span>{emp.label}</span>
-                </div>
-              )) : <div className="px-4 py-3 text-sm text-slate-400 italic">Không tìm thấy nhân viên</div>}
+              {filteredEmployees.length > 0 ? (
+                filteredEmployees.map(emp => (
+                  <div key={emp.value} onMouseDown={() => handleSelectEmployee(emp)} className="px-4 py-2.5 text-sm hover:bg-indigo-50 cursor-pointer flex items-center gap-2 border-b border-slate-50 last:border-none">
+                    <span className="font-medium">{emp.label}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-3 text-sm text-slate-400 italic text-center">Không tìm thấy nhân viên</div>
+              )}
             </div>
           )}
         </div>
-        {localErrors.employeeId && <p className="text-[11px] text-red-500">{localErrors.employeeId}</p>}
+        <ErrorMsg name="employeeId" />
       </div>
 
       <div className="space-y-1.5">
-        <Label>Mã hợp đồng <span className="text-red-500">*</span></Label>
-        <Input value={formData.contractNumber || ""} onChange={(e) => handleInputChange("contractNumber", e.target.value)} error={localErrors.contractNumber} />
+        <Label className={errors.contractNumber ? "text-red-600" : ""}>Mã hợp đồng <span className="text-red-500">*</span></Label>
+        <Input 
+          placeholder="VD: HĐLĐ-2024-001"
+          value={formData.contractNumber || ""} 
+          onChange={(e) => handleInputChange("contractNumber", e.target.value)} 
+          className={errors.contractNumber ? "border-red-500 bg-red-50" : ""}
+        />
+        <ErrorMsg name="contractNumber" />
       </div>
 
-      <div className="space-y-1.5"><Label>Loại hợp đồng</Label><Select value={formData.contractType || "probation"} options={CONTRACT_TYPES} onChange={(e) => handleInputChange("contractType", e.target.value)} /></div>
-      <div className="space-y-1.5"><Label>Trạng thái</Label><Select value={formData.contractStatus || "active"} options={STATUS_OPTIONS} onChange={(e) => handleInputChange("contractStatus", e.target.value)} /></div>
-      <div className="space-y-1.5"><Label>Ngày ký</Label><Input type="date" value={formData.signedDate || ""} onChange={(e) => handleInputChange("signDate", e.target.value)} /></div>
-      
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label>Ngày bắt đầu <span className="text-red-500">*</span></Label>
-          <Input type="date" value={formData.startDate || ""} onChange={(e) => handleInputChange("startDate", e.target.value)} error={localErrors.startDate} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Ngày kết thúc</Label>
-          <Input type="date" value={formData.endDate || ""} onChange={(e) => handleInputChange("endDate", e.target.value)} />
-        </div>
+      <div className="space-y-1.5">
+        <Label>Ngày ký kết</Label>
+        <Input type="date" value={formData.signedDate || ""} onChange={(e) => handleInputChange("signedDate", e.target.value)} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Phòng ban</Label>
+        <Select 
+          value={formData.departmentId || ""} 
+          options={departmentsList}
+          onChange={(e) => handleInputChange("departmentId", e.target.value)} 
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Ngạch lương (Job Grade)</Label>
+        <Select 
+          value={formData.jobGradeId || ""} 
+          disabled={!formData.departmentId}
+          options={filteredJobGrades}
+          placeholder={formData.departmentId ? "Chọn ngạch lương" : "Chọn phòng ban trước"}
+          onChange={(e) => handleInputChange("jobGradeId", e.target.value)} 
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Loại hợp đồng</Label>
+        <Select
+          value={formData.contractType ?? ""}
+          options={Object.entries(contractTypeLabels).map(
+            ([key, label]) => ({
+              value: key,
+              label: label,
+            })
+          )}
+          onChange={(e) =>
+            handleInputChange("contractType", e.target.value)
+          }
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label className={errors.effectiveFrom ? "text-red-600" : ""}>Ngày hiệu lực <span className="text-red-500">*</span></Label>
+        <Input 
+          type="date" 
+          value={formData.effectiveFrom || ""} 
+          onChange={(e) => handleInputChange("effectiveFrom", e.target.value)}
+          className={errors.effectiveFrom ? "border-red-500 bg-red-50" : ""}
+        />
+        <ErrorMsg name="effectiveFrom" />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Ngày hết hạn</Label>
+        <Input type="date" value={formData.effectiveTo || ""} onChange={(e) => handleInputChange("effectiveTo", e.target.value)} />
       </div>
     </div>
   );
 
-  const renderWorkContent = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-1">
-      <div className="space-y-1.5"><Label>Vị trí / Chức danh</Label><Input value={formData.jobTitle || ""} onChange={(e) => handleInputChange("jobTitle", e.target.value)} /></div>
-      <div className="space-y-1.5"><Label>Hình thức làm việc</Label><Select value={formData.workModel || "fulltime"} options={WORK_MODELS} onChange={(e) => handleInputChange("workModel", e.target.value)} /></div>
-      <div className="space-y-1.5"><Label>Địa điểm / Chi nhánh</Label><Input value={formData.location || ""} onChange={(e) => handleInputChange("location", e.target.value)} /></div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5"><Label>Giờ làm/ngày</Label><Input type="number" value={formData.hoursPerDay || ""} onChange={(e) => handleInputChange("hoursPerDay", e.target.value)} /></div>
-        <div className="space-y-1.5"><Label>Giờ làm/tuần</Label><Input type="number" value={formData.hoursPerWeek || ""} onChange={(e) => handleInputChange("hoursPerWeek", e.target.value)} /></div>
-      </div>
-      <div className="md:col-span-2 space-y-1.5">
-        <Label>Mô tả công việc chính</Label>
-        <textarea rows={4} value={formData.jobDescription || ""} onChange={(e) => handleInputChange("jobDescription", e.target.value)} className="w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" />
-      </div>
-    </div>
-  );
-
-  const renderSalaryInfo = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-1">
-      <div className="space-y-1.5">
-        <Label>Lương cơ bản <span className="text-red-500">*</span></Label>
-        <div className="relative">
-          <Input type="number" value={formData.baseSalary || ""} onChange={(e) => handleInputChange("baseSalary", e.target.value)} error={localErrors.baseSalary} />
-          <span className="absolute right-3 top-2.5 text-xs text-slate-400">VNĐ</span>
+  const renderSalaryDetail = () => (
+    <div className="space-y-6 p-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="space-y-1.5">
+          <Label className={errors.baseSalary ? "text-red-600" : ""}>Lương cơ bản <span className="text-red-500">*</span></Label>
+          <Input 
+            type="number" 
+            value={formData.baseSalary || ""} 
+            onChange={(e) => handleInputChange("baseSalary", e.target.value)} 
+            className={errors.baseSalary ? "border-red-500 bg-red-50" : ""}
+          />
+          <ErrorMsg name="baseSalary" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Lương hiệu quả</Label>
+          <Input type="number" value={formData.performanceSalary || ""} onChange={(e) => handleInputChange("performanceSalary", e.target.value)} />
         </div>
       </div>
-      <div className="space-y-1.5"><Label>Hình thức trả lương</Label><Select value={formData.paymentMethod || "transfer"} options={PAYMENT_METHODS} onChange={(e) => handleInputChange("paymentMethod", e.target.value)} /></div>
-      
-      <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl space-y-4">
-        <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2"><DollarSign size={14}/> Các khoản phụ cấp & Thưởng</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="space-y-1.5"><Label className="text-[11px]">Ăn trưa</Label><Input type="number" value={formData.allowanceLunch || ""} onChange={(e) => handleInputChange("allowanceLunch", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[11px]">Xăng xe</Label><Input type="number" value={formData.allowanceTravel || ""} onChange={(e) => handleInputChange("allowanceTravel", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[11px]">Trách nhiệm</Label><Input type="number" value={formData.allowanceResponsibility || ""} onChange={(e) => handleInputChange("allowanceResponsibility", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[11px]">Thưởng KPI</Label><Input type="number" value={formData.bonusKpi || ""} onChange={(e) => handleInputChange("bonusKpi", e.target.value)} /></div>
+
+      <div className="bg-slate-50 p-5 rounded-2xl space-y-4 border border-slate-100">
+        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <DollarSign size={14}/> Các khoản phụ cấp
+        </h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5"><Label className="text-xs">Ăn trưa</Label><Input type="number" value={formData.lunchAllowance || ""} onChange={(e) => handleInputChange("lunchAllowance", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-xs">Xăng xe</Label><Input type="number" value={formData.fuelAllowance || ""} onChange={(e) => handleInputChange("fuelAllowance", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-xs">Điện thoại</Label><Input type="number" value={formData.phoneAllowance || ""} onChange={(e) => handleInputChange("phoneAllowance", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-xs">Khác</Label><Input type="number" value={formData.otherAllowance || ""} onChange={(e) => handleInputChange("otherAllowance", e.target.value)} /></div>
         </div>
       </div>
     </div>
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={mode === "create" ? "Tạo hợp đồng lao động" : "Cập nhật hợp đồng"} size="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={mode === "create" ? "Tạo hợp đồng lương" : "Cập nhật thông tin lương"} size="2xl">
       <div className="flex flex-col md:flex-row gap-6 mt-4">
-        {/* Sidebar Tabs */}
-        <div className="w-full md:w-52 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:border-r border-slate-100 md:pr-4 pb-2 md:pb-0 scrollbar-hide">
-          <TabBtn active={activeTab === "general"} onClick={() => setActiveTab("general")} icon={<FileText size={17}/>} label="Thông tin chung" />
-          <TabBtn active={activeTab === "work"} onClick={() => setActiveTab("work")} icon={<Briefcase size={17}/>} label="Công việc" />
-          <TabBtn active={activeTab === "salary"} onClick={() => setActiveTab("salary")} icon={<DollarSign size={17}/>} label="Lương & Phụ cấp" />
-          <TabBtn active={activeTab === "insurance"} onClick={() => setActiveTab("insurance")} icon={<ShieldCheck size={17}/>} label="Bảo hiểm & Thuế" />
-          <TabBtn active={activeTab === "terms"} onClick={() => setActiveTab("terms")} icon={<Clock size={17}/>} label="Điều khoản" />
-          <TabBtn active={activeTab === "files"} onClick={() => setActiveTab("files")} icon={<Paperclip size={17}/>} label="Tệp đính kèm" />
+        <div className="w-full md:w-48 shrink-0 flex md:flex-col gap-1 md:border-r border-slate-100 md:pr-4">
+          <TabBtn active={activeTab === "general"} onClick={() => setActiveTab("general")} icon={<Briefcase size={17}/>} label="Hợp đồng" hasError={errors.employeeId || errors.contractNumber || errors.effectiveFrom} />
+          <TabBtn active={activeTab === "salary"} onClick={() => setActiveTab("salary")} icon={<DollarSign size={17}/>} label="Lương & Phụ cấp" hasError={errors.baseSalary} />
+          <TabBtn active={activeTab === "info"} onClick={() => setActiveTab("info")} icon={<Landmark size={17}/>} label="Thông tin thuế" />
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 min-h-[400px] max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="flex-1 min-h-[420px] max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
           {activeTab === "general" && renderGeneralInfo()}
-          {activeTab === "work" && renderWorkContent()}
-          {activeTab === "salary" && renderSalaryInfo()}
-          
-          {activeTab === "insurance" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-1">
-              <div className="space-y-1.5"><Label>Mức đóng BHXH</Label><Input type="number" value={formData.insuranceAmount || ""} onChange={(e) => handleInputChange("insuranceAmount", e.target.value)} /></div>
-              <div className="space-y-1.5"><Label>Mã số thuế TNCN</Label><Input value={formData.taxCode || ""} onChange={(e) => handleInputChange("taxCode", e.target.value)} /></div>
-              <div className="space-y-1.5"><Label>Ngày bắt đầu đóng BH</Label><Input type="date" value={formData.insuranceStartDate || ""} onChange={(e) => handleInputChange("insuranceStartDate", e.target.value)} /></div>
-            </div>
-          )}
-
-          {activeTab === "terms" && (
-            <div className="space-y-5 p-1">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5"><Label>Thời gian thử việc</Label><Input placeholder="VD: 2 tháng" value={formData.probationPeriod || ""} onChange={(e) => handleInputChange("probationPeriod", e.target.value)} /></div>
-                <div className="space-y-1.5"><Label>Thời hạn thông báo nghỉ</Label><Input placeholder="VD: 30 ngày" value={formData.noticePeriod || ""} onChange={(e) => handleInputChange("noticePeriod", e.target.value)} /></div>
-              </div>
-              <div className="space-y-1.5"><Label>Điều khoản bảo mật & Cam kết</Label><textarea rows={5} value={formData.termsAndConditions || ""} onChange={(e) => handleInputChange("termsAndConditions", e.target.value)} className="w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" /></div>
-            </div>
-          )}
-
-          {activeTab === "files" && (
-            <div className="p-1 space-y-4">
-               <div className="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center hover:bg-slate-50 transition-all cursor-pointer group">
-                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                    <Paperclip className="text-slate-400 group-hover:text-indigo-600" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-700">Tải lên file hợp đồng hoặc phụ lục</p>
-                  <p className="text-xs text-slate-400 mt-1">Chấp nhận PDF, Word hoặc Ảnh (Tối đa 10MB)</p>
-               </div>
+          {activeTab === "salary" && renderSalaryDetail()}
+          {activeTab === "info" && (
+            <div className="grid grid-cols-1 gap-4 opacity-70">
+                <div className="space-y-1.5">
+                  <Label>Email công ty</Label>
+                  <Input value={selectedEmployeeData.companyEmail || "N/A"} readOnly />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Mã số thuế</Label>
+                  <Input value={selectedEmployeeData.taxCode || "N/A"} readOnly />
+                </div>
             </div>
           )}
         </div>
       </div>
 
       <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-100">
-        <Button variant="outline" onClick={onClose} disabled={loading}>Hủy</Button>
-        <Button onClick={() => { if(validateForm()) onSubmit(); }} loading={loading} className="px-10 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-          {mode === "create" ? "Tạo hợp đồng" : "Cập nhật dữ liệu"}
+        <Button variant="outline" onClick={onClose} disabled={loading}>Hủy bỏ</Button>
+        <Button onClick={handleHandleSubmit} loading={loading} className="px-10 bg-indigo-600 hover:bg-indigo-700">
+          Lưu dữ liệu
         </Button>
       </div>
     </Modal>
   );
 }
 
-// Sub-component cho Tab Button
-function TabBtn({ active, onClick, icon, label }) {
+function TabBtn({ active, onClick, icon, label, hasError }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all shrink-0 ${
-        active 
-        ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" 
-        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all relative ${
+        active ? "bg-indigo-600 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
       }`}
     >
-      {icon}
-      <span className="whitespace-nowrap">{label}</span>
+      {icon} 
+      <span>{label}</span>
+      {hasError && !active && (
+        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+      )}
     </button>
   );
 }
