@@ -26,6 +26,11 @@ export const maxLength = (max, message) => (value) => {
     return value.length <= max ? null : msg;
 };
 
+export const regex = (pattern, message = "Định dạng không hợp lệ") => (value) => {
+    if (!value) return null;
+    return pattern.test(value) ? null : message;
+};
+
 export const unique = (list, currentId, message = "Giá trị này đã tồn tại") => (value) => {
     if (!value) return null;
     const exists = list.some(item =>

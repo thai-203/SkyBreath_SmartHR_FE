@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/common/Ca
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Search, Edit2, Trash2 } from "lucide-react";
+import { Search, Edit2, Trash2, Eye } from "lucide-react";
 
 export default function DepartmentTable({
     data,
@@ -24,13 +24,19 @@ export default function DepartmentTable({
     totalPages,
     onEdit,
     onDelete,
+    onViewDetail,
 }) {
     const columns = useMemo(
         () => [
             {
-                accessorKey: "id",
-                header: "ID",
+                id: "stt",
+                header: "STT",
                 size: 60,
+                cell: ({ row }) => (
+                    <span className="text-slate-500">
+                        {pagination.pageIndex * pagination.pageSize + row.index + 1}
+                    </span>
+                ),
             },
             {
                 accessorKey: "departmentName",
@@ -47,22 +53,41 @@ export default function DepartmentTable({
                 cell: ({ row }) => row.original.manager?.fullName || "-",
             },
             {
+                accessorKey: "employeeCount",
+                header: "Số nhân viên",
+                cell: ({ row }) => (
+                    <span className="font-semibold text-indigo-600">
+                        {row.original.employeeCount || 0}
+                    </span>
+                ),
+            },
+            {
                 id: "actions",
                 header: "Thao tác",
-                size: 100,
+                size: 140,
                 cell: ({ row }) => (
                     <div className="flex items-center gap-2">
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => onEdit(row.original)}
+                            onClick={() => onViewDetail(row.original)}
+                            title="Xem chi tiết"
                         >
-                            <Edit2 className="h-4 w-4" />
+                            <Eye className="h-4 w-4 text-slate-500" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onEdit(row.original)}
+                            title="Chỉnh sửa"
+                        >
+                            <Edit2 className="h-4 w-4 text-blue-500" />
                         </Button>
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => onDelete(row.original)}
+                            title="Xóa"
                         >
                             <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
@@ -70,7 +95,7 @@ export default function DepartmentTable({
                 ),
             },
         ],
-        [onEdit, onDelete]
+        [onEdit, onDelete, onViewDetail, pagination]
     );
 
     const table = useReactTable({
