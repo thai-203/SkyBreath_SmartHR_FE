@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
-import { contractsService, employeesService } from "@/services";
+import { contractsService, employeesService, jobGradesService, departmentsService } from "@/services";
 import { Plus, Download } from "lucide-react";
 import { validate, required } from "@/lib/validation";
 
@@ -64,6 +64,8 @@ export default function ContractsPage() {
     // Dropdown data
     const [employeeList, setEmployeeList] = useState([]);
     const [contractList, setContractList] = useState([]);
+    const [jobGradesList, setJobGradesList] = useState([]);
+    const [departmentsList, setDepartmentsList] = useState([]);
 
     // ==================== API Calls ====================
     const fetchContracts = async () => {
@@ -96,11 +98,44 @@ export default function ContractsPage() {
         }
     };
 
+    const fetchJobGradesList = async () => {
+        try {
+            const response = await jobGradesService.getAll();
+            const items = Array.isArray(response.data) ? response.data : [];
+            setJobGradesList(
+                items.map((e) => ({
+                    value: e.id,
+                    label: e.gradeName,
+                    data: e,
+                }))
+            );
+        } catch (err) {
+            console.error("Error fetching job grades:", err);
+        }
+    };
+
+    const fetchDepartmentList = async () => {
+        try {
+            const response = await departmentsService.getAll();
+            const departments = Array.isArray(response.data) ? response.data : [];
+            const mappedData = departments.map((dept) => ({
+                value: dept.id,
+                label: dept.departmentName || dept.name || "Unnamed Department",
+                data: dept,
+            }));
+            setDepartmentsList(mappedData);
+        } catch (err) {
+            console.error("Error fetching departments:", err);
+        }
+    };
+
+
     const fetchEmployeeList = async () => {
         try {
             const response = await employeesService.getAll();
+            const items = response.data?.items || [];
             setEmployeeList(
-                (response.data || []).map((e) => ({
+                items.map((e) => ({
                     value: e.id,
                     label: e.fullName,
                     data: e,
@@ -118,6 +153,8 @@ export default function ContractsPage() {
     useEffect(() => {
         fetchContractList();
         fetchEmployeeList();
+        fetchJobGradesList();
+        fetchDepartmentList();
     }, []);
 
     // ==================== Handlers ====================
@@ -347,6 +384,8 @@ export default function ContractsPage() {
                 errors={errors}
                 contractList={contractList}
                 employeeList={employeeList}
+                jobGradesList={jobGradesList}
+                departmentsList={departmentsList}
                 loading={formLoading}
                 mode="create"
             />
