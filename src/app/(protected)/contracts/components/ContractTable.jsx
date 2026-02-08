@@ -24,9 +24,9 @@ import {
   Eye,
   FileText,
   Calendar,
-  User,
 } from "lucide-react";
 
+// Định nghĩa labels với key viết thường
 const contractTypeLabels = {
   permanent: "Hợp đồng vĩnh viễn",
   temporary: "Hợp đồng tạm thời",
@@ -98,14 +98,17 @@ export default function ContractTable({
       },
       {
         header: "Loại hợp đồng",
-        cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="text-sm text-slate-700 font-medium">
-              {contractTypeLabels[row.original.contractType] ||
-                row.original.contractType}
-            </span>
-          </div>
-        ),
+        cell: ({ row }) => {
+          // Chuẩn hóa type về lowercase để map
+          const typeKey = row.original.contractType?.toLowerCase();
+          return (
+            <div className="flex flex-col">
+              <span className="text-sm text-slate-700 font-medium">
+                {contractTypeLabels[typeKey] || row.original.contractType}
+              </span>
+            </div>
+          );
+        },
       },
       {
         header: "Thời hạn",
@@ -129,10 +132,13 @@ export default function ContractTable({
       {
         header: "Trạng thái",
         cell: ({ row }) => {
-          const status = contractStatusConfig[row.original.contractStatus] || {
+          // Chuẩn hóa status về lowercase
+          const statusKey = row.original.contractStatus?.toLowerCase();
+          const status = contractStatusConfig[statusKey] || {
             label: row.original.contractStatus,
-            class: "bg-gray-100",
+            class: "bg-gray-100 text-gray-600 border-gray-200",
           };
+          
           return (
             <span
               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${status.class}`}
@@ -146,50 +152,56 @@ export default function ContractTable({
       {
         id: "actions",
         header: () => <div className="text-right mr-4">Thao tác</div>,
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-              onClick={() => onView(row.original)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-              onClick={() => onEdit(row.original)}
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            {row.original.contractStatus === "active" && (
+        cell: ({ row }) => {
+          // Kiểm tra trạng thái không phân biệt hoa thường
+          const isActive = row.original.contractStatus?.toLowerCase() === "active";
+          
+          return (
+            <div className="flex items-center justify-end gap-1">
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-orange-500 hover:bg-orange-50"
-                title="Chấm dứt hợp đồng"
-                onClick={() => onTerminate(row.original)}
+                className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                onClick={() => onView(row.original)}
               >
-                <FileText className="h-4 w-4" />
+                <Eye className="h-4 w-4" />
               </Button>
-            )}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-              onClick={() => onDelete(row.original)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ),
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                onClick={() => onEdit(row.original)}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+              {isActive && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-orange-500 hover:bg-orange-50"
+                  title="Chấm dứt hợp đồng"
+                  onClick={() => onTerminate(row.original)}
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                onClick={() => onDelete(row.original)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        },
       },
     ],
     [onView, onEdit, onDelete, onTerminate],
   );
 
+  // ... (giữ nguyên phần useReactTable và return JSX bên dưới)
   const table = useReactTable({
     data,
     columns,
@@ -203,7 +215,8 @@ export default function ContractTable({
 
   return (
     <Card className="border-none shadow-sm overflow-hidden bg-white">
-      <CardHeader className="bg-white px-6 py-5 border-b border-slate-100">
+        {/* ... giữ nguyên phần còn lại của component ... */}
+        <CardHeader className="bg-white px-6 py-5 border-b border-slate-100">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">
