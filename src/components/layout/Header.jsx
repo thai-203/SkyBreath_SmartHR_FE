@@ -23,6 +23,7 @@ export function Header({ onMenuClick }) {
     create: "Thêm mới",
     edit: "Chỉnh sửa",
     security: "Bảo mật",
+    "audit-log": "Lịch sử hoạt động",
   };
 
   const pathParts = pathname.split("/").filter(Boolean);
