@@ -9,8 +9,6 @@ import {
     ChevronDown,
     ChevronRight,
     LayoutDashboard,
-    Settings,
-    Users,
     X,
 } from "lucide-react";
 import Link from "next/link";
