@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
@@ -63,6 +64,8 @@ export default function ContractsPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [totalPages, setTotalPages] = useState(1);
 
@@ -100,8 +103,11 @@ export default function ContractsPage() {
       const response = await contractsService.getAll({
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
-        search,
+        search: search || undefined,
+        contractType: filterType || undefined,
+        contractStatus: filterStatus || undefined,
       });
+
       setData(response.data || []);
       setTotalPages(response.meta?.totalPages || 1);
     } catch (err) {
@@ -214,7 +220,13 @@ export default function ContractsPage() {
 
   useEffect(() => {
     fetchContracts();
-  }, [pagination.pageIndex, pagination.pageSize, search]);
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    search,
+    filterType,
+    filterStatus,
+  ]);
 
   useEffect(() => {
     fetchContractList();
@@ -225,10 +237,22 @@ export default function ContractsPage() {
   }, []);
 
   useEffect(() => {
-    if ((isCreateOpen || isEditOpen) && formData.employeeId) {
-      fetchSalaryByEmployeeId(formData.employeeId);
+    if (isCreateOpen || isEditOpen) {
+      if (formData.employeeId) {
+        fetchSalaryByEmployeeId(formData.employeeId);
+      }
     }
-  }, [formData.employeeId, isCreateOpen, isEditOpen]);
+
+    if (isViewOpen && selectedContract?.employeeId) {
+      fetchSalaryByEmployeeId(selectedContract.employeeId);
+    }
+  }, [
+    isCreateOpen,
+    isEditOpen,
+    isViewOpen,
+    formData.employeeId,
+    selectedContract?.employeeId,
+  ]);
 
   // ==================== Handlers ====================
   const handleCreate = () => {
@@ -239,12 +263,10 @@ export default function ContractsPage() {
   };
 
   const handleView = (contract) => {
-    // Tìm thông tin text từ các danh sách dựa trên ID giống logic edit
-    const dept = departmentsList.find((d) => d.value === contract.departmentId);
-    const pos = positionsList.find((p) => p.value === contract.positionId);
-    const grade = jobGradesList.find((g) => g.value === contract.jobGradeId);
+    const dept = departmentsList.find((d) => d.value === contract.employee.departmentId);
+    const pos = positionsList.find((p) => p.value === contract.employee.positionId);
+    const grade = jobGradesList.find((g) => g.value === contract.employee.jobGradeId);
     const emp = employeeList.find((e) => e.value === contract.employeeId);
-
     const enrichedContract = {
       ...contract,
       // Ánh xạ tên hiển thị
@@ -502,6 +524,28 @@ export default function ContractsPage() {
     }
   };
 
+  const handleSearchChange = (value) => {
+    setSearch(value);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const handleTypeChange = (value) => {
+    setFilterType(value);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const handleStatusChange = (status) => {
+    setFilterStatus((prev) => (prev === status ? "" : status));
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const handleReset = () => {
+    setSearch("");
+    setFilterType("");
+    setFilterStatus("");
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
   // ==================== Render ====================
   return (
     <div className="space-y-6">
@@ -536,9 +580,13 @@ export default function ContractsPage() {
       {/* Table */}
       <ContractTable
         data={data}
-        loading={loading}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
+        filterType={filterType}
+        onTypeChange={handleTypeChange}
+        filterStatus={filterStatus}
+        onStatusChange={handleStatusChange}
+        onReset={handleReset}
         pagination={pagination}
         onPaginationChange={setPagination}
         totalPages={totalPages}
@@ -583,14 +631,13 @@ export default function ContractsPage() {
       />
 
       {/* View Modal */}
-      {/* View Modal */}
       <ViewContractModal
         isOpen={isViewOpen}
         onClose={() => {
           setIsViewOpen(false);
           setSelectedContract(null);
         }}
-        // Dữ liệu contract truyền vào đây chính là enrichedContract từ handleView
+        formData={formData}
         contract={selectedContract}
         loading={loading}
       />
