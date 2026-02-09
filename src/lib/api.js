@@ -1,3 +1,4 @@
+import { authService } from "@/services";
 import axios from "axios";
 
 const api = axios.create({
@@ -18,25 +19,77 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error),
+  // (error) => Promise.reject(error),
 );
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+  failedQueue = [];
+};
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const config = error.config;
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
 
-    if (error.response?.status === 401 && !config?.skipAuthRedirect) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
-      }
+    if (!error.response) {
+      return Promise.reject(error);
     }
 
+    if (!originalRequest?.skipAuthRedirect) {
+      if (status === 401 && originalRequest.url.includes("/auth/refresh")) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+          return new Promise(() => {});
+        }
+      }
+      if (status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({
+              resolve: (token) => {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+                resolve(api(originalRequest));
+              },
+              reject,
+            });
+          });
+        }
+
+        isRefreshing = true;
+
+        try {
+          const res = await authService.refreshToken();
+          const newAccessToken = res.data;
+          localStorage.setItem("token", newAccessToken);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          processQueue(null, newAccessToken);
+          return api(originalRequest);
+        } catch (refreshError) {
+          processQueue(refreshError, null);
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+          toast.info("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
+          return new Promise(() => {});
+        } finally {
+          isRefreshing = false;
+        }
+      }
+    }
     return Promise.reject(error);
   },
 );
-
 export default api;
