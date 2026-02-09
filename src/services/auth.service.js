@@ -45,6 +45,13 @@ export const authService = {
     return response.data;
   },
 
+  refreshToken: async () => {
+    const response = await api.post("auth/refresh");
+    console.log(response);
+
+    return response.data;
+  },
+
   getCurrentUser: () => {
     const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;
