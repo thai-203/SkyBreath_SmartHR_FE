@@ -1,7 +1,9 @@
-import "./globals.css";
-import "nprogress/nprogress.css";
-import { Inter } from "next/font/google";
 import { ToastProvider } from "@/components/common/Toast";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { Inter } from "next/font/google";
+import "nprogress/nprogress.css";
+import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,11 +18,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
     return (
-        <html lang="vi">
+        <html lang="vi" suppressHydrationWarning>
             <body className={inter.className}>
-                <ToastProvider>
-                    {children}
-                </ToastProvider>
+                <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                    <ToastProvider>
+                        {children}
+                        <Toaster />
+                    </ToastProvider>
+                </ThemeProvider>
             </body>
         </html>
     );

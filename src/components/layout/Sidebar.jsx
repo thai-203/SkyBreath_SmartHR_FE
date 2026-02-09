@@ -1,19 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
-    LayoutDashboard,
     Building2,
     Users,
     FileText,
     Settings,
     ChevronDown,
     ChevronRight,
+    LayoutDashboard,
+    Settings,
+    Users,
     X,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const menuItems = [
     {
