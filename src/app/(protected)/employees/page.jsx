@@ -6,12 +6,14 @@ import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
 import { employeesService } from "@/services";
-import { validate, required, email, uniqueField } from "@/lib/validation";
+import { validate, required, email, uniqueField, regex } from "@/lib/validation";
+import { Select } from "@/components/common/Select";
 
 // Local components
 import EmployeeTable from "./components/EmployeeTable";
 import EmployeeFormModal from "./components/EmployeeFormModal";
 import EmployeeDeleteModal from "./components/EmployeeDeleteModal";
+import EmployeeDetailModal from "./components/EmployeeDetailModal";
 
 export default function EmployeesPage() {
     const { success, error: toastError } = useToast();
@@ -26,9 +28,15 @@ export default function EmployeesPage() {
 
     // UI state
     const [search, setSearch] = useState("");
+    const [filters, setFilters] = useState({
+        departmentId: "",
+        positionId: "",
+        employmentStatus: "",
+    });
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [modalMode, setModalMode] = useState("create");
     const [submitting, setSubmitting] = useState(false);
 
@@ -57,6 +65,9 @@ export default function EmployeesPage() {
                 page: pagination.pageIndex + 1,
                 limit: pagination.pageSize,
                 search: search,
+                departmentId: filters.departmentId || undefined,
+                positionId: filters.positionId || undefined,
+                employmentStatus: filters.employmentStatus || undefined,
             });
             const data = result.data || {};
             setEmployees(data.items || []);
@@ -74,11 +85,12 @@ export default function EmployeesPage() {
 
     useEffect(() => {
         fetchEmployees();
-    }, [pagination.pageIndex, pagination.pageSize, search]);
+    }, [pagination.pageIndex, pagination.pageSize, search, filters]);
 
     const handleCreate = () => {
         setSelectedEmployee(null);
         setFormData({
+            employeeCode: "",
             employmentStatus: "PROBATION",
             gender: "MALE",
             maritalStatus: "SINGLE",
@@ -105,6 +117,19 @@ export default function EmployeesPage() {
         }
     };
 
+    const handleViewDetail = async (employee) => {
+        setLoading(true);
+        try {
+            const result = await employeesService.getById(employee.id);
+            setSelectedEmployee(result.data || employee);
+            setIsDetailOpen(true);
+        } catch (error) {
+            toastError("Không thể lấy thông tin chi tiết nhân viên");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleDelete = (employee) => {
         setSelectedEmployee(employee);
         setIsDeleteOpen(true);
@@ -112,7 +137,15 @@ export default function EmployeesPage() {
 
     const validateForm = () => {
         const rules = {
-            fullName: [required("Họ tên là bắt buộc")],
+            employeeCode: [
+                required("Mã nhân viên là bắt buộc"),
+                regex(/^[A-Za-z0-9-]+$/, "Mã nhân viên chỉ được chứa chữ, số và dấu gạch ngang"),
+                uniqueField(validationData, "employeeCode", selectedEmployee?.id, "Mã nhân viên đã tồn tại"),
+            ],
+            fullName: [
+                required("Họ tên là bắt buộc"),
+                regex(/^[a-zA-ZÀ-ỹ\s]+$/, "Họ tên chỉ được chứa chữ và khoảng trắng"),
+            ],
             companyEmail: [
                 required("Email công ty là bắt buộc"),
                 email("Email không hợp lệ"),
@@ -227,6 +260,43 @@ export default function EmployeesPage() {
                 </div>
             </div>
 
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg border border-slate-200">
+                <div className="w-48">
+                    <Select
+                        label="Phòng ban"
+                        value={filters.departmentId}
+                        onChange={(e) => setFilters({ ...filters, departmentId: e.target.value })}
+                        options={[
+                            { value: "", label: "Tất cả" },
+                            ...(metadata.departments || []).map(d => ({ value: d.id, label: d.departmentName }))
+                        ]}
+                    />
+                </div>
+                <div className="w-48">
+                    <Select
+                        label="Vị trí"
+                        value={filters.positionId}
+                        onChange={(e) => setFilters({ ...filters, positionId: e.target.value })}
+                        options={[
+                            { value: "", label: "Tất cả" },
+                            ...(metadata.positions || []).map(p => ({ value: p.id, label: p.positionName }))
+                        ]}
+                    />
+                </div>
+                <div className="w-48">
+                    <Select
+                        label="Trạng thái"
+                        value={filters.employmentStatus}
+                        onChange={(e) => setFilters({ ...filters, employmentStatus: e.target.value })}
+                        options={[
+                            { value: "", label: "Tất cả" },
+                            ...(metadata.employmentStatusOptions || [])
+                        ]}
+                    />
+                </div>
+            </div>
+
             <EmployeeTable
                 data={employees}
                 loading={loading}
@@ -237,6 +307,7 @@ export default function EmployeesPage() {
                 totalPages={totalPages}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onViewDetail={handleViewDetail}
             />
 
             <EmployeeFormModal
@@ -257,6 +328,12 @@ export default function EmployeesPage() {
                 onConfirm={confirmDelete}
                 employee={selectedEmployee}
                 loading={submitting}
+            />
+
+            <EmployeeDetailModal
+                isOpen={isDetailOpen}
+                onClose={() => setIsDetailOpen(false)}
+                employee={selectedEmployee}
             />
         </div>
     );

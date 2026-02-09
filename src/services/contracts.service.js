@@ -32,7 +32,7 @@ export const contractsService = {
     },
 
     terminate: async (id, data) => {
-        const response = await api.post(`/contracts/${id}/terminate`, data);
+        const response = await api.put(`/contracts/${id}/terminate`, data);
         return response.data;
     },
 

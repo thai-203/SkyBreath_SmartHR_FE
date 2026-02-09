@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/common/Ca
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Search, Edit2, Trash2, User } from "lucide-react";
+import { Search, Edit2, Trash2, User, Eye } from "lucide-react";
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -26,6 +26,7 @@ export default function EmployeeTable({
     totalPages,
     onEdit,
     onDelete,
+    onViewDetail,
 }) {
     const columns = useMemo(
         () => [
@@ -36,6 +37,16 @@ export default function EmployeeTable({
                 cell: ({ row }) => (
                     <span className="text-slate-500">
                         {pagination.pageIndex * pagination.pageSize + row.index + 1}
+                    </span>
+                ),
+            },
+            {
+                accessorKey: "employeeCode",
+                header: "Mã NV",
+                size: 100,
+                cell: ({ row }) => (
+                    <span className="font-mono text-sm text-indigo-600">
+                        {row.original.employeeCode || "-"}
                     </span>
                 ),
             },
@@ -108,20 +119,30 @@ export default function EmployeeTable({
             {
                 id: "actions",
                 header: "Thao tác",
-                size: 100,
+                size: 140,
                 cell: ({ row }) => (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onViewDetail(row.original)}
+                            title="Xem chi tiết"
+                        >
+                            <Eye className="h-4 w-4 text-slate-500" />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => onEdit(row.original)}
+                            title="Chỉnh sửa"
                         >
-                            <Edit2 className="h-4 w-4" />
+                            <Edit2 className="h-4 w-4 text-blue-500" />
                         </Button>
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => onDelete(row.original)}
+                            title="Xóa"
                         >
                             <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
@@ -129,7 +150,7 @@ export default function EmployeeTable({
                 ),
             },
         ],
-        [onEdit, onDelete, pagination]
+        [onEdit, onDelete, onViewDetail, pagination]
     );
 
     const table = useReactTable({
