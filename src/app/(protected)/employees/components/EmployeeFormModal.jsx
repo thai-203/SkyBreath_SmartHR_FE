@@ -55,6 +55,7 @@ export default function EmployeeFormModal({
         {
             title: "Thông tin cá nhân",
             fields: [
+                { id: "employeeCode", label: "Mã nhân viên *", type: "text", placeholder: "Ví dụ: NV-001", disabled: isEdit },
                 { id: "fullName", label: "Họ và tên *", type: "text", placeholder: "Nhập họ và tên" },
                 { id: "dateOfBirth", label: "Ngày sinh", type: "date" },
                 { id: "gender", label: "Giới tính", type: "select", options: metadata.genderOptions },
