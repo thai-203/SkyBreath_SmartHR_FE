@@ -5,6 +5,7 @@ import {
     Building2,
     Users,
     FileText,
+    UserPlus,
     Settings,
     ChevronDown,
     ChevronRight,
@@ -42,6 +43,15 @@ const menuItems = [
         title: "Hợp đồng",
         icon: FileText,
         href: "/contracts",
+    },
+    {
+        title: "Quản lý tiếp nhận nhân sự mới",
+        icon: UserPlus,
+        href: "/onboardings",
+        children: [
+            { title: "Danh sách", href: "/onboardings" },
+            { title: "Mẫu", href: "/onboardings/template" },
+        ],
     },
     {
         title: "Cài đặt",
