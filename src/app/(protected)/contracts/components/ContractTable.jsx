@@ -12,7 +12,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
@@ -24,24 +23,22 @@ import {
   Eye,
   FileText,
   Calendar,
+  RotateCcw,
 } from "lucide-react";
 
-// Định nghĩa labels với key viết thường
+// Cấu hình nhãn loại hợp đồng
 const contractTypeLabels = {
-  permanent: "Hợp đồng vĩnh viễn",
-  temporary: "Hợp đồng tạm thời",
-  seasonal: "Hợp đồng theo mùa",
-  probation: "Hợp đồng thử việc",
+  probation: "Thử việc",
+  internship: "Học việc",
+  fixed_term: "Có thời hạn",
+  permanent: "Không thời hạn",
 };
 
+// Cấu hình trạng thái hợp đồng
 const contractStatusConfig = {
   active: {
     label: "Đang hiệu lực",
     class: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  },
-  inactive: {
-    label: "Chưa hiệu lực",
-    class: "bg-slate-100 text-slate-700 border-slate-200",
   },
   terminated: {
     label: "Đã chấm dứt",
@@ -58,6 +55,11 @@ export default function ContractTable({
   loading,
   search,
   onSearchChange,
+  filterType,
+  onTypeChange,
+  filterStatus,
+  onStatusChange,
+  onReset,
   pagination,
   onPaginationChange,
   totalPages,
@@ -99,14 +101,11 @@ export default function ContractTable({
       {
         header: "Loại hợp đồng",
         cell: ({ row }) => {
-          // Chuẩn hóa type về lowercase để map
           const typeKey = row.original.contractType?.toLowerCase();
           return (
-            <div className="flex flex-col">
-              <span className="text-sm text-slate-700 font-medium">
-                {contractTypeLabels[typeKey] || row.original.contractType}
-              </span>
-            </div>
+            <span className="text-sm text-slate-700 font-medium">
+              {contractTypeLabels[typeKey] || row.original.contractType}
+            </span>
           );
         },
       },
@@ -132,7 +131,6 @@ export default function ContractTable({
       {
         header: "Trạng thái",
         cell: ({ row }) => {
-          // Chuẩn hóa status về lowercase
           const statusKey = row.original.contractStatus?.toLowerCase();
           const status = contractStatusConfig[statusKey] || {
             label: row.original.contractStatus,
@@ -140,9 +138,7 @@ export default function ContractTable({
           };
           
           return (
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${status.class}`}
-            >
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${status.class}`}>
               <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5" />
               {status.label}
             </span>
@@ -153,9 +149,7 @@ export default function ContractTable({
         id: "actions",
         header: () => <div className="text-right mr-4">Thao tác</div>,
         cell: ({ row }) => {
-          // Kiểm tra trạng thái không phân biệt hoa thường
           const isActive = row.original.contractStatus?.toLowerCase() === "active";
-          
           return (
             <div className="flex items-center justify-end gap-1">
               <Button
@@ -198,10 +192,9 @@ export default function ContractTable({
         },
       },
     ],
-    [onView, onEdit, onDelete, onTerminate],
+    [onView, onEdit, onDelete, onTerminate]
   );
 
-  // ... (giữ nguyên phần useReactTable và return JSX bên dưới)
   const table = useReactTable({
     data,
     columns,
@@ -215,25 +208,68 @@ export default function ContractTable({
 
   return (
     <Card className="border-none shadow-sm overflow-hidden bg-white">
-        {/* ... giữ nguyên phần còn lại của component ... */}
-        <CardHeader className="bg-white px-6 py-5 border-b border-slate-100">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">
-              Hợp đồng lao động
-            </CardTitle>
-            <p className="text-xs text-slate-500 mt-1">
-              Quản lý và theo dõi thông tin hợp đồng nhân viên
-            </p>
+      <CardHeader className="bg-white px-6 py-5 border-b border-slate-100">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+          {/* Tìm kiếm */}
+          <div className="lg:col-span-3 space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">Tìm kiếm</label>
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+              <Input
+                className="pl-9 w-full bg-slate-50 border-slate-200 focus:bg-white transition-all rounded-lg h-10"
+                placeholder="Mã HĐ, tên nhân viên..."
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-            <Input
-              className="pl-9 w-full sm:w-72 bg-slate-50 border-slate-200 focus:bg-white transition-all rounded-xl"
-              placeholder="Tìm tên, mã hợp đồng..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
+
+          {/* Loại hợp đồng */}
+          <div className="lg:col-span-3 space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">Loại hợp đồng</label>
+            <select
+              className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+              value={filterType}
+              onChange={(e) => onTypeChange(e.target.value)}
+            >
+              <option value="">Tất cả loại hình</option>
+              {Object.entries(contractTypeLabels).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Trạng thái */}
+          <div className="lg:col-span-4 space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">Trạng thái</label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(contractStatusConfig).map(([key, config]) => (
+                <button
+                  key={key}
+                  onClick={() => onStatusChange(key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                    filterStatus === key
+                      ? `${config.class} border-current ring-2 ring-offset-1 ring-current/10`
+                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  {config.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Nút Reset */}
+          <div className="lg:col-span-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onReset}
+              className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-rose-600 border-slate-200 hover:border-rose-200 rounded-lg h-10 transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold uppercase">Đặt lại</span>
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -249,10 +285,7 @@ export default function ContractTable({
                       key={header.id}
                       className="px-6 py-3.5 text-left text-[11px] uppercase tracking-wider font-bold text-slate-500 border-b border-slate-100"
                     >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
+                      {flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
                 </tr>
@@ -275,27 +308,16 @@ export default function ContractTable({
                   <td colSpan={columns.length} className="text-center py-12">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <FileText className="h-10 w-10 mb-2 opacity-20" />
-                      <p className="text-sm font-medium">
-                        Không tìm thấy hợp đồng nào
-                      </p>
+                      <p className="text-sm font-medium">Không tìm thấy hợp đồng nào</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="group hover:bg-indigo-50/30 transition-colors"
-                  >
+                  <tr key={row.id} className="group hover:bg-indigo-50/30 transition-colors">
                     {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="px-6 py-4 text-sm leading-tight"
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
+                      <td key={cell.id} className="px-6 py-4 text-sm leading-tight">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
                   </tr>
@@ -307,16 +329,12 @@ export default function ContractTable({
 
         <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-4 bg-white border-t border-slate-50 gap-4">
           <span className="text-xs font-medium text-slate-500">
-            Hiển thị trang{" "}
-            <span className="text-slate-900">{pagination.pageIndex + 1}</span>{" "}
-            trên <span className="text-slate-900">{totalPages}</span>
+            Hiển thị trang <span className="text-slate-900">{pagination.pageIndex + 1}</span> trên <span className="text-slate-900">{totalPages}</span>
           </span>
           <Pagination
             currentPage={pagination.pageIndex + 1}
             totalPages={totalPages}
-            onPageChange={(p) =>
-              onPaginationChange({ ...pagination, pageIndex: p - 1 })
-            }
+            onPageChange={(p) => onPaginationChange({ ...pagination, pageIndex: p - 1 })}
           />
         </div>
       </CardContent>
