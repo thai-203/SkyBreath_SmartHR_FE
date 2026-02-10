@@ -57,6 +57,7 @@ export default function ContractFormModal({
     "contractType",
     "startDate",
     "endDate",
+    "workingHours",
   ];
 
   // --- UTILS ---
@@ -231,6 +232,15 @@ export default function ContractFormModal({
 
     if (formData.contractType !== "permanent" && !formData.endDate) {
       newErrors.endDate = "Chọn ngày kết thúc";
+    }
+
+    const wHours = Number(formData.workingHours);
+    if (!formData.workingHours || formData.workingHours === "") {
+      newErrors.workingHours = "Nhập thời giờ làm việc";
+    } else if (isNaN(wHours) || wHours <= 0) {
+      newErrors.workingHours = "Thời giờ làm việc phải > 0";
+    } else if (wHours > 168) {
+      newErrors.workingHours = "Không thể quá 168 giờ/tuần";
     }
 
     const baseSal = Number(formData.baseSalary);
@@ -475,6 +485,22 @@ export default function ContractFormModal({
                   className={errors.endDate ? "border-red-500" : ""}
                 />
                 <ErrorMsg name="endDate" />
+              </div>
+
+              <div className="space-y-1">
+                <Label>
+                  Thời giờ làm việc (giờ/tuần) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="168"
+                  value={formData.workingHours || ""}
+                  onChange={(e) => handleInputChange("workingHours", e.target.value)}
+                  placeholder="Ví dụ: 40"
+                  className={errors.workingHours ? "border-red-500" : ""}
+                />
+                <ErrorMsg name="workingHours" />
               </div>
             </div>
           )}

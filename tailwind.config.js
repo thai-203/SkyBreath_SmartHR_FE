@@ -8,11 +8,42 @@ module.exports = {
     theme: {
         extend: {
             colors: {
+                border: "var(--border)",
+                input: "var(--border)",
+                ring: "var(--primary)",
+                background: "var(--background)",
+                foreground: "var(--foreground)",
                 primary: {
-                    DEFAULT: '#4E73DF',
-                    light: '#6B8AE6',
-                    dark: '#3A5BC7',
+                    DEFAULT: "var(--primary)",
+                    foreground: "#ffffff",
+                    light: "var(--primary-light)",
+                    dark: "var(--primary-dark)",
                 },
+                secondary: {
+                    DEFAULT: "#f1f5f9",
+                    foreground: "#0f172a",
+                },
+                destructive: {
+                    DEFAULT: "var(--danger)",
+                    foreground: "#ffffff",
+                },
+                muted: {
+                    DEFAULT: "var(--muted)",
+                    foreground: "#64748b",
+                },
+                accent: {
+                    DEFAULT: "#f1f5f9",
+                    foreground: "#0f172a",
+                },
+                card: {
+                    DEFAULT: "var(--card)",
+                    foreground: "var(--foreground)",
+                },
+            },
+            borderRadius: {
+                lg: "var(--radius)",
+                md: "calc(var(--radius) - 2px)",
+                sm: "calc(var(--radius) - 4px)",
             },
         },
     },
