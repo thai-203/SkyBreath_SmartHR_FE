@@ -77,7 +77,7 @@ export default function EmployeesPage() {
         } finally {
             setLoading(false);
         }
-    }, [pagination, search, toastError]);
+    }, [pagination, search, filters, toastError]);
 
     useEffect(() => {
         fetchMetadata();
@@ -85,7 +85,7 @@ export default function EmployeesPage() {
 
     useEffect(() => {
         fetchEmployees();
-    }, [pagination.pageIndex, pagination.pageSize, search, filters]);
+    }, [fetchEmployees]);
 
     const handleCreate = () => {
         setSelectedEmployee(null);
@@ -265,34 +265,34 @@ export default function EmployeesPage() {
                 <div className="w-48">
                     <Select
                         label="Phòng ban"
+                        placeholder="-- Tất cả phòng ban --"
                         value={filters.departmentId}
                         onChange={(e) => setFilters({ ...filters, departmentId: e.target.value })}
-                        options={[
-                            { value: "", label: "Tất cả" },
-                            ...(metadata.departments || []).map(d => ({ value: d.id, label: d.departmentName }))
-                        ]}
+                        options={
+                            (metadata.departments || []).map(d => ({ value: d.id, label: d.departmentName }))
+                        }
                     />
                 </div>
                 <div className="w-48">
                     <Select
                         label="Vị trí"
+                        placeholder="-- Tất cả vị trí --"
                         value={filters.positionId}
                         onChange={(e) => setFilters({ ...filters, positionId: e.target.value })}
-                        options={[
-                            { value: "", label: "Tất cả" },
-                            ...(metadata.positions || []).map(p => ({ value: p.id, label: p.positionName }))
-                        ]}
+                        options={
+                            (metadata.positions || []).map(p => ({ value: p.id, label: p.positionName }))
+                        }
                     />
                 </div>
                 <div className="w-48">
                     <Select
                         label="Trạng thái"
+                        placeholder="-- Tất cả trạng thái --"
                         value={filters.employmentStatus}
                         onChange={(e) => setFilters({ ...filters, employmentStatus: e.target.value })}
-                        options={[
-                            { value: "", label: "Tất cả" },
-                            ...(metadata.employmentStatusOptions || [])
-                        ]}
+                        options={
+                            (metadata.employmentStatusOptions || [])
+                        }
                     />
                 </div>
             </div>
