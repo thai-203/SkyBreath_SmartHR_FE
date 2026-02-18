@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { onboardingsService, employeesService } from "@/services";
-import { toast } from "sonner";
+import { onboardingsService, employeesService, departmentsService } from "@/services";
+import { useToast } from "@/components/common/Toast";
 import {
   FileDown,
   Plus,
@@ -18,12 +18,6 @@ import CreatePlanModal from "./components/CreatePlanModal";
 import { on } from "events";
 import { set } from "nprogress";
 
-/**
- * Normalize list response từ backend
- * Hỗ trợ:
- * - data = []
- * - data = { items: [] }
- */
 const normalizeList = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.items)) return data.items;
@@ -31,9 +25,12 @@ const normalizeList = (data) => {
 };
 
 export default function OnboardingPage() {
+  const { success, error } = useToast();
   const [showCreatePlan, setShowCreatePlan] = useState(false);
   const [plans, setPlans] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [progress, setProgress] = useState([]);
   const [stats, setStats] = useState({
     totalNewHires: 0,
@@ -49,18 +46,20 @@ export default function OnboardingPage() {
       try {
         setLoading(true);
 
-        const [plansRes, progsRes, statsRes, empRes] = await Promise.all([
+        const [plansRes, progsRes, statsRes, empRes, depRes, tmpRes] = await Promise.all([
           onboardingsService.getPlans(),
           onboardingsService.getProgress(),
           onboardingsService.getProgressStats(),
-          employeesService.getAll(),
+          employeesService.getEmployeeNoPlanId(),
+          departmentsService.getList(),
+          onboardingsService.getPlanTemplates(),
         ]);
-        console.log("Fetched plans:", progsRes);
 
-        // 🔒 Normalize data
         setPlans(normalizeList(plansRes?.data));
         setEmployees(normalizeList(empRes?.data));
         setProgress(normalizeList(progsRes?.data));
+        setDepartments(normalizeList(depRes?.data));
+        setTemplates(normalizeList(tmpRes?.data));
 
         setStats({
           totalNewHires: statsRes?.data?.totalNewHires || 0,
@@ -69,7 +68,7 @@ export default function OnboardingPage() {
         });
       } catch (error) {
         console.error("Onboarding fetch error:", error);
-        toast.error("Lỗi khi tải dữ liệu hội nhập");
+        error("Lỗi khi tải dữ liệu hội nhập");
       } finally {
         setLoading(false);
       }
@@ -215,6 +214,8 @@ export default function OnboardingPage() {
       {showCreatePlan && (
         <CreatePlanModal
           employees={employees}
+          departments={departments}
+          templates={templates}
           onClose={() => setShowCreatePlan(false)}
           onSuccess={handlePlanCreated}
         />

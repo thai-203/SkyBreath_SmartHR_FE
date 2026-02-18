@@ -47,4 +47,9 @@ export const employeesService = {
         });
         return response.data;
     },
+
+    getEmployeeNoPlanId: async () => {
+        const response = await api.get("/employees/no-plan");
+        return response.data;
+    },
 };
