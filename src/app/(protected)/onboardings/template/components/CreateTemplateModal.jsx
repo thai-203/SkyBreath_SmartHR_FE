@@ -230,7 +230,11 @@ export default function CreateTemplateModal({
       onSuccess?.();
       onClose?.();
     } catch (e) {
-      error("Thao tác thất bại.");
+      const backendError = e?.response?.data;
+      error(
+        backendError?.message || 
+        "Thao tác thất bại."
+      );
     } finally {
       setSubmitting(false);
     }
