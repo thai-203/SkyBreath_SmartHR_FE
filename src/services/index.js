@@ -7,3 +7,4 @@ export * from "./job-grades.service";
 export * from "./positions.service";
 export * from "./employee-salaries.service";
 export * from "./onboardings.service";
+export * from "./timesheets.service";
