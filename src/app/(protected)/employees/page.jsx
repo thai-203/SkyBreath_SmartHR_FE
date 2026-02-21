@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Users } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
@@ -246,10 +246,18 @@ export default function EmployeesPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <PageTitle
-                    title="Quản lý Nhân viên"
-                    subtitle="Xem và quản lý hồ sơ nhân sự trong hệ thống"
-                />
+                <PageTitle title="Quản lý Nhân viên" />
+                <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500 text-white">
+                        <Users className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Quản lý Nhân viên</h1>
+                        <p className="text-sm text-slate-500">
+                            Xem và quản lý hồ sơ nhân sự trong hệ thống
+                        </p>
+                    </div>
+                </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" className="hidden sm:flex items-center gap-2" onClick={handleExport} loading={exportLoading}>
                         <Download className="h-4 w-4" /> Xuất Excel
