@@ -12,6 +12,7 @@ import {
   X,
   User,
   UserPlus,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -39,18 +40,23 @@ const menuItems = [
     children: [{ title: "Danh sách", href: "/employees" }],
   },
   {
-      title: "Hợp đồng",
-      icon: FileText,
-      href: "/contracts",
+    title: "Hợp đồng",
+    icon: FileText,
+    href: "/contracts",
   },
   {
-      title: "Quản lý tiếp nhận nhân sự mới",
-      icon: UserPlus,
-      href: "/onboardings",
-      children: [
-          { title: "Danh sách", href: "/onboardings" },
-          { title: "Mẫu", href: "/onboardings/template" },
-      ],
+    title: "Bảng chấm công",
+    icon: Clock,
+    href: "/timesheets",
+  },
+  {
+    title: "Quản lý tiếp nhận nhân sự mới",
+    icon: UserPlus,
+    href: "/onboardings",
+    children: [
+      { title: "Danh sách", href: "/onboardings" },
+      { title: "Mẫu", href: "/onboardings/template" },
+    ],
   },
   {
     title: "Người dùng",
@@ -59,13 +65,13 @@ const menuItems = [
     children: [{ title: "Lịch sử hoạt động", href: "/users/audit-log" }],
   },
   {
-      title: "Cài đặt",
-      icon: Settings,
-      href: "/settings",
-      children: [
-          { title: "Tổng quan", href: "/settings" },
-          { title: "Bảo mật", href: "/settings/security" },
-      ],
+    title: "Cài đặt",
+    icon: Settings,
+    href: "/settings",
+    children: [
+      { title: "Tổng quan", href: "/settings" },
+      { title: "Bảo mật", href: "/settings/security" },
+    ],
   },
 ];
 
