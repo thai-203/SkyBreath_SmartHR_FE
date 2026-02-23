@@ -12,12 +12,15 @@ import {
   Upload,
   Paperclip,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { Select } from "@/components/common/Select";
 import { Label } from "@/components/common/Label";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export default function ContractFormModal({
   isOpen,
@@ -106,7 +109,7 @@ export default function ContractFormModal({
   useEffect(() => {
     if (isOpen) {
       const currentEmp = employeeList.find(
-        (e) => String(e.value) === String(formData.employeeId)
+        (e) => String(e.value) === String(formData.employeeId),
       );
       setSearchTerm(currentEmp ? currentEmp.label : "");
       setActiveTab("general");
@@ -130,7 +133,7 @@ export default function ContractFormModal({
   // --- MEMOIZED DATA ---
   const filteredEmployees = useMemo(() => {
     const existingIds = new Set(
-      contractList.map((item) => String((item.data || item).employeeId))
+      contractList.map((item) => String((item.data || item).employeeId)),
     );
     return employeeList.filter((emp) => {
       const isAlreadyContracted = existingIds.has(String(emp.value));
@@ -147,13 +150,13 @@ export default function ContractFormModal({
     if (!formData.departmentId) return [];
     return jobGradesList.filter(
       (grade) =>
-        String(grade.data?.departmentId) === String(formData.departmentId)
+        String(grade.data?.departmentId) === String(formData.departmentId),
     );
   }, [jobGradesList, formData.departmentId]);
 
   const selectedJobGradeData = useMemo(() => {
     const grade = jobGradesList.find(
-      (g) => String(g.value) === String(formData.jobGradeId)
+      (g) => String(g.value) === String(formData.jobGradeId),
     );
     return grade?.data || null;
   }, [jobGradesList, formData.jobGradeId]);
@@ -185,7 +188,7 @@ export default function ContractFormModal({
   const handleSelectEmployee = (emp) => {
     // Tự động điền thông tin từ data của nhân viên nếu có
     const empData = emp.data || {};
-    
+
     onFormChange({
       ...formData,
       employeeId: emp.value,
@@ -212,11 +215,10 @@ export default function ContractFormModal({
     onFormChange({ ...formData, attachments: [...currentFiles, ...files] });
   };
 
-  const removeFile = (index) => {
-    const currentFiles = [...(formData.attachments || [])];
-    currentFiles.splice(index, 1);
-    onFormChange({ ...formData, attachments: currentFiles });
-  };
+const removeFile = (index) => {
+  const updatedFiles = formData.attachments.filter((_, i) => i !== index);
+  onFormChange({ ...formData, attachments: updatedFiles });
+};
 
   const validateForm = () => {
     const newErrors = {};
@@ -319,7 +321,10 @@ export default function ContractFormModal({
           {activeTab === "general" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
               {/* Employee Selection with Dropdown */}
-              <div className="md:col-span-2 space-y-1 relative" ref={dropdownRef}>
+              <div
+                className="md:col-span-2 space-y-1 relative"
+                ref={dropdownRef}
+              >
                 <Label>
                   Nhân viên ký kết <span className="text-red-500">*</span>
                 </Label>
@@ -380,7 +385,9 @@ export default function ContractFormModal({
                 </Label>
                 <Input
                   value={formData.contractNumber || ""}
-                  onChange={(e) => handleInputChange("contractNumber", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("contractNumber", e.target.value)
+                  }
                   placeholder="HĐLĐ/2024/001"
                   className={errors.contractNumber ? "border-red-500" : ""}
                 />
@@ -394,7 +401,9 @@ export default function ContractFormModal({
                 <Input
                   type="date"
                   value={formData.signedDate || ""}
-                  onChange={(e) => handleInputChange("signedDate", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("signedDate", e.target.value)
+                  }
                   className={errors.signedDate ? "border-red-500" : ""}
                 />
                 <ErrorMsg name="signedDate" />
@@ -407,7 +416,9 @@ export default function ContractFormModal({
                 <Select
                   value={formData.departmentId || ""}
                   options={departmentsList}
-                  onChange={(e) => handleInputChange("departmentId", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("departmentId", e.target.value)
+                  }
                   className={errors.departmentId ? "border-red-500" : ""}
                 />
                 <ErrorMsg name="departmentId" />
@@ -421,7 +432,9 @@ export default function ContractFormModal({
                   value={formData.positionId || ""}
                   disabled={!formData.departmentId}
                   options={positionsList}
-                  onChange={(e) => handleInputChange("positionId", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("positionId", e.target.value)
+                  }
                   className={errors.positionId ? "border-red-500" : ""}
                 />
                 <ErrorMsg name="positionId" />
@@ -435,7 +448,9 @@ export default function ContractFormModal({
                   value={formData.jobGradeId || ""}
                   disabled={!formData.departmentId}
                   options={filteredJobGrades}
-                  onChange={(e) => handleInputChange("jobGradeId", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("jobGradeId", e.target.value)
+                  }
                   className={errors.jobGradeId ? "border-red-500" : ""}
                 />
                 <ErrorMsg name="jobGradeId" />
@@ -451,7 +466,9 @@ export default function ContractFormModal({
                     value: v,
                     label: l,
                   }))}
-                  onChange={(e) => handleInputChange("contractType", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("contractType", e.target.value)
+                  }
                   className={errors.contractType ? "border-red-500" : ""}
                 />
                 <ErrorMsg name="contractType" />
@@ -464,13 +481,17 @@ export default function ContractFormModal({
                 <Input
                   type="date"
                   value={formData.startDate || ""}
-                  onChange={(e) => handleInputChange("startDate", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("startDate", e.target.value)
+                  }
                   className={errors.startDate ? "border-red-500" : ""}
                 />
                 <ErrorMsg name="startDate" />
               </div>
 
-              <div className={`space-y-1 ${formData.contractType === "permanent" ? "opacity-50" : ""}`}>
+              <div
+                className={`space-y-1 ${formData.contractType === "permanent" ? "opacity-50" : ""}`}
+              >
                 <Label>
                   Ngày kết thúc{" "}
                   {formData.contractType !== "permanent" && (
@@ -489,14 +510,17 @@ export default function ContractFormModal({
 
               <div className="space-y-1">
                 <Label>
-                  Thời giờ làm việc (giờ/tuần) <span className="text-red-500">*</span>
+                  Thời giờ làm việc (giờ/tuần){" "}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="number"
                   min="0"
                   max="168"
                   value={formData.workingHours || ""}
-                  onChange={(e) => handleInputChange("workingHours", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("workingHours", e.target.value)
+                  }
                   placeholder="Ví dụ: 40"
                   className={errors.workingHours ? "border-red-500" : ""}
                 />
@@ -546,7 +570,12 @@ export default function ContractFormModal({
                     <input
                       type="text"
                       value={formatCurrency(formData.performanceSalary)}
-                      onChange={(e) => handleMoneyInputChange("performanceSalary", e.target.value)}
+                      onChange={(e) =>
+                        handleMoneyInputChange(
+                          "performanceSalary",
+                          e.target.value,
+                        )
+                      }
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 pr-12"
                       placeholder="0"
                     />
@@ -559,7 +588,8 @@ export default function ContractFormModal({
 
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <div className="w-1 h-3 bg-indigo-500 rounded-full" /> Các khoản phụ cấp
+                  <div className="w-1 h-3 bg-indigo-500 rounded-full" /> Các
+                  khoản phụ cấp
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   {[
@@ -569,11 +599,15 @@ export default function ContractFormModal({
                     { id: "otherAllowance", label: "Khác" },
                   ].map((item) => (
                     <div key={item.id} className="space-y-1">
-                      <Label className="text-xs text-slate-500">{item.label}</Label>
+                      <Label className="text-xs text-slate-500">
+                        {item.label}
+                      </Label>
                       <input
                         type="text"
                         value={formatCurrency(formData[item.id])}
-                        onChange={(e) => handleMoneyInputChange(item.id, e.target.value)}
+                        onChange={(e) =>
+                          handleMoneyInputChange(item.id, e.target.value)
+                        }
                         className="w-full rounded-md border border-slate-200 px-3 py-1.5 text-sm outline-none focus:bg-white transition-colors"
                         placeholder="0"
                       />
@@ -586,6 +620,7 @@ export default function ContractFormModal({
 
           {activeTab === "attachment" && (
             <div className="space-y-4 p-1">
+              {/* Khu vực Upload */}
               <div
                 onClick={() => fileInputRef.current.click()}
                 className="border-2 border-dashed border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group"
@@ -600,37 +635,69 @@ export default function ContractFormModal({
                 <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-inner">
                   <Upload size={24} />
                 </div>
-                <p className="text-sm font-bold text-slate-700">Tải lên bản cứng hợp đồng</p>
-                <p className="text-xs text-slate-400 mt-1">Kéo thả file hoặc nhấn để chọn (PDF, PNG, JPG)</p>
+                <p className="text-sm font-bold text-slate-700">
+                  Tải lên bản cứng hợp đồng
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Kéo thả file hoặc nhấn để chọn (PDF, PNG, JPG)
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-2 mt-4">
-                {formData.attachments?.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-slate-50 rounded-lg text-indigo-500">
-                        <Paperclip size={16} />
+                {formData.attachments?.map((file, idx) => {
+                  const isExistingFile = typeof file === "string";
+                  const fileName = isExistingFile
+                    ? file.split("/").pop()
+                    : file.name;
+                  const fileSize = isExistingFile
+                    ? "Đã lưu"
+                    : `${(file.size / 1024).toFixed(1)} KB`;
+
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`p-2 rounded-lg ${isExistingFile ? "bg-green-50 text-green-600" : "bg-indigo-50 text-indigo-500"}`}
+                        >
+                          <Paperclip size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-700 truncate max-w-[250px]">
+                            {fileName}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {fileSize} {isExistingFile && " • Server"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-slate-700 truncate max-w-[250px]">
-                          {file.name}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {(file.size / 1024).toFixed(1)} KB
-                        </span>
+
+                      <div className="flex items-center gap-1">
+                        {isExistingFile && (
+                          <>
+                            <a
+                              href={`${API_BASE_URL}/${file}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-2 text-slate-400 hover:text-indigo-600"
+                              title="Xem file"
+                            >
+                              <Info size={16} />
+                            </a>
+                          </>
+                        )}
+                        <button
+                          onClick={() => removeFile(idx)}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                        >
+                          <X size={16} />
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeFile(idx)}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -677,7 +744,9 @@ function TabBtn({ active, onClick, icon, label, hasError }) {
     <button
       onClick={onClick}
       className={`flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all relative ${
-        active ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "text-slate-500 hover:bg-slate-50"
+        active
+          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+          : "text-slate-500 hover:bg-slate-50"
       }`}
     >
       {icon} <span>{label}</span>

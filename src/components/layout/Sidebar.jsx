@@ -50,6 +50,11 @@ const menuItems = [
     href: "/timesheets",
   },
   {
+      title: "Việc cần làm",
+      icon: UserPlus,
+      href: "/onboardings/employee",
+  },
+  {
     title: "Quản lý tiếp nhận nhân sự mới",
     icon: UserPlus,
     href: "/onboardings",

@@ -68,7 +68,6 @@ export default function CreateTemplateModal({
         {
           tempId: Date.now(),
           category: "Asset",
-          taskTitle: "",
           description: "",
           isMandatory: 1,
           estimatedDays: 1,
@@ -107,7 +106,6 @@ export default function CreateTemplateModal({
           id: t.id,
           tempId: t.id,
           category: t.category || "Asset",
-          taskTitle: t.taskTitle || t.task_title || "",
           description: t.description || "",
           isMandatory: t.isMandatory ?? t.is_mandatory ?? 1,
           estimatedDays: t.estimatedDays || t.estimated_days || 1,
@@ -168,7 +166,6 @@ export default function CreateTemplateModal({
       {
         tempId: newId,
         category: "System",
-        taskTitle: "",
         description: "",
         isMandatory: 0,
         estimatedDays: 1,
@@ -206,7 +203,6 @@ export default function CreateTemplateModal({
         status: isDraft ? "DRAFT" : "ACTIVE",
         tasks: tasks.map((t, index) => {
           const taskPayload = {
-            taskTitle: t.taskTitle,
             description: t.description,
             category: t.category,
             estimatedDays: t.estimatedDays,
@@ -458,8 +454,8 @@ export default function CreateTemplateModal({
                     <input
                       className="w-full p-2 bg-white border border-slate-200 rounded-xl text-sm font-medium"
                       placeholder="VD: Cấp laptop..."
-                      value={task.taskTitle}
-                      onChange={(e) => updateTask(task.tempId, "taskTitle", e.target.value)}
+                      value={task.description}
+                      onChange={(e) => updateTask(task.tempId, "description", e.target.value)}
                     />
                   </td>
 
