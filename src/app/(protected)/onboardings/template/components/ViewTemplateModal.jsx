@@ -195,7 +195,7 @@ export default function ViewTemplateModal({
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-700">
-                        {task.taskTitle || task.task_title}
+                        {task.description}
                       </h4>
                       <div className="flex gap-4 mt-1">
                         <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
