@@ -11,6 +11,11 @@ export const employeesService = {
         return response.data;
     },
 
+    getMetadata: async () => {
+        const response = await api.get("/employees/meta-data");
+        return response.data;
+    },
+
     getById: async (id) => {
         const response = await api.get(`/employees/${id}`);
         return response.data;
@@ -28,6 +33,23 @@ export const employeesService = {
 
     delete: async (id) => {
         const response = await api.delete(`/employees/${id}`);
+        return response.data;
+    },
+
+    getValidationData: async () => {
+        const response = await api.get("/employees/validation-data");
+        return response.data;
+    },
+
+    exportExcel: async () => {
+        const response = await api.get("/employees/export", {
+            responseType: "blob",
+        });
+        return response.data;
+    },
+
+    getEmployeeNoPlanId: async () => {
+        const response = await api.get("/employees/no-plan");
         return response.data;
     },
 };

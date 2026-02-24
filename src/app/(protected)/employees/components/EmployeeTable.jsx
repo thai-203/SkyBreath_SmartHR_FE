@@ -12,9 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/common/Ca
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Search, Edit2, Trash2, Eye } from "lucide-react";
+import { Search, Edit2, Trash2, User, Eye } from "lucide-react";
 
-export default function DepartmentTable({
+const BACKEND_URL = "http://localhost:3000";
+
+export default function EmployeeTable({
     data,
     loading,
     search,
@@ -39,34 +41,87 @@ export default function DepartmentTable({
                 ),
             },
             {
-                accessorKey: "departmentName",
-                header: "Tên phòng ban",
-            },
-            {
-                accessorKey: "parentDepartment",
-                header: "Phòng ban cha",
-                cell: ({ row }) => row.original.parentDepartment?.departmentName || "-",
-            },
-            {
-                accessorKey: "manager",
-                header: "Quản lý",
-                cell: ({ row }) => row.original.manager?.fullName || "-",
-            },
-            {
-                accessorKey: "employeeCount",
-                header: "Số nhân viên",
+                accessorKey: "employeeCode",
+                header: "Mã NV",
+                size: 100,
                 cell: ({ row }) => (
-                    <span className="font-semibold text-indigo-600">
-                        {row.original.employeeCount || 0}
+                    <span className="font-mono text-sm text-indigo-600">
+                        {row.original.employeeCode || "-"}
                     </span>
                 ),
+            },
+            {
+                accessorKey: "avatar",
+                header: "Ảnh",
+                size: 60,
+                cell: ({ row }) => (
+                    <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
+                        {row.original.avatar ? (
+                            <img
+                                src={row.original.avatar.startsWith('http') ? row.original.avatar : `${BACKEND_URL}/${row.original.avatar}`}
+                                alt={row.original.fullName}
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = ""; // Fallback will show the User icon
+                                }}
+                            />
+                        ) : (
+                            <User className="h-5 w-5 text-slate-400" />
+                        )}
+                    </div>
+                )
+            },
+            {
+                accessorKey: "fullName",
+                header: "Họ và tên",
+                cell: ({ row }) => (
+                    <div>
+                        <div className="font-medium text-slate-900">{row.original.fullName}</div>
+                        <div className="text-xs text-slate-500">{row.original.companyEmail || row.original.personalEmail}</div>
+                    </div>
+                )
+            },
+            {
+                accessorKey: "department",
+                header: "Phòng ban",
+                cell: ({ row }) => row.original.department?.departmentName || "-",
+            },
+            {
+                accessorKey: "position",
+                header: "Chức vụ",
+                cell: ({ row }) => row.original.position?.positionName || "-",
+            },
+            {
+                accessorKey: "employmentStatus",
+                header: "Trạng thái",
+                cell: ({ row }) => {
+                    const status = row.original.employmentStatus;
+                    const colors = {
+                        ACTIVE: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                        PROBATION: "bg-amber-50 text-amber-700 border-amber-200",
+                        ON_LEAVE: "bg-blue-50 text-blue-700 border-blue-200",
+                        TERMINATED: "bg-rose-50 text-rose-700 border-rose-200",
+                    };
+                    const labels = {
+                        ACTIVE: "Hoạt động",
+                        PROBATION: "Thử việc",
+                        ON_LEAVE: "Nghỉ phép",
+                        TERMINATED: "Đã nghỉ",
+                    };
+                    return (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${colors[status] || "bg-slate-50 text-slate-700 border-slate-200"}`}>
+                            {labels[status] || status}
+                        </span>
+                    );
+                }
             },
             {
                 id: "actions",
                 header: "Thao tác",
                 size: 140,
                 cell: ({ row }) => (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <Button
                             variant="ghost"
                             size="icon"
@@ -113,7 +168,7 @@ export default function DepartmentTable({
         <Card>
             <CardHeader className="border-b border-slate-200">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <CardTitle>Danh sách phòng ban</CardTitle>
+                    <CardTitle>Danh sách nhân viên</CardTitle>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input
