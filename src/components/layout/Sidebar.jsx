@@ -2,17 +2,18 @@
 
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
   Building2,
-  Users,
-  FileText,
-  Settings,
+  Calendar,
   ChevronDown,
   ChevronRight,
-  X,
+  Clock,
+  FileText,
+  LayoutDashboard,
+  Settings,
   User,
   UserPlus,
-  Clock,
+  Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -50,9 +51,14 @@ const menuItems = [
     href: "/timesheets",
   },
   {
-      title: "Việc cần làm",
-      icon: UserPlus,
-      href: "/onboardings/employee",
+    title: "Ngày nghỉ lễ",
+    icon: Calendar,
+    href: "/holidays",
+  },
+  {
+    title: "Việc cần làm",
+    icon: UserPlus,
+    href: "/onboardings/employee",
   },
   {
     title: "Quản lý tiếp nhận nhân sự mới",
