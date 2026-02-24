@@ -263,9 +263,15 @@ export default function ContractsPage() {
   };
 
   const handleView = (contract) => {
-    const dept = departmentsList.find((d) => d.value === contract.employee.departmentId);
-    const pos = positionsList.find((p) => p.value === contract.employee.positionId);
-    const grade = jobGradesList.find((g) => g.value === contract.employee.jobGradeId);
+    const dept = departmentsList.find(
+      (d) => d.value === contract.employee.departmentId,
+    );
+    const pos = positionsList.find(
+      (p) => p.value === contract.employee.positionId,
+    );
+    const grade = jobGradesList.find(
+      (g) => g.value === contract.employee.jobGradeId,
+    );
     const emp = employeeList.find((e) => e.value === contract.employeeId);
     const enrichedContract = {
       ...contract,
@@ -318,6 +324,7 @@ export default function ContractsPage() {
       fuelAllowance: contract.fuelAllowance,
       phoneAllowance: contract.phoneAllowance,
       otherAllowance: contract.otherAllowance,
+      attachments: contract.attachments,
       note: contract.note || "",
     });
     setErrors({});
@@ -356,8 +363,8 @@ export default function ContractsPage() {
 
   const validateTerminationForm = () => {
     const validationErrors = validate(terminationData, {
-    terminationDate: [required("Ngày chấm dứt là bắt buộc")],
-    terminationReason: [required("Lý do chấm dứt là bắt buộc")],
+      terminationDate: [required("Ngày chấm dứt là bắt buộc")],
+      terminationReason: [required("Lý do chấm dứt là bắt buộc")],
     });
     if (validationErrors) {
       setTerminationErrors(validationErrors);
@@ -372,46 +379,49 @@ export default function ContractsPage() {
 
     setFormLoading(true);
     try {
-      const payload = {
-        // Thông tin định danh & Tổ chức
-        employeeId: Number(formData.employeeId),
-        contractNumber: formData.contractNumber?.trim(),
-        departmentId: formData.departmentId,
-        positionId: formData.positionId,
-        jobGradeId: formData.jobGradeId,
+      const formDataToSubmit = new FormData();
 
-        // Loại & Thời hạn
-        contractType: formData.contractType,
-        signedDate: formData.signedDate,
-        startDate: formData.startDate,
-        // Nếu là hợp đồng vĩnh viễn thì không gửi ngày kết thúc
-        endDate:
-          formData.contractType === "permanent" ? null : formData.endDate,
-        workingHours: Number(formData.workingHours) || 0,
+      formDataToSubmit.append("employeeId", formData.employeeId);
+      formDataToSubmit.append(
+        "contractNumber",
+        formData.contractNumber?.trim() || "",
+      );
+      formDataToSubmit.append("departmentId", formData.departmentId);
+      formDataToSubmit.append("positionId", formData.positionId);
+      formDataToSubmit.append("jobGradeId", formData.jobGradeId);
+      formDataToSubmit.append("contractType", formData.contractType);
+      formDataToSubmit.append("signedDate", formData.signedDate);
+      formDataToSubmit.append("startDate", formData.startDate);
 
-        // Lương (Chuyển về kiểu số)
-        baseSalary: Number(formData.baseSalary) || 0,
-        performanceSalary: Number(formData.performanceSalary) || 0,
+      if (formData.contractType !== "permanent" && formData.endDate) {
+        formDataToSubmit.append("endDate", formData.endDate);
+      }
 
-        // Các khoản phụ cấp (Chuyển về kiểu số)
-        lunchAllowance: Number(formData.lunchAllowance) || 0,
-        fuelAllowance: Number(formData.fuelAllowance) || 0,
-        phoneAllowance: Number(formData.phoneAllowance) || 0,
-        otherAllowance: Number(formData.otherAllowance) || 0,
+      formDataToSubmit.append("workingHours", formData.workingHours || "0");
+      formDataToSubmit.append("baseSalary", formData.baseSalary || "0");
+      formDataToSubmit.append(
+        "performanceSalary",
+        formData.performanceSalary || "0",
+      );
+      formDataToSubmit.append("lunchAllowance", formData.lunchAllowance || "0");
+      formDataToSubmit.append("fuelAllowance", formData.fuelAllowance || "0");
+      formDataToSubmit.append("phoneAllowance", formData.phoneAllowance || "0");
+      formDataToSubmit.append("otherAllowance", formData.otherAllowance || "0");
+      formDataToSubmit.append("note", formData.note || "");
 
-        // Ghi chú
-        note: formData.note || "",
-      };
-      const response = await contractsService.create(payload);
+      if (formData.attachments && formData.attachments.length > 0) {
+        formData.attachments.forEach((file) => {
+          formDataToSubmit.append("attachments", file);
+        });
+      }
+
+      const response = await contractsService.create(formDataToSubmit);
 
       success(response.message || "Tạo hợp đồng thành công!");
       setIsCreateOpen(false);
       fetchContracts();
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.message ||
-        "Không thể tạo hợp đồng. Vui lòng thử lại.";
-      error(errorMsg);
+      error(err.response?.data?.message || "Không thể tạo hợp đồng.");
     } finally {
       setFormLoading(false);
     }
@@ -422,37 +432,70 @@ export default function ContractsPage() {
 
     setFormLoading(true);
     try {
-      const payload = {
-        // Thông tin tổ chức
-        departmentId: formData.departmentId,
-        positionId: formData.positionId,
-        jobGradeId: formData.jobGradeId,
+      const formDataToSubmit = new FormData();
 
-        // Loại & Thời hạn
-        contractType: formData.contractType,
-        signedDate: formData.signedDate,
-        startDate: formData.startDate,
-        endDate:
-          formData.contractType === "permanent" ? null : formData.endDate,
-        workingHours: Number(formData.workingHours) || 0,
+      // 1. Append các field text/number thông thường
+      formDataToSubmit.append("employeeId", formData.employeeId);
+      formDataToSubmit.append(
+        "contractNumber",
+        formData.contractNumber?.trim() || "",
+      );
+      formDataToSubmit.append("departmentId", formData.departmentId);
+      formDataToSubmit.append("positionId", formData.positionId);
+      formDataToSubmit.append("jobGradeId", formData.jobGradeId);
+      formDataToSubmit.append("contractType", formData.contractType);
+      formDataToSubmit.append("signedDate", formData.signedDate);
+      formDataToSubmit.append("startDate", formData.startDate);
 
-        // Lương
-        baseSalary: Number(formData.baseSalary) || 0,
-        performanceSalary: Number(formData.performanceSalary) || 0,
+      if (formData.contractType !== "permanent" && formData.endDate) {
+        formDataToSubmit.append("endDate", formData.endDate);
+      } else {
+        formDataToSubmit.append("endDate", "");
+      }
 
-        // Phụ cấp
-        lunchAllowance: Number(formData.lunchAllowance) || 0,
-        fuelAllowance: Number(formData.fuelAllowance) || 0,
-        phoneAllowance: Number(formData.phoneAllowance) || 0,
-        otherAllowance: Number(formData.otherAllowance) || 0,
+      formDataToSubmit.append(
+        "workingHours",
+        String(formData.workingHours || 0),
+      );
+      formDataToSubmit.append("baseSalary", String(formData.baseSalary || 0));
+      formDataToSubmit.append(
+        "performanceSalary",
+        String(formData.performanceSalary || 0),
+      );
+      formDataToSubmit.append(
+        "lunchAllowance",
+        String(formData.lunchAllowance || 0),
+      );
+      formDataToSubmit.append(
+        "fuelAllowance",
+        String(formData.fuelAllowance || 0),
+      );
+      formDataToSubmit.append(
+        "phoneAllowance",
+        String(formData.phoneAllowance || 0),
+      );
+      formDataToSubmit.append(
+        "otherAllowance",
+        String(formData.otherAllowance || 0),
+      );
+      formDataToSubmit.append("note", formData.note || "");
 
-        // Ghi chú
-        note: formData.note || "",
-      };
+      if (formData.attachments && formData.attachments.length > 0) {
+        formData.attachments.forEach((file) => {
+          if (file instanceof File) {
+            formDataToSubmit.append("attachments", file);
+          }
+        });
+      }
+
+      formDataToSubmit.append(
+        "oldAttachments",
+        JSON.stringify(formData.attachments),
+      );
 
       const response = await contractsService.update(
         selectedContract.id,
-        payload,
+        formDataToSubmit,
       );
 
       success(response.message || "Cập nhật hợp đồng thành công!");
@@ -462,6 +505,7 @@ export default function ContractsPage() {
       const errorMsg =
         err.response?.data?.message || "Không thể cập nhật hợp đồng.";
       error(errorMsg);
+      console.error("Update Contract Error:", err);
     } finally {
       setFormLoading(false);
     }

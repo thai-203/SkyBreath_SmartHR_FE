@@ -64,4 +64,11 @@ export const authService = {
   isAuthenticated: () => {
     return !!localStorage.getItem("token");
   },
+
+  getCurrentEmployeeByUserId: async () => {
+    const user = JSON.parse(localStorage.getItem("user"))
+    const userId = user?.id;
+    const response = await api.get(`/employees/user/${userId}`);
+    return response.data;
+  }
 };
