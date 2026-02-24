@@ -12,9 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/common/Ca
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Search, Edit2, Trash2, Eye } from "lucide-react";
+import { Search, Eye, Edit2, RefreshCw, Lock, Unlock } from "lucide-react";
 
-export default function DepartmentTable({
+export default function TimesheetTable({
     data,
     loading,
     search,
@@ -22,9 +22,11 @@ export default function DepartmentTable({
     pagination,
     onPaginationChange,
     totalPages,
-    onEdit,
-    onDelete,
     onViewDetail,
+    onEdit,
+    onRecalculate,
+    onLock,
+    onUnlock,
 }) {
     const columns = useMemo(
         () => [
@@ -39,63 +41,107 @@ export default function DepartmentTable({
                 ),
             },
             {
-                accessorKey: "departmentName",
-                header: "Tên phòng ban",
-            },
-            {
-                accessorKey: "parentDepartment",
-                header: "Phòng ban cha",
-                cell: ({ row }) => row.original.parentDepartment?.departmentName || "-",
-            },
-            {
-                accessorKey: "manager",
-                header: "Quản lý",
-                cell: ({ row }) => row.original.manager?.fullName || "-",
-            },
-            {
-                accessorKey: "employeeCount",
-                header: "Số nhân viên",
+                accessorKey: "employeeCode",
+                header: "Mã NV",
+                size: 100,
                 cell: ({ row }) => (
-                    <span className="font-semibold text-indigo-600">
-                        {row.original.employeeCount || 0}
+                    <span className="font-mono text-sm text-indigo-600">
+                        {row.original.employee?.employeeCode || "-"}
                     </span>
                 ),
             },
             {
+                accessorKey: "fullName",
+                header: "Họ và tên",
+                cell: ({ row }) => (
+                    <div className="font-medium text-slate-900">
+                        {row.original.employee?.fullName || "-"}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: "department",
+                header: "Phòng ban",
+                cell: ({ row }) => row.original.employee?.department?.departmentName || "-",
+            },
+            {
+                accessorKey: "totalWorkingDays",
+                header: "Ngày công",
+                size: 90,
+                cell: ({ row }) => (
+                    <span className="font-medium">{row.original.totalWorkingDays ?? 0}</span>
+                ),
+            },
+            {
+                accessorKey: "totalWorkingHours",
+                header: "Giờ công",
+                size: 90,
+                cell: ({ row }) => (
+                    <span>{row.original.totalWorkingHours ?? 0}</span>
+                ),
+            },
+            {
+                accessorKey: "overtimeHours",
+                header: "Giờ OT",
+                size: 80,
+                cell: ({ row }) => {
+                    const ot = row.original.overtimeHours ?? 0;
+                    return (
+                        <span className={ot > 0 ? "text-orange-600 font-medium" : "text-slate-400"}>
+                            {ot}
+                        </span>
+                    );
+                },
+            },
+            {
+                accessorKey: "isLocked",
+                header: "Trạng thái",
+                size: 100,
+                cell: ({ row }) => {
+                    const locked = row.original.isLocked;
+                    return (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${locked
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }`}>
+                            {locked ? "Đã khóa" : "Mở"}
+                        </span>
+                    );
+                },
+            },
+            {
                 id: "actions",
                 header: "Thao tác",
-                size: 140,
+                size: 180,
                 cell: ({ row }) => (
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onViewDetail(row.original)}
-                            title="Xem chi tiết"
-                        >
+                    <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => onViewDetail(row.original)} title="Xem chi tiết">
                             <Eye className="h-4 w-4 text-slate-500" />
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEdit(row.original)}
-                            title="Chỉnh sửa"
-                        >
-                            <Edit2 className="h-4 w-4 text-blue-500" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDelete(row.original)}
-                            title="Xóa"
-                        >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        {!row.original.isLocked && (
+                            <>
+                                <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)} title="Chỉnh sửa">
+                                    <Edit2 className="h-4 w-4 text-blue-500" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => onRecalculate(row.original)} title="Tính lại">
+                                    <RefreshCw className="h-4 w-4 text-amber-500" />
+                                </Button>
+                            </>
+                        )}
+                        {row.original.isLocked ? (
+                            <Button variant="ghost" size="icon" onClick={() => onUnlock(row.original)} title="Mở khóa">
+                                <Unlock className="h-4 w-4 text-emerald-500" />
+                            </Button>
+                        ) : (
+                            <Button variant="ghost" size="icon" onClick={() => onLock(row.original)} title="Khóa">
+                                <Lock className="h-4 w-4 text-rose-500" />
+                            </Button>
+                        )}
                     </div>
                 ),
             },
         ],
-        [onEdit, onDelete, onViewDetail, pagination]
+        [onViewDetail, onEdit, onRecalculate, onLock, onUnlock, pagination]
     );
 
     const table = useReactTable({
@@ -113,11 +159,11 @@ export default function DepartmentTable({
         <Card>
             <CardHeader className="border-b border-slate-200">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <CardTitle>Danh sách phòng ban</CardTitle>
+                    <CardTitle>Bảng chấm công</CardTitle>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input
-                            placeholder="Tìm kiếm..."
+                            placeholder="Tìm kiếm nhân viên..."
                             value={search}
                             onChange={(e) => onSearchChange(e.target.value)}
                             className="pl-9 w-full sm:w-64"
@@ -137,10 +183,7 @@ export default function DepartmentTable({
                                             className="px-4 py-3 text-left text-sm font-medium text-slate-600"
                                             style={{ width: header.getSize() }}
                                         >
-                                            {flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
+                                            {flexRender(header.column.columnDef.header, header.getContext())}
                                         </th>
                                     ))}
                                 </tr>
@@ -159,28 +202,16 @@ export default function DepartmentTable({
                                 ))
                             ) : table.getRowModel().rows.length === 0 ? (
                                 <tr>
-                                    <td
-                                        colSpan={columns.length}
-                                        className="px-4 py-8 text-center text-slate-500"
-                                    >
-                                        Không có dữ liệu
+                                    <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-500">
+                                        Không có dữ liệu bảng chấm công
                                     </td>
                                 </tr>
                             ) : (
                                 table.getRowModel().rows.map((row) => (
-                                    <tr
-                                        key={row.id}
-                                        className="border-b border-slate-200 hover:bg-slate-50 transition-colors"
-                                    >
+                                    <tr key={row.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                                         {row.getVisibleCells().map((cell) => (
-                                            <td
-                                                key={cell.id}
-                                                className="px-4 py-3 text-sm text-slate-700"
-                                            >
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
+                                            <td key={cell.id} className="px-4 py-3 text-sm text-slate-700">
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                             </td>
                                         ))}
                                     </tr>
