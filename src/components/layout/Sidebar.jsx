@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { authService } from "@/services";
 import {
   Building2,
   Calendar,
@@ -10,6 +11,7 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
+  ShieldAlert,
   User,
   UserPlus,
   Users,
@@ -29,6 +31,7 @@ const menuItems = [
     title: "Phòng ban",
     icon: Building2,
     href: "/departments",
+    roles: ["ADMIN", "HR", "MANAGER"],
     children: [
       { title: "Danh sách", href: "/departments" },
       { title: "Sơ đồ tổ chức", href: "/departments/chart" },
@@ -38,32 +41,38 @@ const menuItems = [
     title: "Nhân viên",
     icon: Users,
     href: "/employees",
+    roles: ["ADMIN", "HR", "MANAGER"],
     children: [{ title: "Danh sách", href: "/employees" }],
   },
   {
     title: "Hợp đồng",
     icon: FileText,
     href: "/contracts",
+    roles: ["ADMIN", "HR", "MANAGER"],
   },
   {
     title: "Bảng chấm công",
     icon: Clock,
     href: "/timesheets",
+    roles: ["ADMIN", "HR", "MANAGER"],
   },
   {
     title: "Ngày nghỉ lễ",
     icon: Calendar,
     href: "/holidays",
+    roles: ["ADMIN", "HR", "MANAGER"],
   },
   {
     title: "Việc cần làm",
     icon: UserPlus,
     href: "/onboardings/employee",
+    roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
   },
   {
     title: "Quản lý tiếp nhận nhân sự mới",
     icon: UserPlus,
     href: "/onboardings",
+    roles: ["ADMIN", "HR"],
     children: [
       { title: "Danh sách", href: "/onboardings" },
       { title: "Mẫu", href: "/onboardings/template" },
@@ -73,12 +82,20 @@ const menuItems = [
     title: "Người dùng",
     icon: User,
     href: "/users",
+    roles: ["ADMIN"],
     children: [{ title: "Lịch sử hoạt động", href: "/users/audit-log" }],
+  },
+  {
+    title: "Vai trò",
+    icon: ShieldAlert,
+    href: "/roles",
+    roles: ["ADMIN"],
   },
   {
     title: "Cài đặt",
     icon: Settings,
     href: "/settings",
+    roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
       { title: "Tổng quan", href: "/settings" },
       { title: "Bảo mật", href: "/settings/security" },
@@ -161,6 +178,11 @@ function MenuItem({ item, isActive, onMobileClose }) {
 
 export function Sidebar({ className, onMobileClose }) {
   const pathname = usePathname();
+  const user = authService.getCurrentUser();
+
+  console.log("Current User:", user);
+  console.log("User Roles:", user?.roles);
+  console.log("Sidebar rendered."); // Added log
 
   return (
     <aside
@@ -186,14 +208,16 @@ export function Sidebar({ className, onMobileClose }) {
         )}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-        {menuItems.map((item) => (
-          <MenuItem
-            key={item.href}
-            item={item}
-            isActive={pathname.startsWith(item.href)}
-            onMobileClose={onMobileClose}
-          />
-        ))}
+        {menuItems
+          .filter((item) => !item.roles || authService.hasAnyRole(item.roles))
+          .map((item) => (
+            <MenuItem
+              key={item.href}
+              item={item}
+              isActive={pathname.startsWith(item.href)}
+              onMobileClose={onMobileClose}
+            />
+          ))}
       </nav>
     </aside>
   );

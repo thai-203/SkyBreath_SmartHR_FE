@@ -65,6 +65,20 @@ export const authService = {
     return !!localStorage.getItem("token");
   },
 
+  hasRole: (role) => {
+    const user = authService.getCurrentUser();
+    const userRoles = user?.roles || [];
+    return userRoles.some(r => r.toUpperCase() === role.toUpperCase());
+  },
+
+  hasAnyRole: (roles) => {
+    const user = authService.getCurrentUser();
+    const userRoles = user?.roles || [];
+    return roles.some((role) =>
+      userRoles.some(r => r.toUpperCase() === role.toUpperCase())
+    );
+  },
+
   getCurrentEmployeeByUserId: async () => {
     const user = JSON.parse(localStorage.getItem("user"))
     const userId = user?.id;
