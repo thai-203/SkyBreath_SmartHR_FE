@@ -31,16 +31,24 @@ export default function LoginPage() {
     }
   }, [router]);
 
+  const validationErrors = validate(
+    { email: emailValue, password },
+    {
+      email: [required("Email là bắt buộc"), email()],
+      password: [
+        required("Mật khẩu là bắt buộc"),
+        minLength(8, "Mật khẩu phải có ít nhất 8 ký tự"),
+
+        (value) =>
+          !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/.test(value)
+            ? "Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt"
+            : null,
+      ],
+    },
+  );
+
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    const validationErrors = validate(
-      { email: emailValue, password },
-      {
-        email: [required("Email là bắt buộc"), email()],
-        password: [required("Mật khẩu là bắt buộc"), minLength(6)],
-      },
-    );
 
     if (validationErrors) {
       setErrors(validationErrors);
