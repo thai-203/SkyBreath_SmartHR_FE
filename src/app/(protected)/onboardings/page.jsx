@@ -79,7 +79,6 @@ export default function OnboardingPage() {
         setEmployees(normalizeList(empRes?.data));
         setDepartments(normalizeList(depRes?.data));
         setTemplates(normalizeList(tmpRes?.data));
-        console.log("da vao day", statsRes);
         setStats({
           newEmployeesLast30Days: statsRes?.data?.newEmployeesLast30Days || 0,
           inProgress: statsRes?.data?.inProgress || 0,
