@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { onboardingsService } from "@/services";
-import { toast } from "sonner";
+import { useToast } from "@/components/common/Toast";
 
 /* ==========================================================
  * CONFIG: Task Types
@@ -226,6 +226,7 @@ export default function CreatePlanModal({
 
   const [tasks, setTasks] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const { success, error } = useToast();
 
   useEffect(() => {
     setIsBrowser(true);
@@ -305,7 +306,7 @@ export default function CreatePlanModal({
         estimatedDays: t.estimatedDays || 1,
       }));
       setTasks(calculateAutoDueDates(initialTasks, formData.startDate));
-      toast.success(
+      success(
         `Đã áp dụng mẫu lộ trình cho ${selectedEmp.position?.positionName}`,
       );
     } else if (tasks.length === 0) {
@@ -323,13 +324,22 @@ export default function CreatePlanModal({
 
   const updateTask = (id, field, value) => {
     setTasks((prev) => {
-      const updated = prev.map((t) =>
-        t.id === id ? { ...t, [field]: value } : t,
-      );
+      let updatedTasks = prev.map((t) => {
+        if (t.id === id) {
+          if (field === "estimatedDays") {
+            const days = parseInt(value);
+            const validatedDays = isNaN(days) || days < 1 ? 1 : days;
+            return { ...t, [field]: validatedDays };
+          }
+          return { ...t, [field]: value };
+        }
+        return t;
+      });
+
       if (field === "estimatedDays") {
-        return calculateAutoDueDates(updated, formData.startDate);
+        return calculateAutoDueDates(updatedTasks, formData.startDate);
       }
-      return updated;
+      return updatedTasks;
     });
   };
 
@@ -343,8 +353,18 @@ export default function CreatePlanModal({
   };
 
   const handleSubmit = async () => {
-    if (!formData.employeeId || !formData.startDate)
-      return toast.error("Vui lòng chọn nhân viên và ngày bắt đầu!");
+    if (!formData.employeeId) {
+      error("Vui lòng chọn nhân viên!");
+      return;
+    }
+    if (!formData.startDate) {
+      error("Vui lòng chọn ngày bắt đầu!");
+      return;
+    }
+    if (tasks.length === 0) {
+      error("Vui lòng thêm ít nhất một nhiệm vụ!");
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -353,11 +373,11 @@ export default function CreatePlanModal({
         tasks: tasks.map(({ id, ...rest }) => rest),
       };
       await onboardingsService.createPlan(payload);
-      toast.success("Kích hoạt lộ trình thành công!");
+      success("Kích hoạt lộ trình thành công!");
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error("Lỗi hệ thống khi lưu kế hoạch");
+      error("Lỗi hệ thống khi lưu kế hoạch");
     } finally {
       setSubmitting(false);
     }
@@ -434,6 +454,7 @@ export default function CreatePlanModal({
             </label>
             <input
               type="date"
+              min={new Date().toISOString().split("T")[0]} 
               className="w-full p-3 bg-indigo-50 border border-indigo-100 rounded-xl font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
               value={formData.startDate}
               onChange={(e) =>
