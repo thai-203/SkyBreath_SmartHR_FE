@@ -83,7 +83,10 @@ const menuItems = [
     icon: User,
     href: "/users",
     roles: ["ADMIN"],
-    children: [{ title: "Lịch sử hoạt động", href: "/users/audit-log" }],
+    children: [
+      { title: "Danh sách", href: "/users" },
+      { title: "Lịch sử hoạt động", href: "/users/audit-log" },
+    ],
   },
   {
     title: "Vai trò",
@@ -97,7 +100,7 @@ const menuItems = [
     href: "/settings",
     roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
-      { title: "Tổng quan", href: "/settings" },
+      { title: "Hồ sơ", href: "/settings/general" },
       { title: "Bảo mật", href: "/settings/security" },
     ],
   },
