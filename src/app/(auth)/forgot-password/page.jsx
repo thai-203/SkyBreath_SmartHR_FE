@@ -66,17 +66,26 @@ export default function ForgotPasswordPage() {
   // ======================
   // RESET PASSWORD
   // ======================
+  const validationErrors = validate(form, {
+    password: [
+      required("Mật khẩu là bắt buộc"),
+      minLength(8, "Mật khẩu phải có ít nhất 8 ký tự"),
+
+      (value) =>
+        !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/.test(value)
+          ? "Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt"
+          : null,
+    ],
+
+    confirmPassword: [
+      required("Vui lòng xác nhận mật khẩu"),
+      (value) =>
+        value !== form.password ? "Mật khẩu xác nhận không khớp" : null,
+    ],
+  });
+
   const handleResetPassword = async (e) => {
     e.preventDefault();
-
-    const validationErrors = validate(form, {
-      password: [required("Mật khẩu là bắt buộc"), minLength(6)],
-      confirmPassword: [
-        required("Xác nhận mật khẩu"),
-        (value) =>
-          value !== form.password ? "Mật khẩu xác nhận không khớp" : null,
-      ],
-    });
 
     if (validationErrors) {
       setErrors(validationErrors);
@@ -126,7 +135,7 @@ export default function ForgotPasswordPage() {
             <CardDescription>
               {!submitted
                 ? token
-                  ? "Mật khẩu phải có ít nhất 6 ký tự"
+                  ? "Mật khẩu phải có ít nhất 8 ký tự"
                   : "Chúng tôi sẽ gửi link đặt lại mật khẩu qua email"
                 : token
                   ? "Mật khẩu đã được thay đổi thành công"
