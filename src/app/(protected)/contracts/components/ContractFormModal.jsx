@@ -22,6 +22,17 @@ import { Label } from "@/components/common/Label";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
+const SALARY_POLICY = {
+  DEFAULT_KPI_RATIO: 0.2, // Gợi ý KPI 20%
+  MAX_KPI_RATIO: 0.5, // Tối đa 50%
+  LIMITS: {
+    lunchAllowance: 1000000,
+    fuelAllowance: 2000000,
+    phoneAllowance: 1000000,
+    otherAllowance: 5000000,
+  },
+};
+
 export default function ContractFormModal({
   isOpen,
   onClose,
@@ -61,6 +72,14 @@ export default function ContractFormModal({
     "startDate",
     "endDate",
     "workingHours",
+  ];
+  const salaryFields = [
+    "baseSalary",
+    "performanceSalary",
+    "lunchAllowance",
+    "fuelAllowance",
+    "phoneAllowance",
+    "otherAllowance",
   ];
 
   // --- UTILS ---
@@ -181,14 +200,22 @@ export default function ContractFormModal({
       newData.endDate = calculateProbationEndDate(value);
     }
 
+    // Tự động tính Lương KPI dựa trên Lương cơ bản
+    if (field === "baseSalary") {
+      const base = Number(value) || 0;
+      if (mode === "create" || !formData.performanceSalary) {
+        newData.performanceSalary = Math.floor(
+          base * SALARY_POLICY.DEFAULT_KPI_RATIO,
+        ).toString();
+      }
+    }
+
     onFormChange(newData);
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
   };
 
   const handleSelectEmployee = (emp) => {
-    // Tự động điền thông tin từ data của nhân viên nếu có
     const empData = emp.data || {};
-
     onFormChange({
       ...formData,
       employeeId: emp.value,
@@ -196,7 +223,6 @@ export default function ContractFormModal({
       positionId: empData.positionId || formData.positionId || "",
       jobGradeId: empData.jobGradeId || formData.jobGradeId || "",
     });
-
     setSearchTerm(emp.label);
     setIsDropdownOpen(false);
     if (errors.employeeId) setErrors((prev) => ({ ...prev, employeeId: null }));
@@ -215,13 +241,18 @@ export default function ContractFormModal({
     onFormChange({ ...formData, attachments: [...currentFiles, ...files] });
   };
 
-const removeFile = (index) => {
-  const updatedFiles = formData.attachments.filter((_, i) => i !== index);
-  onFormChange({ ...formData, attachments: updatedFiles });
-};
+  const removeFile = (index) => {
+    const updatedFiles = formData.attachments.filter((_, i) => i !== index);
+    onFormChange({ ...formData, attachments: updatedFiles });
+  };
 
+  // --- VALIDATION ---
   const validateForm = () => {
     const newErrors = {};
+    const baseSal = Number(formData.baseSalary) || 0;
+    const perfSal = Number(formData.performanceSalary) || 0;
+
+    // General Validation
     if (!formData.employeeId) newErrors.employeeId = "Chọn nhân viên";
     if (!formData.contractNumber?.trim())
       newErrors.contractNumber = "Nhập mã hợp đồng";
@@ -236,25 +267,36 @@ const removeFile = (index) => {
       newErrors.endDate = "Chọn ngày kết thúc";
     }
 
+    // Working Hours
     const wHours = Number(formData.workingHours);
-    if (!formData.workingHours || formData.workingHours === "") {
+    if (!formData.workingHours) {
       newErrors.workingHours = "Nhập thời giờ làm việc";
-    } else if (isNaN(wHours) || wHours <= 0) {
-      newErrors.workingHours = "Thời giờ làm việc phải > 0";
-    } else if (wHours > 168) {
-      newErrors.workingHours = "Không thể quá 168 giờ/tuần";
+    } else if (wHours <= 0 || wHours > 168) {
+      newErrors.workingHours = "Thời giờ không hợp lệ (1-168h)";
     }
 
-    const baseSal = Number(formData.baseSalary);
-    if (!formData.baseSalary || baseSal <= 0) {
+    // Salary Logic & KPI Ratio
+    if (baseSal <= 0) {
       newErrors.baseSalary = "Lương phải > 0";
     } else if (selectedJobGradeData) {
       const min = Number(selectedJobGradeData.minSalary);
       const max = Number(selectedJobGradeData.maxSalary);
       if (baseSal < min || baseSal > max) {
-        newErrors.baseSalary = `Lương ngoài dải (${formatCurrency(min)} - ${formatCurrency(max)})`;
+        newErrors.baseSalary = `Ngoài dải (${formatCurrency(min)} - ${formatCurrency(max)})`;
       }
     }
+
+    if (perfSal > baseSal * SALARY_POLICY.MAX_KPI_RATIO) {
+      newErrors.performanceSalary = `KPI không quá 50% lương chính (${formatCurrency(baseSal * 0.5)})`;
+    }
+
+    // Allowance Limits Validation
+    Object.keys(SALARY_POLICY.LIMITS).forEach((key) => {
+      if (Number(formData[key]) > SALARY_POLICY.LIMITS[key]) {
+        newErrors[key] =
+          `Vượt định mức (${formatCurrency(SALARY_POLICY.LIMITS[key])})`;
+      }
+    });
 
     setErrors(newErrors);
     return newErrors;
@@ -299,14 +341,13 @@ const removeFile = (index) => {
             onClick={() => setActiveTab("salary")}
             icon={<DollarSign size={17} />}
             label="Lương & Phụ cấp"
-            hasError={!!errors.baseSalary}
+            hasError={salaryFields.some((k) => errors[k])}
           />
           <TabBtn
             active={activeTab === "attachment"}
             onClick={() => setActiveTab("attachment")}
             icon={<FileText size={17} />}
             label="Bản cứng đính kèm"
-            hasError={false}
           />
           <TabBtn
             active={activeTab === "info"}
@@ -320,7 +361,6 @@ const removeFile = (index) => {
         <div className="flex-1 min-h-[480px] max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
           {activeTab === "general" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
-              {/* Employee Selection with Dropdown */}
               <div
                 className="md:col-span-2 space-y-1 relative"
                 ref={dropdownRef}
@@ -378,7 +418,6 @@ const removeFile = (index) => {
                 <ErrorMsg name="employeeId" />
               </div>
 
-              {/* Other Fields */}
               <div className="space-y-1">
                 <Label>
                   Mã hợp đồng <span className="text-red-500">*</span>
@@ -532,6 +571,7 @@ const removeFile = (index) => {
           {activeTab === "salary" && (
             <div className="space-y-6 p-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Lương cơ bản */}
                 <div className="space-y-1">
                   <Label>
                     Lương cơ bản <span className="text-red-500">*</span>
@@ -540,10 +580,9 @@ const removeFile = (index) => {
                     <input
                       type="text"
                       value={formatCurrency(formData.baseSalary)}
-                      onChange={(e) => {
-                        const rawValue = e.target.value.replace(/\D/g, "");
-                        handleInputChange("baseSalary", rawValue);
-                      }}
+                      onChange={(e) =>
+                        handleMoneyInputChange("baseSalary", e.target.value)
+                      }
                       className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all pr-12 ${
                         errors.baseSalary
                           ? "border-red-500 bg-red-50"
@@ -564,6 +603,8 @@ const removeFile = (index) => {
                   )}
                   <ErrorMsg name="baseSalary" />
                 </div>
+
+                {/* Lương KPI */}
                 <div className="space-y-1">
                   <Label>Lương hiệu quả (KPI)</Label>
                   <div className="relative">
@@ -576,16 +617,34 @@ const removeFile = (index) => {
                           e.target.value,
                         )
                       }
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 pr-12"
+                      className={`w-full rounded-lg border px-3 py-2 text-sm outline-none pr-12 transition-all ${
+                        errors.performanceSalary
+                          ? "border-red-500 bg-red-50"
+                          : "border-slate-200 focus:ring-2 focus:ring-indigo-500/20"
+                      }`}
                       placeholder="0"
                     />
                     <span className="absolute right-3 top-2 text-slate-400 text-[10px] font-bold">
                       VNĐ
                     </span>
                   </div>
+                  {Number(formData.baseSalary) > 0 &&
+                    !errors.performanceSalary && (
+                      <p className="text-[10px] text-slate-400 italic mt-1">
+                        Tỷ lệ:{" "}
+                        {Math.round(
+                          (Number(formData.performanceSalary) /
+                            Number(formData.baseSalary)) *
+                            100,
+                        ) || 0}
+                        % lương chính
+                      </p>
+                    )}
+                  <ErrorMsg name="performanceSalary" />
                 </div>
               </div>
 
+              {/* Phụ cấp có định mức */}
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <div className="w-1 h-3 bg-indigo-500 rounded-full" /> Các
@@ -608,9 +667,14 @@ const removeFile = (index) => {
                         onChange={(e) =>
                           handleMoneyInputChange(item.id, e.target.value)
                         }
-                        className="w-full rounded-md border border-slate-200 px-3 py-1.5 text-sm outline-none focus:bg-white transition-colors"
-                        placeholder="0"
+                        className={`w-full rounded-md border px-3 py-1.5 text-sm outline-none transition-colors ${
+                          errors[item.id]
+                            ? "border-red-500 bg-red-50"
+                            : "border-slate-200 focus:bg-white focus:ring-1 focus:ring-indigo-500/20"
+                        }`}
+                        placeholder={`Max: ${formatCurrency(SALARY_POLICY.LIMITS[item.id])}`}
                       />
+                      <ErrorMsg name={item.id} />
                     </div>
                   ))}
                 </div>
@@ -620,7 +684,6 @@ const removeFile = (index) => {
 
           {activeTab === "attachment" && (
             <div className="space-y-4 p-1">
-              {/* Khu vực Upload */}
               <div
                 onClick={() => fileInputRef.current.click()}
                 className="border-2 border-dashed border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group"
@@ -642,17 +705,12 @@ const removeFile = (index) => {
                   Kéo thả file hoặc nhấn để chọn (PDF, PNG, JPG)
                 </p>
               </div>
-
               <div className="grid grid-cols-1 gap-2 mt-4">
                 {formData.attachments?.map((file, idx) => {
                   const isExistingFile = typeof file === "string";
                   const fileName = isExistingFile
                     ? file.split("/").pop()
                     : file.name;
-                  const fileSize = isExistingFile
-                    ? "Đã lưu"
-                    : `${(file.size / 1024).toFixed(1)} KB`;
-
                   return (
                     <div
                       key={idx}
@@ -669,32 +727,18 @@ const removeFile = (index) => {
                             {fileName}
                           </span>
                           <span className="text-[10px] text-slate-400">
-                            {fileSize} {isExistingFile && " • Server"}
+                            {isExistingFile
+                              ? "Đã lưu trên Server"
+                              : `${(file.size / 1024).toFixed(1)} KB`}
                           </span>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-1">
-                        {isExistingFile && (
-                          <>
-                            <a
-                              href={`${API_BASE_URL}/${file}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-2 text-slate-400 hover:text-indigo-600"
-                              title="Xem file"
-                            >
-                              <Info size={16} />
-                            </a>
-                          </>
-                        )}
-                        <button
-                          onClick={() => removeFile(idx)}
-                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => removeFile(idx)}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
                   );
                 })}
@@ -710,7 +754,7 @@ const removeFile = (index) => {
                   className="w-full rounded-xl border border-slate-200 p-4 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 min-h-[200px] transition-all bg-slate-50/30"
                   value={formData.note || ""}
                   onChange={(e) => handleInputChange("note", e.target.value)}
-                  placeholder="Nhập các điều khoản bổ sung hoặc lưu ý đặc biệt về hợp đồng này..."
+                  placeholder="Nhập các điều khoản bổ sung..."
                 />
               </div>
             </div>
@@ -751,7 +795,7 @@ function TabBtn({ active, onClick, icon, label, hasError }) {
     >
       {icon} <span>{label}</span>
       {hasError && !active && (
-        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />
+        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white animate-pulse" />
       )}
     </button>
   );

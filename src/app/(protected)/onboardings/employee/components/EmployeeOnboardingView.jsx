@@ -20,7 +20,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { onboardingsService } from "@/services";
-import { toast } from "sonner";
+import { useToast } from "@/components/common/Toast";
 
 // Port 3000 theo file .env của bạn
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -53,6 +53,7 @@ const CATEGORY_CONFIG = {
 };
 
 export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
+  const { success, error } = useToast();
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -102,7 +103,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         // 10MB theo .env
-        toast.error("File quá lớn (tối đa 10MB)");
+        error("File quá lớn (tối đa 10MB)");
         return;
       }
       setSelectedFile(file);
@@ -124,7 +125,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
       }
 
       await onboardingsService.updateAssignment(taskId, formData);
-      toast.success("Cập nhật nhiệm vụ thành công!");
+      success("Cập nhật nhiệm vụ thành công!");
 
       setExpandedTaskId(null);
       setSelectedFile(null);
@@ -132,7 +133,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
 
       if (onRefresh) await onRefresh();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Lỗi cập nhật dữ liệu");
+      error(err?.response?.data?.message || "Lỗi cập nhật dữ liệu");
     } finally {
       setUpdatingId(null);
     }
