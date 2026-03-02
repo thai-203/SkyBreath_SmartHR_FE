@@ -105,7 +105,7 @@ const menuItems = [
     roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
       { title: "Hồ sơ", href: "/settings/general" },
-      { title: "Bảo mật", href: "/settings/security" },
+      { title: "Mật khẩu", href: "/settings/security" },
     ],
   },
 ];
