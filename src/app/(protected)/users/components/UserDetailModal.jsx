@@ -176,6 +176,7 @@ export default function UserDetailModal({
             variant="outline"
             className="text-orange-600 border-orange-200 hover:bg-orange-50"
             onClick={() => onRemoveRole?.(user)}
+            disabled={user.isCurrentUser}
           >
             <UserX className="h-4 w-4" /> Remove Role
           </Button>
@@ -185,12 +186,13 @@ export default function UserDetailModal({
             variant="outline"
             className="text-blue-600 border-blue-200 hover:bg-blue-50"
             onClick={() => onResetPassword?.(user)}
+            disabled={user.isCurrentUser}
           >
             <Key className="h-4 w-4" />
             Reset Password
           </Button>
 
-          <Button type="button" onClick={() => onEdit(user)}>
+          <Button type="button" onClick={() => onEdit(user)} disabled={user.isCurrentUser}>
             <Edit2 className="h-4 w-4" />
             Chỉnh sửa
           </Button>

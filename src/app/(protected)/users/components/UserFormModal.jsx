@@ -70,10 +70,12 @@ export default function UserFormModal({
               onFormChange({ ...formData, role: e.target.value })
             }
             options={[
-              ...(roleList || []).map((d) => ({
-                value: d.value,
-                label: d.label,
-              })),
+              ...(roleList || [])
+                .filter((d) => d.value !== 1) // 🚀 loại ADMIN
+                .map((d) => ({
+                  value: d.value,
+                  label: d.label,
+                })),
             ]}
             placeholder="Chọn vai trò"
             error={errors.role}

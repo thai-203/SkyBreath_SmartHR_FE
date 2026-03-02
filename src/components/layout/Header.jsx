@@ -24,7 +24,7 @@ export function Header({ onMenuClick }) {
     chart: "Sơ đồ tổ chức",
     create: "Thêm mới",
     edit: "Chỉnh sửa",
-    security: "Bảo mật",
+    security: "Mât khẩu",
     "audit-log": "Lịch sử hoạt động",
     roles: "Vai trò",
     users: "Người dùng",
