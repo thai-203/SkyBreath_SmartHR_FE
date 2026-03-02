@@ -50,10 +50,11 @@ export const uniqueField = (list, field, currentId, message = "Giá trị này �
     return exists ? message : null;
 };
 
-export const phone = (message = "Số điện thoại không hợp lệ") => (value) => {
+export const phone = (message = "Invalid Vietnamese phone format (e.g., 0912345678)") => (value) => {
     if (!value) return null;
-    // Vietnamese phone format: 0xxx xxxxxx or +84xxx xxxxxx
-    const phoneRegex = /^(0|(\+84))[0-9]{9,10}$/;
+    // Vietnamese phone format: 0xxxxxxxxx or +84xxxxxxxxx (10-11 digits total)
+    // Valid carriers: 3, 5, 7, 8, 9 as second digit
+    const phoneRegex = /^(\+84|0)(3|5|7|8|9)\d{8}$/;
     return phoneRegex.test(value.replace(/\s|-/g, "")) ? null : message;
 };
 

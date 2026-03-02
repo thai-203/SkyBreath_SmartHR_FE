@@ -123,9 +123,9 @@ export default function AuditLogTable({
                   className="pl-9 w-full sm:w-72"
                 />
               </div>
-              <Button variant="outline" onClick={onExport}>
+              {/* <Button variant="outline" onClick={onExport}>
                 Xuất CSV
-              </Button>
+              </Button> */}
             </div>
           </div>
         </CardHeader>
