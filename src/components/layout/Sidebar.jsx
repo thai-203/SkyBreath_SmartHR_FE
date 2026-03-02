@@ -89,10 +89,14 @@ const menuItems = [
     ],
   },
   {
-    title: "Vai trò",
+    title: "Phân quyền",
     icon: ShieldAlert,
     href: "/roles",
     roles: ["ADMIN"],
+    children: [
+      { title: "Vai trò", href: "/roles" },
+      { title: "Quyền hệ thống", href: "/permissions" },
+    ],
   },
   {
     title: "Cài đặt",

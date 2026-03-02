@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 
 const formSchema = z.object({
-    name: z.string().min(1, 'Role name is required').max(50),
+    name: z.string().min(1, 'Tên vai trò là bắt buộc').max(50),
     description: z.string().max(255).optional(),
     status: z.enum(['active', 'inactive']),
 });
@@ -78,11 +78,12 @@ export default function EditRoleDialog({ role, open, onOpenChange, onSuccess }) 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Edit Role</DialogTitle>
-                    <DialogDescription>
-                        Make changes to the role here. Click save when you're done.
+            <DialogContent className="sm:max-w-[450px] border-none shadow-2xl bg-white">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-600" />
+                <DialogHeader className="pt-4">
+                    <DialogTitle className="text-xl font-bold text-gray-900">Cập nhật vai trò</DialogTitle>
+                    <DialogDescription className="text-gray-500">
+                        Chỉnh sửa thông tin cơ bản của vai trò này trong hệ thống.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -92,9 +93,9 @@ export default function EditRoleDialog({ role, open, onOpenChange, onSuccess }) 
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Name</FormLabel>
+                                    <FormLabel className="font-semibold text-gray-700">Tên vai trò</FormLabel>
                                     <FormControl>
-                                        <Input {...field} disabled={role?.isSystem} />
+                                        <Input {...field} disabled={role?.isSystem} className="border-gray-200 focus:border-blue-500 transition-all" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -105,9 +106,9 @@ export default function EditRoleDialog({ role, open, onOpenChange, onSuccess }) 
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Description</FormLabel>
+                                    <FormLabel className="font-semibold text-gray-700">Mô tả</FormLabel>
                                     <FormControl>
-                                        <Textarea className="resize-none" {...field} />
+                                        <Textarea className="resize-none min-h-[100px] border-gray-200 focus:border-blue-500 transition-all" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -118,26 +119,29 @@ export default function EditRoleDialog({ role, open, onOpenChange, onSuccess }) 
                             name="status"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Status</FormLabel>
+                                    <FormLabel className="font-semibold text-gray-700">Trạng thái</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                         <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select status" />
+                                            <SelectTrigger className="border-gray-200">
+                                                <SelectValue placeholder="Chọn trạng thái" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="active">Active</SelectItem>
-                                            <SelectItem value="inactive">Inactive</SelectItem>
+                                            <SelectItem value="active">Hoạt động</SelectItem>
+                                            <SelectItem value="inactive">Ngừng hoạt động</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                        <DialogFooter>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                        <DialogFooter className="gap-2 pt-4">
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-gray-200 text-gray-600">
+                                Hủy
+                            </Button>
+                            <Button type="submit" disabled={form.formState.isSubmitting} className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
                                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save changes
+                                Lưu thay đổi
                             </Button>
                         </DialogFooter>
                     </form>

@@ -1,8 +1,8 @@
 "use client";
 
 import { PageTitle } from "@/components/common/PageTitle";
-import { HolidayModal } from "@/components/holidays/HolidayModal";
-import { HolidayTable } from "@/components/holidays/HolidayTable";
+import { HolidayModal } from "@/app/(protected)/holidays/components/HolidayModal";
+import { HolidayTable } from "@/app/(protected)/holidays/components/HolidayTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { holidayService } from "@/services/holiday.service";

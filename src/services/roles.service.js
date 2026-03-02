@@ -33,8 +33,24 @@ export const RoleService = {
 };
 
 export const PermissionService = {
-    async getPermissions() {
-        const response = await api.get('/permissions');
+    async getPermissions(params = {}) {
+        // params can include search, module, page, limit
+        const response = await api.get('/permissions', { params });
         return response.data;
-    }
+    },
+
+    async createPermission(data) {
+        const response = await api.post('/permissions', data);
+        return response.data;
+    },
+
+    async updatePermission(id, data) {
+        const response = await api.put(`/permissions/${id}`, data);
+        return response.data;
+    },
+
+    async deletePermission(id) {
+        const response = await api.delete(`/permissions/${id}`);
+        return response.data;
+    },
 };

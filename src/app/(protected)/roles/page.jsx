@@ -1,7 +1,7 @@
 'use client';
 
-import EditRoleDialog from '@/components/roles/edit-role-dialog';
-import RolePermissionMatrix from '@/components/roles/role-permission-matrix';
+import EditRoleDialog from '@/app/(protected)/roles/components/edit-role-dialog';
+import RolePermissionMatrix from '@/app/(protected)/roles/components/role-permission-matrix';
 import { Button } from '@/components/ui/button';
 import { Plus, Shield } from 'lucide-react';
 import Link from 'next/link';
@@ -18,21 +18,30 @@ export default function RolesPage() {
 
     return (
         <div className="container mx-auto py-8 space-y-6 max-w-7xl">
-            <div className="flex justify-between items-center bg-gray-50/50 p-4 rounded-xl border border-gray-100 shadow-sm">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
-                        <Shield className="h-6 w-6 text-blue-600" />
-                        Roles & Permissions
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Quản lý các vai trò hệ thống và cấu hình quyền truy cập theo từng phân hệ.
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-br from-white to-blue-50/20 p-8 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/20 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
+
+                <div className="space-y-2 relative">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 bg-blue-600 rounded-xl shadow-lg shadow-blue-200">
+                            <Shield className="h-6 w-6 text-white" />
+                        </div>
+                        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+                            Vai trò & Phân quyền
+                        </h1>
+                    </div>
+                    <p className="text-gray-500 text-base max-w-2xl leading-relaxed">
+                        Quản lý các vai trò hệ thống và cấu hình quyền truy cập chi tiết cho từng phân hệ.
                     </p>
                 </div>
-                <Link href="/roles/create">
-                    <Button className="bg-blue-600 hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]">
-                        <Plus className="mr-2 h-4 w-4" /> Create New Role
-                    </Button>
-                </Link>
+
+                <div className="relative">
+                    <Link href="/roles/create">
+                        <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200 transition-all hover:scale-[1.03] active:scale-[0.98] font-bold px-6">
+                            <Plus className="mr-2 h-5 w-5" /> Tạo vai trò mới
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <RolePermissionMatrix
