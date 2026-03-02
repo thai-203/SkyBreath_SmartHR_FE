@@ -53,7 +53,7 @@ export default function UserDeleteModal({
                     </Button>
                     <Button
                         type="button"
-                        variant="danger"
+                        variant="destructive"
                         onClick={onConfirm}
                         disabled={loading}
                     >

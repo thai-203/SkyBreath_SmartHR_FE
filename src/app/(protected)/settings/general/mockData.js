@@ -6,7 +6,7 @@
 export const mockUserProfile = {
   data: {
     id: "550e8400-e29b-41d4-a716-446655440000",
-    name: "Nguyễn Văn A",
+    fullName: "Nguyễn Văn A",
     email: "nguyen.van.a@skybreath.com",
     personalEmail: "nva.personal@gmail.com",
     phone: "0912345678",
