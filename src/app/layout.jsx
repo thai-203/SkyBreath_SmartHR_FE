@@ -23,7 +23,7 @@ export default function RootLayout({ children }) {
                 <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
                     <ToastProvider>
                         {children}
-                        <Toaster />
+                        <Toaster position="top-right" />
                     </ToastProvider>
                 </ThemeProvider>
             </body>

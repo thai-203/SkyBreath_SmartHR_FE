@@ -28,9 +28,22 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 
 const formSchema = z.object({
-    permissionCode: z.string().min(1, 'Mã quyền là bắt buộc').max(100),
-    description: z.string().max(255).optional(),
-    module: z.string().min(1, 'Phân hệ là bắt buộc').max(50),
+    permissionCode: z
+        .string()
+        .min(3, 'Mã quyền phải có ít nhất 3 ký tự')
+        .max(100, 'Mã quyền tối đa 100 ký tự')
+        .regex(/^[A-Z0-9_]+$/, 'Mã quyền chỉ được chứa chữ hoa, số và dấu gạch dưới')
+        .transform(val => val.trim().toUpperCase()),
+    module: z
+        .string()
+        .min(2, 'Phân hệ phải có ít nhất 2 ký tự')
+        .max(50, 'Phân hệ tối đa 50 ký tự')
+        .transform(val => val.trim()),
+    description: z
+        .string()
+        .max(255, 'Mô tả tối đa 255 ký tự')
+        .optional()
+        .transform(val => val?.trim() || ''),
 });
 
 export default function PermissionModal({ permission, open, onOpenChange, onSuccess }) {
@@ -46,18 +59,20 @@ export default function PermissionModal({ permission, open, onOpenChange, onSucc
     });
 
     useEffect(() => {
-        if (permission) {
-            form.reset({
-                permissionCode: permission.permissionCode || '',
-                description: permission.description || '',
-                module: permission.module || '',
-            });
-        } else {
-            form.reset({
-                permissionCode: '',
-                description: '',
-                module: '',
-            });
+        if (open) {
+            if (permission) {
+                form.reset({
+                    permissionCode: permission.permissionCode || '',
+                    description: permission.description || '',
+                    module: permission.module || '',
+                });
+            } else {
+                form.reset({
+                    permissionCode: '',
+                    description: '',
+                    module: '',
+                });
+            }
         }
     }, [permission, form, open]);
 
@@ -73,9 +88,33 @@ export default function PermissionModal({ permission, open, onOpenChange, onSucc
             onSuccess?.();
             onOpenChange(false);
         } catch (error) {
-            console.error('Lỗi khi lưu quyền:', error);
-            const message = error.response?.data?.message || 'Có lỗi xảy ra';
-            toast.error(message);
+            const errorData = error.response?.data;
+            const status = error.response?.status;
+            const backendMessage = errorData?.message || 'Có lỗi xảy ra khi lưu quyền';
+
+            if (status === 409) {
+                form.setError('permissionCode', {
+                    type: 'manual',
+                    message: backendMessage
+                });
+                toast.error(backendMessage);
+            } else if (status === 400 && errorData?.errors) {
+                // Map each backend validation error to its specific field
+                errorData.errors.forEach((err) => {
+                    const field = err.property;
+                    const constraints = err.constraints;
+                    // Get the most relevant error message for this field
+                    const message = constraints ? Object.values(constraints)[0] : 'Dữ liệu không hợp lệ';
+
+                    if (['permissionCode', 'module', 'description'].includes(field)) {
+                        form.setError(field, { type: 'manual', message });
+                    }
+                });
+                toast.error('Dữ liệu nhập vào chưa hợp lệ, vui lòng kiểm tra lại');
+            } else {
+                console.error('Lỗi khi lưu quyền:', error);
+                toast.error(backendMessage);
+            }
         }
     };
 
