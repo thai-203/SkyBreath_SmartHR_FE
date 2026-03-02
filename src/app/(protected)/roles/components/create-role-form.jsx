@@ -29,8 +29,16 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 
 const formSchema = z.object({
-    name: z.string().min(1, 'Tên vai trò là bắt buộc').max(50, 'Tên vai trò quá dài'),
-    description: z.string().max(255, 'Mô tả quá dài').optional(),
+    name: z
+        .string()
+        .min(2, 'Tên vai trò phải có ít nhất 2 ký tự')
+        .max(50, 'Tên vai trò tối đa 50 ký tự')
+        .transform(val => val.trim()),
+    description: z
+        .string()
+        .max(255, 'Mô tả tối đa 255 ký tự')
+        .optional()
+        .transform(val => val?.trim() || ''),
     status: z.enum(['active', 'inactive']).default('active'),
 });
 
@@ -51,16 +59,32 @@ export default function CreateRoleForm() {
         setIsLoading(true);
         try {
             await RoleService.createRole(values);
-            toast.success('Role created successfully');
+            toast.success('Tạo vai trò thành công');
             router.push('/roles');
             router.refresh(); // Refresh the list
         } catch (error) {
-            console.error('Failed to create role:', error);
-            if (error.response && error.response.status === 409) {
-                form.setError('name', { type: 'manual', message: 'Role name already exists' });
-                toast.error('Role name already exists');
+            const errorData = error.response?.data;
+            const status = error.response?.status;
+            const backendMessage = errorData?.message || 'Không thể tạo vai trò';
+
+            if (status === 409) {
+                form.setError('name', {
+                    type: 'manual',
+                    message: backendMessage
+                });
+                toast.error(backendMessage);
+            } else if (status === 400 && errorData?.errors) {
+                errorData.errors.forEach((err) => {
+                    const field = err.property;
+                    const message = Object.values(err.constraints)[0];
+                    if (['name', 'description', 'status'].includes(field)) {
+                        form.setError(field, { type: 'manual', message });
+                    }
+                });
+                toast.error('Dữ liệu nhập vào chưa hợp lệ');
             } else {
-                toast.error(error.response?.data?.message || 'Failed to create role');
+                console.error('Failed to create role:', error);
+                toast.error(backendMessage);
             }
         } finally {
             setIsLoading(false);

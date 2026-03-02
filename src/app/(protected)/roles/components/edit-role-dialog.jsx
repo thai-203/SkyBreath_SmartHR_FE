@@ -35,8 +35,16 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 
 const formSchema = z.object({
-    name: z.string().min(1, 'Tên vai trò là bắt buộc').max(50),
-    description: z.string().max(255).optional(),
+    name: z
+        .string()
+        .min(2, 'Tên vai trò phải có ít nhất 2 ký tự')
+        .max(50, 'Tên vai trò tối đa 50 ký tự')
+        .transform(val => val.trim()),
+    description: z
+        .string()
+        .max(255, 'Mô tả tối đa 255 ký tự')
+        .optional()
+        .transform(val => val?.trim() || ''),
     status: z.enum(['active', 'inactive']),
 });
 
@@ -51,27 +59,44 @@ export default function EditRoleDialog({ role, open, onOpenChange, onSuccess }) 
     });
 
     useEffect(() => {
-        if (role) {
+        if (open && role) {
             form.reset({
                 name: role.roleName,
                 description: role.description || '',
                 status: role.status || 'active',
             });
         }
-    }, [role, form]);
+    }, [role, form, open]);
 
     const onSubmit = async (values) => {
         try {
             await RoleService.updateRole(role.id, values);
-            toast.success('Role updated successfully');
+            toast.success('Cập nhật vai trò thành công');
             onSuccess?.();
             onOpenChange(false);
         } catch (error) {
-            console.error('Failed to update role:', error);
-            if (error.response && error.response.status === 409) {
-                form.setError('name', { type: 'manual', message: 'Role name already exists' });
+            const errorData = error.response?.data;
+            const status = error.response?.status;
+            const backendMessage = errorData?.message || 'Không thể cập nhật vai trò';
+
+            if (status === 409) {
+                form.setError('name', {
+                    type: 'manual',
+                    message: backendMessage
+                });
+                toast.error(backendMessage);
+            } else if (status === 400 && errorData?.errors) {
+                errorData.errors.forEach((err) => {
+                    const field = err.property;
+                    const message = Object.values(err.constraints)[0];
+                    if (['name', 'description', 'status'].includes(field)) {
+                        form.setError(field, { type: 'manual', message });
+                    }
+                });
+                toast.error('Dữ liệu không hợp lệ');
             } else {
-                toast.error(error.response?.data?.message || 'Failed to update role');
+                console.error('Failed to update role:', error);
+                toast.error(backendMessage);
             }
         }
     };

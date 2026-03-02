@@ -38,24 +38,16 @@ export default function PermissionsPage() {
 
             const response = await PermissionService.getPermissions(params);
 
-            // Assuming backend follows standard pagination object or just returns array
-            // If it returns { data, meta: { totalPages } }
-            if (response.data && Array.isArray(response.data)) {
-                setPermissions(response.data);
-                setTotalPages(response.meta?.totalPages || 1);
-            } else if (Array.isArray(response)) {
-                // If backend doesn't sort, we can sort manually if minor data
-                const sortedData = [...response];
-                if (sortField) {
-                    sortedData.sort((a, b) => {
-                        const valA = (a[sortField] || '').toString().toLowerCase();
-                        const valB = (b[sortField] || '').toString().toLowerCase();
-                        if (sortOrder === 'ASC') return valA.localeCompare(valB);
-                        return valB.localeCompare(valA);
-                    });
-                }
-                setPermissions(sortedData);
-                setTotalPages(Math.ceil(response.length / pageSize) || 1);
+            // Handle new paginated response structure: { success, message, data: { data: [], meta: {} } }
+            // Or old one if any: { success, message, data: [] }
+            const result = response.data || response;
+
+            if (result && result.data && Array.isArray(result.data)) {
+                setPermissions(result.data);
+                setTotalPages(result.meta?.totalPages || 1);
+            } else if (Array.isArray(result)) {
+                setPermissions(result);
+                setTotalPages(Math.ceil(result.length / pageSize) || 1);
             }
 
             // Extract unique modules for filtering if not already done
@@ -73,7 +65,8 @@ export default function PermissionsPage() {
         const fetchModules = async () => {
             try {
                 const response = await PermissionService.getPermissions({ limit: 1000 });
-                const data = response.data || response;
+                const result = response.data || response;
+                const data = result.data || result;
                 if (Array.isArray(data)) {
                     const uniqueModules = [...new Set(data.map(p => p.module))].filter(Boolean).sort();
                     setModules(uniqueModules);

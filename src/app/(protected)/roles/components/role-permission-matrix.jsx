@@ -45,12 +45,13 @@ export default function RolePermissionMatrix({ onEditRole }) {
             setIsLoadingRoles(true);
             const [rolesData, permsData] = await Promise.all([
                 RoleService.getRoles(debouncedSearch),
-                PermissionService.getPermissions()
+                PermissionService.getPermissions({ limit: 1000 })
             ]);
 
             const fetchedRoles = rolesData.data || [];
             setRoles(fetchedRoles);
-            setAllPermissions(permsData.data || []);
+            // permissions now come in nested { data: { data: [], meta: {} } }
+            setAllPermissions(permsData.data?.data || permsData.data || []);
 
             if (fetchedRoles.length > 0) {
                 handleSelectRole(fetchedRoles[0]);
