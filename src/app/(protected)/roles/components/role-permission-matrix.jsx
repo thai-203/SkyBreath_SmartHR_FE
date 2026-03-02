@@ -1,10 +1,12 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { PermissionService, RoleService } from '@/services/roles.service';
 import { CheckCircle2, Loader2, Pencil, Search, Shield, Trash2, X } from 'lucide-react';
@@ -21,6 +23,10 @@ export default function RolePermissionMatrix({ onEditRole }) {
     const [isSaving, setIsSaving] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [permissionSearch, setPermissionSearch] = useState('');
+    const [selectedModuleFilter, setSelectedModuleFilter] = useState('all');
+    const [selectedActionFilter, setSelectedActionFilter] = useState('all');
+    const [sortMode, setSortMode] = useState('asc'); // 'asc' or 'desc'
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -79,6 +85,15 @@ export default function RolePermissionMatrix({ onEditRole }) {
         );
     };
 
+    const toggleModulePermissions = (module, permissions, isChecked) => {
+        const modulePermIds = permissions.map(p => p.id);
+        if (isChecked) {
+            setSelectedPermissions(prev => [...new Set([...prev, ...modulePermIds])]);
+        } else {
+            setSelectedPermissions(prev => prev.filter(id => !modulePermIds.includes(id)));
+        }
+    };
+
     const handleSave = async () => {
         if (!selectedRole) return;
         setIsSaving(true);
@@ -122,13 +137,46 @@ export default function RolePermissionMatrix({ onEditRole }) {
         }
     };
 
-    // Group permissions by module
+    // Extract unique actions for filtering
+    const availableActions = [...new Set(allPermissions.map(p => {
+        const code = p.permissionCode;
+        if (code.includes(':')) return code.split(':').pop();
+        if (code.includes('_')) return code.split('_').pop();
+        return 'OTHER';
+    }))].sort();
+
+    // Group and sort permissions by module
     const groupedPermissions = allPermissions.reduce((acc, perm) => {
         const module = perm.module || 'General';
         if (!acc[module]) acc[module] = [];
         acc[module].push(perm);
         return acc;
     }, {});
+
+    // Sort modules alphabetically
+    const sortedModuleNames = Object.keys(groupedPermissions).sort();
+
+    // Sort permissions within each module
+    sortedModuleNames.forEach(module => {
+        groupedPermissions[module].sort((a, b) => {
+            const labelA = (a.description || a.permissionCode).toLowerCase();
+            const labelB = (b.description || b.permissionCode).toLowerCase();
+            const cmp = labelA.localeCompare(labelB);
+            return sortMode === 'asc' ? cmp : -cmp;
+        });
+    });
+
+    // Modules to show based on filter
+    const modulesToShow = selectedModuleFilter === 'all'
+        ? sortedModuleNames
+        : sortedModuleNames.filter(m => m === selectedModuleFilter);
+
+    const filterPermissionByAction = (p) => {
+        if (selectedActionFilter === 'all') return true;
+        const code = p.permissionCode;
+        const action = code.includes(':') ? code.split(':').pop() : (code.includes('_') ? code.split('_').pop() : 'OTHER');
+        return action === selectedActionFilter;
+    };
 
     if (isLoadingRoles) {
         return (
@@ -233,63 +281,135 @@ export default function RolePermissionMatrix({ onEditRole }) {
             {/* Right: Permissions Grid */}
             <div className="md:col-span-8 lg:col-span-9 h-full">
                 <Card className="h-full flex flex-col overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between py-4">
-                        <div>
-                            <CardTitle className="text-lg">Phân quyền cho vai trò</CardTitle>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                Chỉnh sửa quyền cho vai trò: <span className="font-semibold text-foreground">{selectedRole?.roleName}</span>
+                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
+                        <div className="space-y-1">
+                            <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <Shield className="h-5 w-5 text-blue-600" />
+                                Phân quyền cho vai trò
+                            </CardTitle>
+                            <p className="text-sm text-gray-500">
+                                Vai trò đang chọn: <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">{selectedRole?.roleName}</span>
                             </p>
                         </div>
-                        <Button
-                            onClick={handleSave}
-                            disabled={isSaving || isLoadingPermissions || !selectedRole}
-                            className="bg-blue-600 hover:bg-blue-700"
-                        >
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
-                            Lưu thay đổi
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                            <Select value={selectedModuleFilter} onValueChange={setSelectedModuleFilter}>
+                                <SelectTrigger className="w-[140px] h-9 border-gray-200 text-xs">
+                                    <SelectValue placeholder="Phân hệ" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tất cả phân hệ</SelectItem>
+                                    {sortedModuleNames.map(m => (
+                                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={selectedActionFilter} onValueChange={setSelectedActionFilter}>
+                                <SelectTrigger className="w-[140px] h-9 border-gray-200 text-xs">
+                                    <SelectValue placeholder="Chức năng" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tất cả chức năng</SelectItem>
+                                    {availableActions.map(a => (
+                                        <SelectItem key={a} value={a}>{a}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={sortMode} onValueChange={setSortMode}>
+                                <SelectTrigger className="w-[130px] h-9 border-gray-200 text-xs">
+                                    <SelectValue placeholder="Sắp xếp" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="asc">Sắp xếp A-Z</SelectItem>
+                                    <SelectItem value="desc">Sắp xếp Z-A</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <div className="relative flex-1 sm:w-48">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                                <Input
+                                    placeholder="Tìm quyền..."
+                                    className="pl-9 h-9 border-gray-200 text-xs"
+                                    value={permissionSearch}
+                                    onChange={(e) => setPermissionSearch(e.target.value)}
+                                />
+                            </div>
+                            <Button
+                                onClick={handleSave}
+                                disabled={isSaving || isLoadingPermissions || !selectedRole}
+                                className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 whitespace-nowrap h-9 px-4 text-xs"
+                                size="sm"
+                            >
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
+                                Lưu thay đổi
+                            </Button>
+                        </div>
                     </CardHeader>
                     <Separator />
 
                     <div className="flex-1 overflow-hidden">
                         {isLoadingPermissions ? (
                             <div className="flex h-full items-center justify-center">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                             </div>
                         ) : (
                             <ScrollArea className="h-full">
-                                <div className="p-6 space-y-8">
-                                    {Object.entries(groupedPermissions).map(([module, perms]) => (
-                                        <div key={module} className="space-y-4">
-                                            <div className="flex items-center">
-                                                <h3 className="text-base font-semibold text-foreground">{module}</h3>
-                                                <Separator className="flex-1 ml-4" />
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pl-2">
-                                                {perms.map((perm) => {
-                                                    // Extract cleaner labels: DEPT_CREATE -> Tạo mới, etc.
-                                                    const label = perm.description || perm.permissionCode;
+                                <div className="p-6 space-y-10">
+                                    {modulesToShow.map((module) => {
+                                        const perms = groupedPermissions[module];
+                                        const filteredPerms = perms.filter(p =>
+                                            (p.permissionCode.toLowerCase().includes(permissionSearch.toLowerCase()) ||
+                                                (p.description && p.description.toLowerCase().includes(permissionSearch.toLowerCase()))) &&
+                                            filterPermissionByAction(p)
+                                        );
 
-                                                    return (
-                                                        <div key={perm.id} className="flex items-center space-x-3 group">
-                                                            <Checkbox
-                                                                id={`perm-${perm.id}`}
-                                                                checked={selectedPermissions.includes(perm.id)}
-                                                                onCheckedChange={() => togglePermission(perm.id)}
-                                                                className="h-5 w-5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                                                            />
-                                                            <label
-                                                                htmlFor={`perm-${perm.id}`}
-                                                                className="text-sm font-medium leading-none cursor-pointer group-hover:text-blue-600 transition-colors"
-                                                            >
-                                                                {label}
-                                                            </label>
-                                                        </div>
-                                                    );
-                                                })}
+                                        if (filteredPerms.length === 0 && permissionSearch) return null;
+
+                                        const allChecked = filteredPerms.every(p => selectedPermissions.includes(p.id));
+                                        const someChecked = filteredPerms.some(p => selectedPermissions.includes(p.id)) && !allChecked;
+
+                                        return (
+                                            <div key={module} className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+                                                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                                                    <div className="flex items-center gap-3">
+                                                        <Checkbox
+                                                            id={`module-${module}`}
+                                                            checked={allChecked ? true : someChecked ? "indeterminate" : false}
+                                                            onCheckedChange={(checked) => toggleModulePermissions(module, filteredPerms, !!checked)}
+                                                            className="rounded-full border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                                        />
+                                                        <h3 className="text-base font-bold text-gray-800">{module}</h3>
+                                                        <Badge variant="outline" className="ml-2 font-normal text-gray-400 text-[10px] h-5">
+                                                            {filteredPerms.length} quyền
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 pl-8">
+                                                    {filteredPerms.map((perm) => {
+                                                        const label = perm.description || perm.permissionCode;
+
+                                                        return (
+                                                            <div key={perm.id} className="flex items-center space-x-3 group py-1">
+                                                                <Checkbox
+                                                                    id={`perm-${perm.id}`}
+                                                                    checked={selectedPermissions.includes(perm.id)}
+                                                                    onCheckedChange={() => togglePermission(perm.id)}
+                                                                    className="h-4 w-4 rounded-full border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 transition-all"
+                                                                />
+                                                                <label
+                                                                    htmlFor={`perm-${perm.id}`}
+                                                                    className="text-sm font-medium text-gray-600 cursor-pointer group-hover:text-blue-600 transition-colors"
+                                                                >
+                                                                    {label}
+                                                                </label>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
 
                                     {allPermissions.length === 0 && (
                                         <div className="text-center py-20 text-muted-foreground">
