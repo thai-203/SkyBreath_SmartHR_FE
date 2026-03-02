@@ -51,7 +51,10 @@ export default function UserTable({
         size: 120,
         cell: ({ row }) => (
           <span className="font-mono text-sm text-indigo-600 font-medium">
-            {row.original.username}
+            {row.original.username}{" "}
+            {row.original.isCurrentUser && (
+              <span className="ml-1 text-xs text-green-500">(Bạn)</span>
+            )}
           </span>
         ),
       },
@@ -131,6 +134,7 @@ export default function UserTable({
               size="sm"
               onClick={() => onEdit(row.original)}
               title="Chỉnh sửa"
+              disabled={row.original.isCurrentUser}
               className="h-8 w-8 p-0"
             >
               <Edit2 className="h-4 w-4 text-blue-500" />
@@ -141,6 +145,7 @@ export default function UserTable({
                 size="sm"
                 onClick={() => onUnlock && onUnlock(row.original)}
                 title="Mở khóa"
+                disabled={row.original.isCurrentUser}
                 className="h-8 w-8 p-0"
               >
                 <LockOpen className="h-4 w-4 text-green-500" />
@@ -151,6 +156,7 @@ export default function UserTable({
                 size="sm"
                 onClick={() => onLock && onLock(row.original)}
                 title="Khóa tài khoản"
+                disabled={row.original.isCurrentUser}
                 className="h-8 w-8 p-0"
               >
                 <Lock className="h-4 w-4 text-orange-500" />
@@ -161,6 +167,7 @@ export default function UserTable({
               size="sm"
               onClick={() => onDelete(row.original)}
               title="Xóa"
+              disabled={row.original.isCurrentUser}
               className="h-8 w-8 p-0"
             >
               <Trash2 className="h-4 w-4 text-red-500" />
