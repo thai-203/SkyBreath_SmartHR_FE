@@ -1,0 +1,43 @@
+import api from "@/lib/api";
+
+export const shiftAssignmentsService = {
+  assignToEmployee: async (data) => {
+    const response = await api.post("/shifts/assign", data);
+    return response.data;
+  },
+
+  assignByDepartment: async (data) => {
+    const response = await api.post("/shifts/assign/department", data);
+    return response.data;
+  },
+
+  update: async (id, data) => {
+    const response = await api.put(`/shifts/assign/${id}`, data);
+    return response.data;
+  },
+
+  cancel: async (id) => {
+    const response = await api.delete(`/shifts/assign/${id}`);
+    return response.data;
+  },
+
+  list: async (params = {}) => {
+    const response = await api.get("/shifts/assignments", { params });
+    return response.data;
+  },
+
+  getEmployeeSchedule: async (employeeId, month, year) => {
+    const response = await api.get(`/shifts/schedule/employee/${employeeId}`, {
+      params: { month, year },
+    });
+    return response.data;
+  },
+
+  getDepartmentSchedule: async (departmentId, month, year) => {
+    const response = await api.get(
+      `/shifts/schedule/department/${departmentId}`,
+      { params: { month, year } },
+    );
+    return response.data;
+  },
+};

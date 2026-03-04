@@ -57,6 +57,18 @@ const menuItems = [
     roles: ["ADMIN", "HR", "MANAGER"],
   },
   {
+    title: "Ca làm việc",
+    icon: Clock,
+    href: "/shifts/groups",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Nhóm ca", href: "/shifts/groups" },
+      { title: "Ca làm việc", href: "/shifts/working" },
+      { title: "Phân ca", href: "/shifts/assignments" },
+      { title: "Lịch ca", href: "/shifts/schedule" },
+    ],
+  },
+  {
     title: "Ngày nghỉ lễ",
     icon: Calendar,
     href: "/holidays",

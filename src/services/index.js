@@ -9,3 +9,6 @@ export * from "./employee-salaries.service";
 export * from "./onboardings.service";
 export * from "./timesheets.service";
 export * from "./user.service";
+export * from "./shift-groups.service";
+export * from "./working-shifts.service";
+export * from "./shift-assignments.service";
