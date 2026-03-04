@@ -68,21 +68,21 @@ export const authService = {
   hasRole: (role) => {
     const user = authService.getCurrentUser();
     const userRoles = user?.roles || [];
-    return userRoles.some(r => r.toUpperCase() === role.toUpperCase());
+    return userRoles.some((r) => r.toUpperCase() === role.toUpperCase());
   },
 
   hasAnyRole: (roles) => {
     const user = authService.getCurrentUser();
     const userRoles = user?.roles || [];
     return roles.some((role) =>
-      userRoles.some(r => r.toUpperCase() === role.toUpperCase())
+      userRoles.some((r) => r.toUpperCase() === role.toUpperCase()),
     );
   },
 
   getCurrentEmployeeByUserId: async () => {
-    const user = JSON.parse(localStorage.getItem("user"))
+    const user = JSON.parse(localStorage.getItem("user"));
     const userId = user?.id;
     const response = await api.get(`/employees/user/${userId}`);
     return response.data;
-  }
+  },
 };
