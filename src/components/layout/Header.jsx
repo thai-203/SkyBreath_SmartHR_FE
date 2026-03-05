@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, Bell, Search, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Menu, Bell, Search, LogOut, User } from "lucide-react";
 import { Button } from "../common/Button";
 import { useState, useRef, useEffect } from "react";
 import { authService } from "@/services";
@@ -19,11 +20,16 @@ export function Header({ onMenuClick }) {
     employees: "Nhân viên",
     contracts: "Hợp đồng lao động",
     settings: "Cài đặt",
+    general: "Hồ sơ",
     chart: "Sơ đồ tổ chức",
     create: "Thêm mới",
     edit: "Chỉnh sửa",
-    security: "Bảo mật",
+    security: "Mật khẩu",
     "audit-log": "Lịch sử hoạt động",
+    roles: "Vai trò",
+    users: "Người dùng",
+    onboardings: "Tiếp nhận nhân sự",
+    template: "Mẫu",
   };
 
   const pathParts = pathname.split("/").filter(Boolean);
@@ -98,6 +104,14 @@ export function Header({ onMenuClick }) {
           </button>
           {showDropdown && (
             <div className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white border border-slate-200 shadow-lg py-1 z-50">
+              <Link
+                href="/settings/general"
+                onClick={() => setShowDropdown(false)}
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <User className="h-4 w-4" />
+                Hồ sơ của tôi
+              </Link>
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"

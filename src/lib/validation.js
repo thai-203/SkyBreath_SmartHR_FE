@@ -50,6 +50,28 @@ export const uniqueField = (list, field, currentId, message = "Giá trị này �
     return exists ? message : null;
 };
 
+export const phone = (message = "Invalid Vietnamese phone format (e.g., 0912345678)") => (value) => {
+    if (!value) return null;
+    // Vietnamese phone format: 0xxxxxxxxx or +84xxxxxxxxx (10-11 digits total)
+    // Valid carriers: 3, 5, 7, 8, 9 as second digit
+    const phoneRegex = /^(\+84|0)(3|5|7|8|9)\d{8}$/;
+    return phoneRegex.test(value.replace(/\s|-/g, "")) ? null : message;
+};
+
+export const fileSize = (maxSizeMB, message) => (file) => {
+    if (!file) return null;
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    const msg = message || `Kích thước file không được vượt quá ${maxSizeMB}MB`;
+    return file.size <= maxSizeBytes ? null : msg;
+};
+
+export const fileType = (allowedTypes, message) => (file) => {
+    if (!file) return null;
+    const typesArray = Array.isArray(allowedTypes) ? allowedTypes : [allowedTypes];
+    const msg = message || `Định dạng file không được hỗ trợ. Các loại được hỗ trợ: ${typesArray.join(", ")}`;
+    return typesArray.includes(file.type) ? null : msg;
+};
+
 /**
  * Validate an object against a set of rules
  * @param {Object} values - The values to validate

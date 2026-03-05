@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { X, ChevronDown, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/components/common/Toast";
 import { onboardingsService } from "@/services";
 
 export default function PlanDetailModal({ plan, onClose }) {
+  const { success, error: toastError } = useToast();
   const [expandedTask, setExpandedTask] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +22,7 @@ export default function PlanDetailModal({ plan, onClose }) {
         setTasks(response.data?.tasks || []);
         setProgress(response.data?.progress || 0);
       } catch (error) {
-        toast.error("Lỗi khi tải chi tiết kế hoạch");
+        toastError("Lỗi khi tải chi tiết kế hoạch");
         console.error(error);
       } finally {
         setLoading(false);
