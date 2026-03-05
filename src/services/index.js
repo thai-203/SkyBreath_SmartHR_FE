@@ -9,3 +9,4 @@ export * from "./employee-salaries.service";
 export * from "./onboardings.service";
 export * from "./timesheets.service";
 export * from "./overtime-rules.service";
+export * from "./penalties.service";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/common/Button";
 import { ConfirmModal } from "@/components/common/Modal";
 import { useToast } from "@/components/common/Toast";
@@ -21,13 +21,27 @@ const emptyForm = {
     status: "ACTIVE",
 };
 
+const emptyFilters = {
+    status: "",
+    departmentId: "",
+    minMultiplier: "",
+    maxMultiplier: "",
+    minHoursPerDay: "",
+    maxHoursPerDay: "",
+    minHoursPerMonth: "",
+    maxHoursPerMonth: "",
+};
+
 export default function OvertimeRulesPage() {
     // ============ STATE ============
     const [rules, setRules] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [filters, setFilters] = useState(emptyFilters);
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
 
     // Modal state
     const [formModal, setFormModal] = useState({ open: false, mode: "add", data: null });
@@ -38,12 +52,29 @@ export default function OvertimeRulesPage() {
 
     const { success, error: showError } = useToast();
 
+    // Debounce timer ref for search
+    const searchTimerRef = useRef(null);
+
     // ============ FETCH DATA ============
-    const fetchRules = useCallback(async () => {
+    const fetchRules = useCallback(async (searchValue, filtersValue, page) => {
         try {
             setLoading(true);
-            const res = await overtimeRulesService.getAll();
-            setRules(res.data || []);
+            const params = { page, limit: PAGE_SIZE };
+
+            if (searchValue?.trim()) params.search = searchValue.trim();
+            if (filtersValue.status) params.status = filtersValue.status;
+            if (filtersValue.departmentId) params.departmentId = filtersValue.departmentId;
+            if (filtersValue.minMultiplier) params.minMultiplier = filtersValue.minMultiplier;
+            if (filtersValue.maxMultiplier) params.maxMultiplier = filtersValue.maxMultiplier;
+            if (filtersValue.minHoursPerDay) params.minHoursPerDay = filtersValue.minHoursPerDay;
+            if (filtersValue.maxHoursPerDay) params.maxHoursPerDay = filtersValue.maxHoursPerDay;
+            if (filtersValue.minHoursPerMonth) params.minHoursPerMonth = filtersValue.minHoursPerMonth;
+            if (filtersValue.maxHoursPerMonth) params.maxHoursPerMonth = filtersValue.maxHoursPerMonth;
+
+            const res = await overtimeRulesService.getAll(params);
+            setRules(res.data?.items || []);
+            setTotalPages(res.data?.pagination?.totalPages || 1);
+            setTotalItems(res.data?.pagination?.total || 0);
         } catch (err) {
             showError("Không thể tải danh sách quy định làm thêm giờ");
         } finally {
@@ -60,31 +91,32 @@ export default function OvertimeRulesPage() {
         }
     }, []);
 
+    // Initial load
     useEffect(() => {
-        fetchRules();
+        fetchRules(search, filters, currentPage);
         fetchDepartments();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ============ FILTERING & PAGINATION ============
-    const filteredRules = useMemo(() => {
-        if (!search.trim()) return rules;
-        const term = search.toLowerCase();
-        return rules.filter(
-            (r) =>
-                r.name?.toLowerCase().includes(term) ||
-                r.departments?.some((d) => d.departmentName?.toLowerCase().includes(term))
-        );
-    }, [rules, search]);
+    // Re-fetch khi filter hoặc page thay đổi
+    useEffect(() => {
+        fetchRules(search, filters, currentPage);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters, currentPage]);
 
-    const totalPages = Math.ceil(filteredRules.length / PAGE_SIZE);
-    const paginatedRules = filteredRules.slice(
-        (currentPage - 1) * PAGE_SIZE,
-        currentPage * PAGE_SIZE
-    );
-
+    // ============ SEARCH với DEBOUNCE ============
     const handleSearchChange = (value) => {
         setSearch(value);
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = setTimeout(() => {
+            setCurrentPage(1);
+            fetchRules(value, filters, 1);
+        }, 400);
+    };
+
+    // ============ FILTER CHANGE ============
+    const handleFilterChange = (newFilters) => {
+        setFilters(newFilters);
         setCurrentPage(1);
     };
 
@@ -162,7 +194,7 @@ export default function OvertimeRulesPage() {
                 success("Cập nhật quy định OT thành công");
             }
             setFormModal({ open: false, mode: "add", data: null });
-            fetchRules();
+            fetchRules(search, filters, currentPage);
         } catch (err) {
             const resData = err.response?.data;
             // Nếu BE trả về validation errors, map vào form fields
@@ -194,10 +226,12 @@ export default function OvertimeRulesPage() {
             await overtimeRulesService.delete(deleteModal.data.id);
             setDeleteModal({ open: false, data: null });
             success("Xóa quy định OT thành công");
-            if (paginatedRules.length <= 1 && currentPage > 1) {
+            // Nếu xóa item cuối cùng trên trang, lùi về trang trước
+            if (rules.length <= 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
+            } else {
+                fetchRules(search, filters, currentPage);
             }
-            fetchRules();
         } catch (err) {
             showError(err.response?.data?.message || "Đã xảy ra lỗi khi xóa");
         }
@@ -229,14 +263,18 @@ export default function OvertimeRulesPage() {
 
             {/* Table */}
             <OvertimeTable
-                data={paginatedRules}
+                data={rules}
                 loading={loading}
                 search={search}
                 onSearchChange={handleSearchChange}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                departments={departments}
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
                 pageSize={PAGE_SIZE}
+                totalItems={totalItems}
                 onEdit={handleOpenEdit}
                 onDelete={handleOpenDelete}
             />

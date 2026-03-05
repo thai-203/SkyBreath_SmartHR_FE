@@ -1,28 +1,28 @@
 import api from "@/lib/api";
 
-export const overtimeRulesService = {
+export const penaltiesService = {
     getAll: async (params = {}) => {
-        const response = await api.get("/overtime-rules", { params });
+        const response = await api.get("/penalties", { params });
         return response.data;
     },
 
     getById: async (id) => {
-        const response = await api.get(`/overtime-rules/${id}`);
+        const response = await api.get(`/penalties/${id}`);
         return response.data;
     },
 
     create: async (data) => {
-        const response = await api.post("/overtime-rules", data);
+        const response = await api.post("/penalties", data);
         return response.data;
     },
 
     update: async (id, data) => {
-        const response = await api.put(`/overtime-rules/${id}`, data);
+        const response = await api.put(`/penalties/${id}`, data);
         return response.data;
     },
 
     delete: async (id) => {
-        const response = await api.delete(`/overtime-rules/${id}`);
+        const response = await api.delete(`/penalties/${id}`);
         return response.data;
     },
 };

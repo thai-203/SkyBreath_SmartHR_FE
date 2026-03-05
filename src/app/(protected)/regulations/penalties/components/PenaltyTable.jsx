@@ -6,14 +6,41 @@ import { Pagination } from "@/components/common/Pagination";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pencil, Trash2, Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
 
-export default function OvertimeTable({
+const penaltyTypeLabels = {
+    WARNING: "Cảnh cáo",
+    SALARY_DEDUCTION: "Trừ lương",
+    SUSPENSION: "Đình chỉ",
+    TERMINATION: "Sa thải",
+};
+
+const penaltyTypeColors = {
+    WARNING: "bg-yellow-50 text-yellow-700",
+    SALARY_DEDUCTION: "bg-orange-50 text-orange-700",
+    SUSPENSION: "bg-red-50 text-red-700",
+    TERMINATION: "bg-rose-50 text-rose-700",
+};
+
+const severityLabels = {
+    LOW: "Thấp",
+    MEDIUM: "Trung bình",
+    HIGH: "Cao",
+    CRITICAL: "Nghiêm trọng",
+};
+
+const severityColors = {
+    LOW: "bg-slate-100 text-slate-600",
+    MEDIUM: "bg-blue-50 text-blue-700",
+    HIGH: "bg-orange-50 text-orange-700",
+    CRITICAL: "bg-red-50 text-red-700",
+};
+
+export default function PenaltyTable({
     data = [],
     loading = false,
     search,
     onSearchChange,
     filters = {},
     onFilterChange,
-    departments = [],
     currentPage,
     totalPages,
     onPageChange,
@@ -29,22 +56,27 @@ export default function OvertimeTable({
         onFilterChange({ ...filters, [field]: value });
     };
 
-    const hasActiveFilters = filters.status || filters.departmentId ||
-        filters.minMultiplier || filters.maxMultiplier ||
-        filters.minHoursPerDay || filters.maxHoursPerDay ||
-        filters.minHoursPerMonth || filters.maxHoursPerMonth;
+    const hasActiveFilters = filters.penaltyType || filters.severityLevel ||
+        filters.status || filters.minDeductionAmount || filters.maxDeductionAmount;
 
     const handleClearFilters = () => {
         onFilterChange({
+            penaltyType: "",
+            severityLevel: "",
             status: "",
-            departmentId: "",
-            minMultiplier: "",
-            maxMultiplier: "",
-            minHoursPerDay: "",
-            maxHoursPerDay: "",
-            minHoursPerMonth: "",
-            maxHoursPerMonth: "",
+            minDeductionAmount: "",
+            maxDeductionAmount: "",
         });
+    };
+
+    const formatCurrency = (value) => {
+        if (value === null || value === undefined) return "—";
+        return Number(value).toLocaleString("vi-VN") + "đ";
+    };
+
+    const formatPercentage = (value) => {
+        if (value === null || value === undefined) return "—";
+        return Number(value) + "%";
     };
 
     return (
@@ -52,14 +84,14 @@ export default function OvertimeTable({
             {/* Search & Filter Toggle */}
             <div className="flex items-center justify-between border-b border-slate-200 p-4">
                 <h2 className="text-base font-semibold text-slate-900">
-                    Danh sách quy định OT
+                    Danh sách quy định hình phạt
                 </h2>
                 <div className="flex items-center gap-2">
                     <div className="relative w-64">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Tìm quy định..."
+                            placeholder="Tìm theo tên hoặc số tiền..."
                             value={search}
                             onChange={(e) => onSearchChange(e.target.value)}
                             className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
@@ -90,6 +122,38 @@ export default function OvertimeTable({
             {showFilters && (
                 <div className="border-b border-slate-200 bg-slate-50 p-4 space-y-3">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        {/* Penalty Type */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-slate-500">Loại hình phạt</label>
+                            <select
+                                value={filters.penaltyType || ""}
+                                onChange={(e) => handleFilterChange("penaltyType", e.target.value)}
+                                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            >
+                                <option value="">Tất cả</option>
+                                <option value="WARNING">Cảnh cáo</option>
+                                <option value="SALARY_DEDUCTION">Trừ lương</option>
+                                <option value="SUSPENSION">Đình chỉ</option>
+                                <option value="TERMINATION">Sa thải</option>
+                            </select>
+                        </div>
+
+                        {/* Severity Level */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-slate-500">Mức độ</label>
+                            <select
+                                value={filters.severityLevel || ""}
+                                onChange={(e) => handleFilterChange("severityLevel", e.target.value)}
+                                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            >
+                                <option value="">Tất cả</option>
+                                <option value="LOW">Thấp</option>
+                                <option value="MEDIUM">Trung bình</option>
+                                <option value="HIGH">Cao</option>
+                                <option value="CRITICAL">Nghiêm trọng</option>
+                            </select>
+                        </div>
+
                         {/* Status */}
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-slate-500">Trạng thái</label>
@@ -104,85 +168,16 @@ export default function OvertimeTable({
                             </select>
                         </div>
 
-                        {/* Department */}
+                        {/* Deduction Amount Range */}
                         <div className="space-y-1">
-                            <label className="text-xs font-medium text-slate-500">Phòng ban</label>
-                            <select
-                                value={filters.departmentId || ""}
-                                onChange={(e) => handleFilterChange("departmentId", e.target.value)}
-                                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                            >
-                                <option value="">Tất cả phòng ban</option>
-                                {departments.map((dept) => (
-                                    <option key={dept.id} value={dept.id}>
-                                        {dept.departmentName}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Salary Multiplier Range */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium text-slate-500">Hệ số lương</label>
-                            <div className="flex items-center gap-1.5">
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    placeholder="Từ"
-                                    value={filters.minMultiplier || ""}
-                                    onChange={(e) => handleFilterChange("minMultiplier", e.target.value)}
-                                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                                />
-                                <span className="text-xs text-slate-400">–</span>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    placeholder="Đến"
-                                    value={filters.maxMultiplier || ""}
-                                    onChange={(e) => handleFilterChange("maxMultiplier", e.target.value)}
-                                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Hours Per Day Range */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium text-slate-500">Giờ OT/ngày</label>
-                            <div className="flex items-center gap-1.5">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="24"
-                                    placeholder="Từ"
-                                    value={filters.minHoursPerDay || ""}
-                                    onChange={(e) => handleFilterChange("minHoursPerDay", e.target.value)}
-                                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                                />
-                                <span className="text-xs text-slate-400">–</span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="24"
-                                    placeholder="Đến"
-                                    value={filters.maxHoursPerDay || ""}
-                                    onChange={(e) => handleFilterChange("maxHoursPerDay", e.target.value)}
-                                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Hours Per Month Range */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium text-slate-500">Giờ OT/tháng</label>
+                            <label className="text-xs font-medium text-slate-500">Số tiền trừ</label>
                             <div className="flex items-center gap-1.5">
                                 <input
                                     type="number"
                                     min="0"
                                     placeholder="Từ"
-                                    value={filters.minHoursPerMonth || ""}
-                                    onChange={(e) => handleFilterChange("minHoursPerMonth", e.target.value)}
+                                    value={filters.minDeductionAmount || ""}
+                                    onChange={(e) => handleFilterChange("minDeductionAmount", e.target.value)}
                                     className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                                 />
                                 <span className="text-xs text-slate-400">–</span>
@@ -190,8 +185,8 @@ export default function OvertimeTable({
                                     type="number"
                                     min="0"
                                     placeholder="Đến"
-                                    value={filters.maxHoursPerMonth || ""}
-                                    onChange={(e) => handleFilterChange("maxHoursPerMonth", e.target.value)}
+                                    value={filters.maxDeductionAmount || ""}
+                                    onChange={(e) => handleFilterChange("maxDeductionAmount", e.target.value)}
                                     className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                                 />
                             </div>
@@ -223,19 +218,19 @@ export default function OvertimeTable({
                                 STT
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Tên quy định
+                                Tên hình phạt
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Hệ số lương
+                                Loại
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Giờ OT tối đa/ngày
+                                Mức độ
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Giờ OT tối đa/tháng
+                                Số tiền trừ
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Áp dụng cho
+                            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                % Trừ lương
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Trạng thái
@@ -257,51 +252,57 @@ export default function OvertimeTable({
                                 </tr>
                             ))
                         ) : data.length > 0 ? (
-                            data.map((rule, index) => (
+                            data.map((penalty, index) => (
                                 <tr
-                                    key={rule.id}
+                                    key={penalty.id}
                                     className="transition-colors hover:bg-slate-50"
                                 >
                                     <td className="px-4 py-3 text-sm text-slate-600">
                                         {(currentPage - 1) * pageSize + index + 1}
                                     </td>
                                     <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                                        {rule.name}
+                                        <div>
+                                            {penalty.name}
+                                            {penalty.description && (
+                                                <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">
+                                                    {penalty.description}
+                                                </p>
+                                            )}
+                                        </div>
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm text-slate-600">
-                                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                                            x{rule.salaryMultiplier}
+                                    <td className="px-4 py-3 text-center text-sm">
+                                        <span
+                                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                                penaltyTypeColors[penalty.penaltyType] || "bg-slate-100 text-slate-600"
+                                            }`}
+                                        >
+                                            {penaltyTypeLabels[penalty.penaltyType] || penalty.penaltyType}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center text-sm">
+                                        <span
+                                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                                severityColors[penalty.severityLevel] || "bg-slate-100 text-slate-600"
+                                            }`}
+                                        >
+                                            {severityLabels[penalty.severityLevel] || penalty.severityLevel}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-center text-sm text-slate-600">
-                                        {rule.maxHoursPerDay}h
+                                        {formatCurrency(penalty.deductionAmount)}
                                     </td>
                                     <td className="px-4 py-3 text-center text-sm text-slate-600">
-                                        {rule.maxHoursPerMonth}h
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-600">
-                                        <div className="flex flex-wrap gap-1">
-                                            {rule.departments && rule.departments.length > 0
-                                                ? rule.departments.map((dept) => (
-                                                      <span
-                                                          key={dept.id}
-                                                          className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
-                                                      >
-                                                          {dept.departmentName}
-                                                      </span>
-                                                  ))
-                                                : "—"}
-                                        </div>
+                                        {formatPercentage(penalty.deductionPercentage)}
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span
                                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                                rule.status === "ACTIVE"
+                                                penalty.status === "ACTIVE"
                                                     ? "bg-emerald-50 text-emerald-700"
                                                     : "bg-slate-100 text-slate-500"
                                             }`}
                                         >
-                                            {rule.status === "ACTIVE"
+                                            {penalty.status === "ACTIVE"
                                                 ? "Hoạt động"
                                                 : "Ngừng hoạt động"}
                                         </span>
@@ -312,7 +313,7 @@ export default function OvertimeTable({
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
-                                                onClick={() => onEdit(rule)}
+                                                onClick={() => onEdit(penalty)}
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
@@ -320,7 +321,7 @@ export default function OvertimeTable({
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                onClick={() => onDelete(rule)}
+                                                onClick={() => onDelete(penalty)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -335,8 +336,8 @@ export default function OvertimeTable({
                                     className="px-4 py-12 text-center text-sm text-slate-400"
                                 >
                                     {search || hasActiveFilters
-                                        ? "Không tìm thấy quy định phù hợp"
-                                        : "Chưa có quy định OT nào"}
+                                        ? "Không tìm thấy hình phạt phù hợp"
+                                        : "Chưa có quy định hình phạt nào"}
                                 </td>
                             </tr>
                         )}
