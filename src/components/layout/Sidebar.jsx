@@ -1,24 +1,26 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { authService } from "@/services";
 import {
-  LayoutDashboard,
+  BookOpen,
   Building2,
-  Users,
-  FileText,
-  Settings,
+  Calendar,
   ChevronDown,
   ChevronRight,
-  X,
+  Clock,
+  FileText,
+  LayoutDashboard,
+  Settings,
+  ShieldAlert,
   User,
   UserPlus,
-  Clock,
-  BookOpen,
+  Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
-import { authService } from "@/services";
 
 const menuItems = [
   {
@@ -30,6 +32,7 @@ const menuItems = [
     title: "Phòng ban",
     icon: Building2,
     href: "/departments",
+    roles: ["ADMIN", "HR", "MANAGER"],
     children: [
       { title: "Danh sách", href: "/departments" },
       { title: "Sơ đồ tổ chức", href: "/departments/chart" },
@@ -39,27 +42,38 @@ const menuItems = [
     title: "Nhân viên",
     icon: Users,
     href: "/employees",
+    roles: ["ADMIN", "HR", "MANAGER"],
     children: [{ title: "Danh sách", href: "/employees" }],
   },
   {
     title: "Hợp đồng",
     icon: FileText,
     href: "/contracts",
+    roles: ["ADMIN", "HR", "MANAGER"],
   },
   {
     title: "Bảng chấm công",
     icon: Clock,
     href: "/timesheets",
+    roles: ["ADMIN", "HR", "MANAGER"],
   },
   {
-      title: "Việc cần làm",
-      icon: UserPlus,
-      href: "/onboardings/employee",
+    title: "Ngày nghỉ lễ",
+    icon: Calendar,
+    href: "/holidays",
+    roles: ["ADMIN", "HR", "MANAGER"],
+  },
+  {
+    title: "Việc cần làm",
+    icon: UserPlus,
+    href: "/onboardings/employee",
+    roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
   },
   {
     title: "Quản lý tiếp nhận nhân sự mới",
     icon: UserPlus,
     href: "/onboardings",
+    roles: ["ADMIN", "HR"],
     children: [
       { title: "Danh sách", href: "/onboardings" },
       { title: "Mẫu", href: "/onboardings/template" },
@@ -79,15 +93,30 @@ const menuItems = [
     title: "Người dùng",
     icon: User,
     href: "/users",
-    children: [{ title: "Lịch sử hoạt động", href: "/users/audit-log" }],
+    roles: ["ADMIN"],
+    children: [
+      { title: "Danh sách", href: "/users" },
+      { title: "Lịch sử hoạt động", href: "/users/audit-log" },
+    ],
+  },
+  {
+    title: "Phân quyền",
+    icon: ShieldAlert,
+    href: "/roles",
+    roles: ["ADMIN"],
+    children: [
+      { title: "Vai trò", href: "/roles" },
+      { title: "Quyền hệ thống", href: "/permissions" },
+    ],
   },
   {
     title: "Cài đặt",
     icon: Settings,
     href: "/settings",
+    roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
-      { title: "Tổng quan", href: "/settings" },
-      { title: "Bảo mật", href: "/settings/security" },
+      { title: "Hồ sơ", href: "/settings/general" },
+      { title: "Mật khẩu", href: "/settings/security" },
     ],
   },
 ];

@@ -29,7 +29,7 @@ export default function OnboardingFinalReview({
   onboardingPlan,
   onClose,
   onConfirm,
-  onSuccess
+  onSuccess,
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
@@ -53,8 +53,13 @@ export default function OnboardingFinalReview({
   const completedTasks = taskAssignments.filter(
     (t) => t.status === "COMPLETED",
   );
+
+  // Kiểm tra trạng thái tổng thể
+  const isAlreadyCompleted = onboardingPlan.overallStatus === "COMPLETED";
   const progress = onboardingPlan.progressPercentage || 0;
-  const canFinalize = mandatoryPendingTasks.length === 0;
+
+  // Có thể chốt nếu không còn tác vụ bắt buộc VÀ chưa được chốt trước đó
+  const canFinalize = mandatoryPendingTasks.length === 0 && !isAlreadyCompleted;
 
   const formatUpdatedAt = (dateString) => {
     if (!dateString) return "Chưa có dữ liệu";
@@ -204,7 +209,10 @@ export default function OnboardingFinalReview({
             <p className="text-slate-400 font-bold">
               Mã NV:{" "}
               <span className="text-slate-600">
-                #EMP-{onboardingPlan.employee?.id?.toString().padStart(5, "0")}
+                #
+                {onboardingPlan.employee?.employeeCode
+                  ?.toString()
+                  .padStart(5, "0")}
               </span>
               <span className="mx-2">•</span>{" "}
               {onboardingPlan.employee?.department?.departmentName}
@@ -227,15 +235,21 @@ export default function OnboardingFinalReview({
                 </p>
               </div>
               <span
-                className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${canFinalize ? "bg-blue-100 text-blue-600" : "bg-amber-100 text-amber-600"}`}
+                className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest 
+                ${isAlreadyCompleted ? "bg-green-100 text-green-600" : canFinalize ? "bg-blue-100 text-blue-600" : "bg-amber-100 text-amber-600"}`}
               >
-                {canFinalize ? "Đủ điều kiện hoàn tất" : "Chưa đủ điều kiện"}
+                {isAlreadyCompleted
+                  ? "Đã hoàn tất"
+                  : canFinalize
+                    ? "Đủ điều kiện hoàn tất"
+                    : "Chưa đủ điều kiện"}
               </span>
             </div>
             <div className="space-y-4">
               <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-1000 ${canFinalize ? "bg-blue-500" : "bg-indigo-600"}`}
+                  className={`h-full rounded-full transition-all duration-1000 
+                  ${isAlreadyCompleted ? "bg-green-500" : canFinalize ? "bg-blue-500" : "bg-indigo-600"}`}
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
@@ -261,24 +275,33 @@ export default function OnboardingFinalReview({
           </div>
 
           <div
-            className={`rounded-[32px] p-8 border ${canFinalize ? "bg-blue-50 border-blue-100" : "bg-amber-50 border-amber-100"}`}
+            className={`rounded-[32px] p-8 border 
+            ${isAlreadyCompleted ? "bg-green-50 border-green-100" : canFinalize ? "bg-blue-50 border-blue-100" : "bg-amber-50 border-amber-100"}`}
           >
             <div
-              className={`flex items-center gap-3 mb-4 ${canFinalize ? "text-blue-600" : "text-amber-600"}`}
+              className={`flex items-center gap-3 mb-4 
+              ${isAlreadyCompleted ? "text-green-600" : canFinalize ? "text-blue-600" : "text-amber-600"}`}
             >
-              {canFinalize ? (
+              {isAlreadyCompleted ? (
+                <CheckCircle2 className="w-6 h-6" />
+              ) : canFinalize ? (
                 <CheckCircle2 className="w-6 h-6" />
               ) : (
                 <AlertTriangle className="w-6 h-6" />
               )}
-              <h3 className="font-black">Yêu cầu hành động</h3>
+              <h3 className="font-black">
+                {isAlreadyCompleted ? "Trạng thái" : "Yêu cầu hành động"}
+              </h3>
             </div>
             <p
-              className={`text-sm font-bold leading-relaxed mb-6 ${canFinalize ? "text-blue-900/70" : "text-amber-900/70"}`}
+              className={`text-sm font-bold leading-relaxed mb-6 
+              ${isAlreadyCompleted ? "text-green-900/70" : canFinalize ? "text-blue-900/70" : "text-amber-900/70"}`}
             >
-              {canFinalize
-                ? "Tuyệt vời! Tất cả nhiệm vụ bắt buộc đã hoàn tất. Bạn có thể kích hoạt tài khoản nhân viên chính thức ngay bây giờ."
-                : `Còn ${pendingTasks.length} nhiệm vụ chưa hoàn thành, trong đó có ${mandatoryPendingTasks.length} nhiệm vụ là BẮT BUỘC.`}
+              {isAlreadyCompleted
+                ? "Lộ trình hội nhập của nhân viên này đã được hoàn tất và chốt hồ sơ."
+                : canFinalize
+                  ? "Tuyệt vời! Tất cả nhiệm vụ bắt buộc đã hoàn tất. Bạn có thể kích hoạt tài khoản nhân viên chính thức ngay bây giờ."
+                  : `Còn ${pendingTasks.length} nhiệm vụ chưa hoàn thành, trong đó có ${mandatoryPendingTasks.length} nhiệm vụ là BẮT BUỘC.`}
             </p>
           </div>
         </div>
@@ -428,16 +451,20 @@ export default function OnboardingFinalReview({
         {/* FINAL CONFIRMATION BOX */}
         <div
           className={`mt-16 bg-white rounded-[40px] p-10 border-l-[6px] border border-slate-200 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-8 
-          ${canFinalize ? "border-l-blue-500" : "border-l-slate-300"}`}
+          ${isAlreadyCompleted ? "border-l-green-500" : canFinalize ? "border-l-blue-500" : "border-l-slate-300"}`}
         >
           <div className="max-w-2xl">
             <h2 className="text-2xl font-black text-slate-800 mb-3">
-              Xác nhận hoàn tất lộ trình
+              {isAlreadyCompleted
+                ? "Lộ trình đã hoàn tất"
+                : "Xác nhận hoàn tất lộ trình"}
             </h2>
             <p className="text-slate-500 font-medium leading-relaxed">
-              {canFinalize
-                ? `Mọi thủ tục bắt buộc đã xong. Nhân viên ${onboardingPlan.employee?.fullName} sẽ được chuyển sang trạng thái hoạt động chính thức.`
-                : "Vui lòng hoàn thành các nhiệm vụ 'Bắt buộc' trước khi chốt hồ sơ."}
+              {isAlreadyCompleted
+                ? `Lộ trình của ${onboardingPlan.employee?.fullName} đã được chốt. Hồ sơ hiện tại không thể thay đổi.`
+                : canFinalize
+                  ? `Mọi thủ tục bắt buộc đã xong. Nhân viên ${onboardingPlan.employee?.fullName} sẽ được chuyển sang trạng thái hoạt động chính thức.`
+                  : "Vui lòng hoàn thành các nhiệm vụ 'Bắt buộc' trước khi chốt hồ sơ."}
             </p>
           </div>
           <button
@@ -445,15 +472,24 @@ export default function OnboardingFinalReview({
             onClick={handleUpdate}
             className={`flex items-center gap-3 px-12 py-5 rounded-[24px] font-black text-lg transition-all 
     ${
-      canFinalize
-        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100"
-        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+      isAlreadyCompleted
+        ? "bg-green-100 text-green-700 cursor-not-allowed"
+        : canFinalize
+          ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100"
+          : "bg-slate-200 text-slate-400 cursor-not-allowed"
     }`}
           >
-            {isSubmitting ? "Đang xử lý..." : "Xác nhận hoàn thành"}
-            <CheckCircle2
-              className={`w-6 h-6 ${canFinalize ? "animate-bounce" : ""}`}
-            />
+            {isSubmitting
+              ? "Đang xử lý..."
+              : isAlreadyCompleted
+                ? "Đã xác nhận hoàn thành"
+                : "Xác nhận hoàn thành"}
+
+            {!isAlreadyCompleted && (
+              <CheckCircle2
+                className={`w-6 h-6 ${canFinalize ? "animate-bounce" : ""}`}
+              />
+            )}
           </button>
         </div>
       </div>
