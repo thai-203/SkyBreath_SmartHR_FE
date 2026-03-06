@@ -1,25 +1,25 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
-import {
-  onboardingsService,
-  employeesService,
-  departmentsService,
-} from "@/services";
 import { useToast } from "@/components/common/Toast";
 import {
+  departmentsService,
+  employeesService,
+  onboardingsService,
+} from "@/services";
+import {
+  CheckCircle2,
+  ClipboardList,
   FileDown,
   Plus,
-  Users,
-  ClipboardList,
-  CheckCircle2,
   Search,
+  Users,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-import OnboardingStatsCard from "./components/OnboardingStatsCard";
-import OnboardingPlansTable from "./components/OnboardingPlansTable";
 import CreatePlanModal from "./components/CreatePlanModal";
 import OnboardingDetailView from "./components/OnboardingDetailView";
+import OnboardingPlansTable from "./components/OnboardingPlansTable";
+import OnboardingStatsCard from "./components/OnboardingStatsCard";
 
 /* ===================== HELPERS ===================== */
 
@@ -79,6 +79,7 @@ export default function OnboardingPage() {
         setEmployees(normalizeList(empRes?.data));
         setDepartments(normalizeList(depRes?.data));
         setTemplates(normalizeList(tmpRes?.data));
+
         setStats({
           newEmployeesLast30Days: statsRes?.data?.newEmployeesLast30Days || 0,
           inProgress: statsRes?.data?.inProgress || 0,
@@ -171,7 +172,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900">
       <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
-        
+
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -232,11 +233,10 @@ export default function OnboardingPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveFilter(tab.id)}
-                  className={`whitespace-nowrap px-4 py-2 text-sm font-bold rounded-lg transition-all ${
-                    activeFilter === tab.id
-                      ? "bg-white text-indigo-600 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
+                  className={`whitespace-nowrap px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeFilter === tab.id
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                    }`}
                 >
                   {tab.label}
                   <span className="ml-1 opacity-60 text-xs font-normal">
@@ -278,9 +278,9 @@ export default function OnboardingPage() {
       )}
 
       {selectedPlan && (
-        <OnboardingDetailView 
-          onboardingPlan={selectedPlan} 
-          onClose={() => setSelectedPlan(null)} 
+        <OnboardingDetailView
+          onboardingPlan={selectedPlan}
+          onClose={() => setSelectedPlan(null)}
           onSuccess={handlePlanUpdate}
         />
       )}

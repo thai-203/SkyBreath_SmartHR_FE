@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { authService } from "@/services";
 import {
+  BookOpen,
   Building2,
   Calendar,
   ChevronDown,
@@ -19,7 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const menuItems = [
   {
@@ -76,6 +77,16 @@ const menuItems = [
     children: [
       { title: "Danh sách", href: "/onboardings" },
       { title: "Mẫu", href: "/onboardings/template" },
+    ],
+  },
+  {
+    title: "Quy định",
+    icon: BookOpen,
+    href: "/regulations",
+    roles: ["HR", "ADMIN"],
+    children: [
+      { title: "Làm thêm giờ", href: "/regulations/overtime" },
+      { title: "Hình phạt", href: "/regulations/penalties" },
     ],
   },
   {
@@ -185,11 +196,19 @@ function MenuItem({ item, isActive, onMobileClose }) {
 
 export function Sidebar({ className, onMobileClose }) {
   const pathname = usePathname();
-  const user = authService.getCurrentUser();
 
-  console.log("Current User:", user);
-  console.log("User Roles:", user?.roles);
-  console.log("Sidebar rendered."); // Added log
+  // Lọc menu items theo role của user hiện tại
+  const filteredMenuItems = useMemo(() => {
+    const currentUser = authService.getCurrentUser();
+    const userRoles = currentUser?.roles || [];
+
+    return menuItems.filter((item) => {
+      // Nếu menu item không có field roles → hiện cho tất cả
+      if (!item.roles) return true;
+      // Nếu có field roles → chỉ hiện khi user có ít nhất 1 role trùng
+      return item.roles.some((role) => userRoles.includes(role));
+    });
+  }, []);
 
   return (
     <aside
@@ -215,16 +234,14 @@ export function Sidebar({ className, onMobileClose }) {
         )}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-        {menuItems
-          .filter((item) => !item.roles || authService.hasAnyRole(item.roles))
-          .map((item) => (
-            <MenuItem
-              key={item.href}
-              item={item}
-              isActive={pathname.startsWith(item.href)}
-              onMobileClose={onMobileClose}
-            />
-          ))}
+        {filteredMenuItems.map((item) => (
+          <MenuItem
+            key={item.href}
+            item={item}
+            isActive={pathname.startsWith(item.href)}
+            onMobileClose={onMobileClose}
+          />
+        ))}
       </nav>
     </aside>
   );
