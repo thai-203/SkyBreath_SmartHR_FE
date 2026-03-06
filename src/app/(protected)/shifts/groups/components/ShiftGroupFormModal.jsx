@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,6 @@ import { Input } from "@/components/common/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/common/Button";
 import { Label } from "@/components/ui/label";
-import { AlertCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -21,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils"; 
+import { useToast } from "@/components/common/Toast";
 
 export default function ShiftGroupFormModal({
   open,
@@ -31,19 +30,14 @@ export default function ShiftGroupFormModal({
   onClose,
   onSubmit,
 }) {
-  const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    if (!open) setErrors({});
-  }, [open]);
+  const { error } = useToast();
 
   const validate = () => {
-    const newErrors = {};
     if (!data.groupName?.trim()) {
-      newErrors.groupName = "Tên nhóm ca không được để trống";
+      error("Tên nhóm ca không được để trống");
+      return false;
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
   const handleFormSubmit = (e) => {
@@ -58,7 +52,7 @@ export default function ShiftGroupFormModal({
       <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-none bg-white rounded-xl shadow-2xl">
         <DialogHeader className="px-6 pt-6 pb-4 bg-slate-50 border-b">
           <DialogTitle className="text-xl font-semibold text-slate-900">
-            {data?.id ? "Chỉnh sửa nhóm ca" : "Tạo nhóm ca mới"}
+            {data?.groupName ? "Chỉnh sửa nhóm ca" : "Tạo nhóm ca mới"}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
             Điền thông tin chi tiết để thiết lập nhóm ca làm việc.
@@ -76,16 +70,8 @@ export default function ShiftGroupFormModal({
               placeholder="VD: Nhóm sản xuất A, Khối văn phòng..."
               value={data.groupName || ""}
               onChange={(e) => setData({ ...data, groupName: e.target.value })}
-              className={cn(
-                "border-slate-200 focus:ring-blue-500",
-                errors.groupName && "border-red-500 focus:ring-red-500"
-              )}
+              className="border-slate-200 focus:ring-blue-500"
             />
-            {errors.groupName && (
-              <p className="text-xs text-red-500 flex items-center gap-1.5 mt-1.5">
-                <AlertCircle className="h-3.5 w-3.5" /> {errors.groupName}
-              </p>
-            )}
           </div>
 
           {/* Trạng thái hoạt động */}
@@ -132,22 +118,22 @@ export default function ShiftGroupFormModal({
         </form>
 
         <DialogFooter className="px-6 py-4 bg-slate-50 border-t flex flex-row items-center justify-end gap-3">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onClose} 
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
             disabled={loading}
             className="border-slate-200 hover:bg-slate-100"
           >
             Hủy bỏ
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             onClick={handleFormSubmit}
             loading={loading}
             className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
           >
-            {data?.id ? "Lưu thay đổi" : "Xác nhận tạo"}
+            {data?.groupName ? "Lưu thay đổi" : "Xác nhận tạo"}
           </Button>
         </DialogFooter>
       </DialogContent>

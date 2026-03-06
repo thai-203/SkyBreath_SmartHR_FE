@@ -373,7 +373,6 @@ export default function CreatePlanModal({
         tasks: tasks.map(({ id, ...rest }) => rest),
       };
       await onboardingsService.createPlan(payload);
-      success("Kích hoạt lộ trình thành công!");
       onSuccess?.();
       onClose();
     } catch (err) {

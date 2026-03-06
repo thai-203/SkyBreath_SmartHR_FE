@@ -18,7 +18,6 @@ export default function ShiftGroupDeleteModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      {/* Thêm bg-white và border rõ ràng ở đây */}
       <DialogContent className="bg-white border-none shadow-2xl sm:max-w-[440px] p-0 overflow-hidden">
         <div className="p-6">
           <DialogHeader>

@@ -30,6 +30,15 @@ export function Header({ onMenuClick }) {
     users: "Người dùng",
     onboardings: "Tiếp nhận nhân sự",
     template: "Mẫu",
+<<<<<<< Updated upstream
+=======
+    users: "Người dùng",
+    plans: "Kế hoạch",
+    shifts: "Ca làm việc",
+    employee: "Nhân viên",
+    groups: "Nhóm ca",
+    working: "Ca",
+>>>>>>> Stashed changes
   };
 
   const pathParts = pathname.split("/").filter(Boolean);

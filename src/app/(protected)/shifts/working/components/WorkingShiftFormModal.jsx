@@ -27,7 +27,7 @@ export default function WorkingShiftFormModal({
       <DialogContent className="bg-white sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="px-6 pt-6">
           <DialogTitle className="text-xl font-bold text-gray-800">
-            {data?.id ? "Chỉnh sửa ca làm việc" : "Thêm ca làm việc mới"}
+            {data?.shiftName ? "Chỉnh sửa ca làm việc" : "Thêm ca làm việc mới"}
           </DialogTitle>
         </DialogHeader>
 
@@ -116,7 +116,7 @@ export default function WorkingShiftFormModal({
             loading={loading}
             className="rounded-md bg-indigo-600 hover:bg-indigo-700 text-white min-w-[120px]"
           >
-            {data?.id ? "Lưu thay đổi" : "Tạo ca"}
+            {data?.shiftName ? "Lưu thay đổi" : "Tạo ca"}
           </Button>
         </DialogFooter>
       </DialogContent>

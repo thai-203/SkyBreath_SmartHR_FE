@@ -1,9 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { 
-  Plus, Search, Clock, RefreshCcw, Filter, 
-  ChevronDown, Check, CalendarDays 
+import {
+  Plus,
+  Search,
+  Clock,
+  RefreshCcw,
+  Filter,
+  ChevronDown,
+  Check,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
@@ -25,7 +31,7 @@ const initialData = {
 
 export default function WorkingShiftsPage() {
   const { success, error } = useToast();
-  
+
   // -- States --
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +40,7 @@ export default function WorkingShiftsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [groupOptions, setGroupOptions] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
-  
+
   // Dropdown Filter State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterRef = useRef(null);
@@ -54,7 +60,7 @@ export default function WorkingShiftsPage() {
         (res.items || []).map((g) => ({
           value: g.id,
           label: g.groupName,
-        }))
+        })),
       );
     } catch (err) {
       console.error("Lỗi lấy danh sách nhóm:", err);
@@ -124,14 +130,58 @@ export default function WorkingShiftsPage() {
     setIsDeleteOpen(true);
   };
 
+  const validateForm = () => {
+    console.log("Validating form data:", formData);
+    if (!formData.groupId) {
+      error("Nhóm ca không được để trống");
+      return false;
+    }
+    if (!formData.startTime || !formData.endTime) {
+      error("Giờ bắt đầu/giờ kết thúc không được để trống");
+      return false;
+    }
+    const toMinutes = (t) => {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
+    const s = toMinutes(formData.startTime);
+    const e = toMinutes(formData.endTime);
+    if (s >= e) {
+      error("Giờ bắt đầu phải nhỏ hơn giờ kết thúc");
+      return false;
+    }
+    if (formData.breakStartTime && formData.breakEndTime) {
+      const bs = toMinutes(formData.breakStartTime);
+      const be = toMinutes(formData.breakEndTime);
+      if (bs >= be) {
+        error("Giờ nghỉ bắt đầu phải nhỏ hơn giờ nghỉ kết thúc");
+        return false;
+      }
+      if (bs < s || be > e) {
+        error("Khoảng giờ nghỉ phải nằm trong giờ làm việc");
+        return false;
+      }
+    }
+    return true;
+  };
+
   const submitForm = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
     setFormLoading(true);
     try {
+      const payload = {
+        ...formData,
+        groupId: formData.groupId ? Number(formData.groupId) : undefined,
+      };
+
       if (selected) {
-        await workingShiftsService.update(selected.id, formData);
+        await workingShiftsService.update(selected.id, payload);
         success("Cập nhật ca làm việc thành công");
       } else {
-        await workingShiftsService.create(formData);
+        await workingShiftsService.create(payload);
         success("Tạo ca làm việc thành công");
       }
       setIsFormOpen(false);
@@ -158,7 +208,8 @@ export default function WorkingShiftsPage() {
   };
 
   // Lấy nhãn của nhóm đang chọn
-  const activeGroupName = groupOptions.find(g => g.value === selectedGroup)?.label || "Tất cả nhóm";
+  const activeGroupName =
+    groupOptions.find((g) => g.value === selectedGroup)?.label || "Tất cả nhóm";
 
   return (
     <div className="p-6 space-y-6 bg-slate-50/50 min-h-screen">
@@ -167,22 +218,29 @@ export default function WorkingShiftsPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-blue-600 mb-1">
             <Clock size={18} />
-            <span className="text-[11px] font-bold uppercase tracking-wider">Lịch trình nhân sự</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">
+              Lịch trình nhân sự
+            </span>
           </div>
-          <PageTitle title="Quản lý ca làm việc" className="text-2xl font-bold text-slate-800" />
-          <p className="text-slate-500 text-sm">Quản lý khung giờ làm việc và nghỉ ngơi của nhân viên.</p>
+          <PageTitle
+            title="Quản lý ca làm việc"
+            className="text-2xl font-bold text-slate-800"
+          />
+          <p className="text-slate-500 text-sm">
+            Quản lý khung giờ làm việc và nghỉ ngơi của nhân viên.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={fetchData}
             className="p-2.5 text-slate-500 hover:bg-white hover:shadow-sm rounded-xl transition-all border border-transparent hover:border-slate-200"
             title="Làm mới dữ liệu"
           >
             <RefreshCcw size={20} className={loading ? "animate-spin" : ""} />
           </button>
-          <Button 
-            onClick={handleCreate} 
+          <Button
+            onClick={handleCreate}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 border-none transition-all active:scale-95"
           >
             <Plus size={18} strokeWidth={2.5} />
@@ -193,37 +251,49 @@ export default function WorkingShiftsPage() {
 
       {/* --- Section: Main Content --- */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        
         {/* Toolbar: Filters & Search */}
         <div className="p-5 border-b border-slate-100 bg-white">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            
             <div className="flex flex-wrap items-center gap-4">
               {/* Custom Dropdown Filter */}
               <div className="relative" ref={filterRef}>
                 <button
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
                   className={`flex items-center gap-2 bg-white border ${
-                    isFilterOpen ? "border-blue-500 ring-2 ring-blue-500/10" : "border-slate-200"
+                    isFilterOpen
+                      ? "border-blue-500 ring-2 ring-blue-500/10"
+                      : "border-slate-200"
                   } rounded-xl px-3 py-1.5 shadow-sm hover:border-blue-400 transition-all text-left min-w-[200px]`}
                 >
                   <div className="text-slate-400 pr-2 border-r border-slate-100">
                     <Filter size={18} />
                   </div>
                   <div className="flex flex-col flex-1 overflow-hidden">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight leading-none pt-0.5">Nhóm ca</span>
-                    <span className="text-[14px] font-semibold text-slate-700 truncate pt-0.5">{activeGroupName}</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight leading-none pt-0.5">
+                      Nhóm ca
+                    </span>
+                    <span className="text-[14px] font-semibold text-slate-700 truncate pt-0.5">
+                      {activeGroupName}
+                    </span>
                   </div>
-                  <ChevronDown size={16} className={`text-slate-400 transition-transform ${isFilterOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown
+                    size={16}
+                    className={`text-slate-400 transition-transform ${isFilterOpen ? "rotate-180" : ""}`}
+                  />
                 </button>
 
                 {isFilterOpen && (
                   <div className="absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl py-1 animate-in fade-in zoom-in duration-100 origin-top">
                     <ul className="max-h-60 overflow-auto">
                       <li
-                        onClick={() => { setSelectedGroup(""); setIsFilterOpen(false); }}
+                        onClick={() => {
+                          setSelectedGroup("");
+                          setIsFilterOpen(false);
+                        }}
                         className={`flex items-center justify-between px-3 py-2.5 text-sm cursor-pointer transition-colors ${
-                          selectedGroup === "" ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50"
+                          selectedGroup === ""
+                            ? "bg-blue-50 text-blue-600 font-bold"
+                            : "text-slate-600 hover:bg-slate-50"
                         }`}
                       >
                         Tất cả nhóm
@@ -232,9 +302,14 @@ export default function WorkingShiftsPage() {
                       {groupOptions.map((opt) => (
                         <li
                           key={opt.value}
-                          onClick={() => { setSelectedGroup(opt.value); setIsFilterOpen(false); }}
+                          onClick={() => {
+                            setSelectedGroup(opt.value);
+                            setIsFilterOpen(false);
+                          }}
                           className={`flex items-center justify-between px-3 py-2.5 text-sm cursor-pointer transition-colors ${
-                            selectedGroup === opt.value ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50"
+                            selectedGroup === opt.value
+                              ? "bg-blue-50 text-blue-600 font-bold"
+                              : "text-slate-600 hover:bg-slate-50"
                           }`}
                         >
                           <span className="truncate">{opt.label}</span>
@@ -245,11 +320,13 @@ export default function WorkingShiftsPage() {
                   </div>
                 )}
               </div>
-              
+
               <div className="h-8 w-[1px] bg-slate-100 hidden md:block"></div>
-              
+
               <div className="flex items-center gap-2 text-slate-400">
-                <span className="text-xs font-medium uppercase tracking-wider">Tổng cộng:</span>
+                <span className="text-xs font-medium uppercase tracking-wider">
+                  Tổng cộng:
+                </span>
                 <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-xs font-bold">
                   {data.length}
                 </span>
@@ -258,8 +335,11 @@ export default function WorkingShiftsPage() {
 
             {/* Search Box */}
             <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                size={18}
+              />
+              <input
                 type="text"
                 placeholder="Tìm kiếm theo tên ca..."
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all placeholder:text-slate-400"

@@ -17,10 +17,16 @@ import {
   UserPlus,
   Users,
   X,
+  CalendarClock,
+  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+<<<<<<< Updated upstream
 import { useMemo, useState } from "react";
+=======
+import { useState, useEffect } from "react";
+>>>>>>> Stashed changes
 
 const menuItems = [
   {
@@ -59,7 +65,7 @@ const menuItems = [
   },
   {
     title: "Ca làm việc",
-    icon: Clock,
+    icon: CalendarClock,
     href: "/shifts/groups",
     roles: ["ADMIN", "HR", "MANAGER"],
     children: [
@@ -77,17 +83,17 @@ const menuItems = [
   },
   {
     title: "Việc cần làm",
-    icon: UserPlus,
+    icon: ClipboardCheck,
     href: "/onboardings/employee",
     roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
   },
   {
     title: "Quản lý tiếp nhận nhân sự mới",
     icon: UserPlus,
-    href: "/onboardings",
+    href: "/onboardings/plans",
     roles: ["ADMIN", "HR"],
     children: [
-      { title: "Danh sách", href: "/onboardings" },
+      { title: "Danh sách", href: "/onboardings/plans" },
       { title: "Mẫu", href: "/onboardings/template" },
     ],
   },
@@ -133,14 +139,13 @@ const menuItems = [
   },
 ];
 
-function MenuItem({ item, isActive, onMobileClose }) {
-  const [isOpen, setIsOpen] = useState(isActive);
+function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
   const hasChildren = item.children && item.children.length > 0;
   const pathname = usePathname();
 
   const handleClick = () => {
     if (hasChildren) {
-      setIsOpen(!isOpen);
+      onToggle(); // Gọi hàm toggle từ Sidebar
     } else if (onMobileClose) {
       onMobileClose();
     }
@@ -208,6 +213,7 @@ function MenuItem({ item, isActive, onMobileClose }) {
 
 export function Sidebar({ className, onMobileClose }) {
   const pathname = usePathname();
+<<<<<<< Updated upstream
 
   // Lọc menu items theo role của user hiện tại
   const filteredMenuItems = useMemo(() => {
@@ -221,6 +227,31 @@ export function Sidebar({ className, onMobileClose }) {
       return item.roles.some((role) => userRoles.includes(role));
     });
   }, []);
+=======
+  const user = authService.getCurrentUser();
+  const [openMenuHref, setOpenMenuHref] = useState(null);
+
+  const isMenuActive = (item) => {
+    if (item.children && item.children.length) {
+      if (pathname === item.href) return true;
+      return item.children.some(
+        (child) => pathname === child.href || pathname.startsWith(child.href),
+      );
+    }
+    return pathname === item.href || pathname.startsWith(item.href);
+  };
+
+  useEffect(() => {
+    const activeItem = menuItems.find(item => isMenuActive(item));
+    if (activeItem && activeItem.children) {
+      setOpenMenuHref(activeItem.href);
+    }
+  }, [pathname]);
+
+  const handleToggle = (href) => {
+    setOpenMenuHref((prev) => (prev === href ? null : href));
+  };
+>>>>>>> Stashed changes
 
   return (
     <aside
@@ -246,6 +277,7 @@ export function Sidebar({ className, onMobileClose }) {
         )}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+<<<<<<< Updated upstream
         {filteredMenuItems.map((item) => (
           <MenuItem
             key={item.href}
@@ -254,6 +286,20 @@ export function Sidebar({ className, onMobileClose }) {
             onMobileClose={onMobileClose}
           />
         ))}
+=======
+        {menuItems
+          .filter((item) => !item.roles || authService.hasAnyRole(item.roles))
+          .map((item) => (
+            <MenuItem
+              key={item.href}
+              item={item}
+              isActive={isMenuActive(item)}
+              isOpen={openMenuHref === item.href}
+              onToggle={() => handleToggle(item.href)}
+              onMobileClose={onMobileClose}
+            />
+          ))}
+>>>>>>> Stashed changes
       </nav>
     </aside>
   );
