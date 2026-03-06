@@ -27,6 +27,11 @@ export default function DepartmentsPage() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [filters, setFilters] = useState({
+        parentDepartmentId: "",
+        managerEmployeeId: "",
+        hasEmployees: ""
+    });
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [totalPages, setTotalPages] = useState(1);
 
@@ -55,6 +60,9 @@ export default function DepartmentsPage() {
                 page: pagination.pageIndex + 1,
                 limit: pagination.pageSize,
                 search,
+                parentDepartmentId: filters.parentDepartmentId || undefined,
+                managerEmployeeId: filters.managerEmployeeId || undefined,
+                hasEmployees: filters.hasEmployees || undefined,
             });
             setData(response.data || []);
             setTotalPages(response.meta?.totalPages || 1);
@@ -67,10 +75,18 @@ export default function DepartmentsPage() {
 
     const fetchDropdownData = async () => {
         try {
-            const [deptRes, empRes] = await Promise.all([
-                departmentsService.getList(),
-                employeesService.getList(),
-            ]);
+            // Fetch independently to prevent one failure from blocking others
+            const deptPromise = departmentsService.getList().catch(err => {
+                console.error("Error fetching departments list:", err);
+                return { data: [] };
+            });
+            const empPromise = employeesService.getList().catch(err => {
+                console.error("Error fetching employees list:", err);
+                return { data: [] };
+            });
+
+            const [deptRes, empRes] = await Promise.all([deptPromise, empPromise]);
+
             setDepartmentList(
                 (deptRes.data || []).map((d) => ({
                     value: d.id,
@@ -90,7 +106,7 @@ export default function DepartmentsPage() {
 
     useEffect(() => {
         fetchDepartments();
-    }, [pagination.pageIndex, pagination.pageSize, search]);
+    }, [pagination.pageIndex, pagination.pageSize, search, filters]);
 
     useEffect(() => {
         fetchDropdownData();
@@ -246,6 +262,10 @@ export default function DepartmentsPage() {
                 loading={loading}
                 search={search}
                 onSearchChange={setSearch}
+                filters={filters}
+                onFilterChange={setFilters}
+                departmentList={departmentList}
+                employeeList={employeeList}
                 pagination={pagination}
                 onPaginationChange={setPagination}
                 totalPages={totalPages}

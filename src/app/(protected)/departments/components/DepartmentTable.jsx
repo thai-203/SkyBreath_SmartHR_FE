@@ -24,6 +24,10 @@ export default function DepartmentTable({
   loading,
   search,
   onSearchChange,
+  filters,
+  onFilterChange,
+  departmentList,
+  employeeList,
   pagination,
   onPaginationChange,
   totalPages,
@@ -119,14 +123,68 @@ export default function DepartmentTable({
       <CardHeader className="border-b border-slate-200">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Danh sách phòng ban</CardTitle>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Tìm kiếm..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9 w-full sm:w-64"
-            />
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Tìm kiếm..."
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pl-9 w-64"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <select
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[180px]"
+                value={filters.parentDepartmentId || ""}
+                onChange={(e) => onFilterChange({ ...filters, parentDepartmentId: e.target.value })}
+              >
+                <option value="">Tất cả phòng ban cha</option>
+                {departmentList.map(dept => (
+                  <option key={dept.value} value={dept.value}>{dept.label}</option>
+                ))}
+              </select>
+
+              <select
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[180px]"
+                value={filters.managerEmployeeId || ""}
+                onChange={(e) => onFilterChange({ ...filters, managerEmployeeId: e.target.value })}
+              >
+                <option value="">Tất cả quản lý</option>
+                {employeeList.map(emp => (
+                  <option key={emp.value} value={emp.value}>{emp.label}</option>
+                ))}
+              </select>
+
+              <select
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[150px]"
+                value={filters.hasEmployees || ""}
+                onChange={(e) => onFilterChange({ ...filters, hasEmployees: e.target.value })}
+              >
+                <option value="">Tình trạng NV</option>
+                <option value="true">Có nhân viên</option>
+                <option value="false">Không có NV</option>
+              </select>
+
+              {(search || filters.parentDepartmentId || filters.managerEmployeeId || filters.hasEmployees) && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    onSearchChange("");
+                    onFilterChange({
+                      parentDepartmentId: "",
+                      managerEmployeeId: "",
+                      hasEmployees: ""
+                    });
+                  }}
+                  className="text-slate-500 hover:text-indigo-600"
+                >
+                  Xóa bộ lọc
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
