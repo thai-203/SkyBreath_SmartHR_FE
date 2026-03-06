@@ -11,3 +11,6 @@ export * from "./timesheets.service";
 export * from "./overtime-rules.service";
 export * from "./penalties.service";
 export * from "./user.service";
+export * from "./shift-groups.service";
+export * from "./working-shifts.service";
+export * from "./shift-assignments.service";
