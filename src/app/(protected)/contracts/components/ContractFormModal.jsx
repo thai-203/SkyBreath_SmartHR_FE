@@ -12,15 +12,12 @@ import {
   Upload,
   Paperclip,
   AlertCircle,
-  Download,
 } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { Select } from "@/components/common/Select";
 import { Label } from "@/components/common/Label";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 const SALARY_POLICY = {
   DEFAULT_KPI_RATIO: 0.2, // Gợi ý KPI 20%
@@ -39,13 +36,13 @@ export default function ContractFormModal({
   onSubmit,
   formData,
   onFormChange,
-  contractList = [],
   employeeList = [],
   jobGradesList = [],
   positionsList = [],
   departmentsList = [],
   loading,
   mode = "create",
+  selectedContract = null, // used when editing so we can show the current employee name
 }) {
   const [activeTab, setActiveTab] = useState("general");
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,16 +124,28 @@ export default function ContractFormModal({
   // --- EFFECTS ---
   useEffect(() => {
     if (isOpen) {
-      const currentEmp = employeeList.find(
-        (e) => String(e.value) === String(formData.employeeId),
-      );
-      setSearchTerm(currentEmp ? currentEmp.label : "");
+      // if editing, the dropdown is disabled and employeeList might exclude the
+      // current employee (because we filter out those with active contracts).
+      // fall back to selectedContract if present so the name still displays.
+      if (mode === "edit" && selectedContract) {
+        setSearchTerm(
+          selectedContract.employee?.fullName ||
+            selectedContract.employeeName ||
+            "",
+        );
+      } else {
+        const currentEmp = employeeList.find(
+          (e) => String(e.value) === String(formData.employeeId),
+        );
+        setSearchTerm(currentEmp ? currentEmp.label : "");
+      }
+
       setActiveTab("general");
     } else {
       setErrors({});
       setSearchTerm("");
     }
-  }, [isOpen, formData.employeeId, employeeList]);
+  }, [isOpen, formData.employeeId, employeeList, mode, selectedContract]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -151,19 +160,10 @@ export default function ContractFormModal({
 
   // --- MEMOIZED DATA ---
   const filteredEmployees = useMemo(() => {
-    const existingIds = new Set(
-      contractList.map((item) => String((item.data || item).employeeId)),
+    return employeeList.filter((emp) =>
+      (emp.label || "").toLowerCase().includes(searchTerm.toLowerCase()),
     );
-    return employeeList.filter((emp) => {
-      const isAlreadyContracted = existingIds.has(String(emp.value));
-      const matchesSearch = (emp.label || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      return mode === "create"
-        ? !isAlreadyContracted && matchesSearch
-        : matchesSearch;
-    });
-  }, [employeeList, contractList, searchTerm, mode]);
+  }, [employeeList, searchTerm]);
 
   const filteredJobGrades = useMemo(() => {
     if (!formData.departmentId) return [];
@@ -265,6 +265,22 @@ export default function ContractFormModal({
 
     if (formData.contractType !== "permanent" && !formData.endDate) {
       newErrors.endDate = "Chọn ngày kết thúc";
+    }
+
+    // date order validations
+    if (formData.signedDate && formData.startDate) {
+      const signed = new Date(formData.signedDate);
+      const start = new Date(formData.startDate);
+      if (signed > start) {
+        newErrors.signedDate = "Ngày ký không thể sau ngày bắt đầu";
+      }
+    }
+    if (formData.endDate && formData.startDate) {
+      const end = new Date(formData.endDate);
+      const start = new Date(formData.startDate);
+      if (end <= start) {
+        newErrors.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
+      }
     }
 
     // Working Hours

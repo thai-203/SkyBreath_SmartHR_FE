@@ -22,11 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-<<<<<<< Updated upstream
-import { useMemo, useState } from "react";
-=======
 import { useState, useEffect } from "react";
->>>>>>> Stashed changes
 
 const menuItems = [
   {
@@ -213,21 +209,6 @@ function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
 
 export function Sidebar({ className, onMobileClose }) {
   const pathname = usePathname();
-<<<<<<< Updated upstream
-
-  // Lọc menu items theo role của user hiện tại
-  const filteredMenuItems = useMemo(() => {
-    const currentUser = authService.getCurrentUser();
-    const userRoles = currentUser?.roles || [];
-
-    return menuItems.filter((item) => {
-      // Nếu menu item không có field roles → hiện cho tất cả
-      if (!item.roles) return true;
-      // Nếu có field roles → chỉ hiện khi user có ít nhất 1 role trùng
-      return item.roles.some((role) => userRoles.includes(role));
-    });
-  }, []);
-=======
   const user = authService.getCurrentUser();
   const [openMenuHref, setOpenMenuHref] = useState(null);
 
@@ -251,7 +232,6 @@ export function Sidebar({ className, onMobileClose }) {
   const handleToggle = (href) => {
     setOpenMenuHref((prev) => (prev === href ? null : href));
   };
->>>>>>> Stashed changes
 
   return (
     <aside
@@ -277,16 +257,6 @@ export function Sidebar({ className, onMobileClose }) {
         )}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-<<<<<<< Updated upstream
-        {filteredMenuItems.map((item) => (
-          <MenuItem
-            key={item.href}
-            item={item}
-            isActive={pathname.startsWith(item.href)}
-            onMobileClose={onMobileClose}
-          />
-        ))}
-=======
         {menuItems
           .filter((item) => !item.roles || authService.hasAnyRole(item.roles))
           .map((item) => (
@@ -299,7 +269,6 @@ export function Sidebar({ className, onMobileClose }) {
               onMobileClose={onMobileClose}
             />
           ))}
->>>>>>> Stashed changes
       </nav>
     </aside>
   );

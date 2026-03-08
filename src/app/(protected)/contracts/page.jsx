@@ -91,7 +91,7 @@ export default function ContractsPage() {
 
   // Dropdown data
   const [employeeList, setEmployeeList] = useState([]);
-  const [contractList, setContractList] = useState([]);
+  // removed contractList state - not needed after backend filter
   const [jobGradesList, setJobGradesList] = useState([]);
   const [positionsList, setPositionsList] = useState([]);
   const [departmentsList, setDepartmentsList] = useState([]);
@@ -117,18 +117,7 @@ export default function ContractsPage() {
     }
   };
 
-  const fetchContractList = async () => {
-    try {
-      const response = await contractsService.getAll();
-      setContractList(
-        (response.data || []).map((e) => ({
-          data: e,
-        })),
-      );
-    } catch (err) {
-      console.error("Error fetching contracts:", err);
-    }
-  };
+  // previous function to load all contracts removed; employee list now filtered server-side
 
   const fetchJobGradesList = async () => {
     try {
@@ -204,8 +193,9 @@ export default function ContractsPage() {
 
   const fetchEmployeeList = async () => {
     try {
-      const response = await employeesService.getAll();
-      const items = response.data?.items || [];
+      // request only employees without an active contract
+      const response = await employeesService.getList({ noContract: true });
+      const items = Array.isArray(response.data) ? response.data : [];
       setEmployeeList(
         items.map((e) => ({
           value: e.id,
@@ -229,7 +219,6 @@ export default function ContractsPage() {
   ]);
 
   useEffect(() => {
-    fetchContractList();
     fetchEmployeeList();
     fetchJobGradesList();
     fetchPositionsList();
@@ -346,12 +335,30 @@ export default function ContractsPage() {
   const validateForm = () => {
     const validationErrors = validate(formData, {
       employeeId: [required("Nhân viên là bắt buộc")],
+      contractNumber: [required("Mã hợp đồng là bắt buộc")],
       contractType: [required("Loại hợp đồng là bắt buộc")],
+      signedDate: [required("Ngày ký là bắt buộc")],
       startDate: [required("Ngày bắt đầu là bắt buộc")],
       baseSalary: [required("Lương là bắt buộc")],
       positionId: [required("Vị trí công việc là bắt buộc")],
       departmentId: [required("Phòng ban là bắt buộc")],
     });
+
+    if (formData.signedDate && formData.startDate) {
+      const signed = new Date(formData.signedDate);
+      const start = new Date(formData.startDate);
+      if (signed > start) {
+        validationErrors.signedDate = "Ngày ký không thể sau ngày bắt đầu";
+      }
+    }
+    if (formData.endDate && formData.startDate) {
+      const end = new Date(formData.endDate);
+      const start = new Date(formData.startDate);
+      if (end <= start) {
+        validationErrors.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
+      }
+    }
+
     if (validationErrors) {
       setErrors(validationErrors);
       return false;
@@ -420,6 +427,8 @@ export default function ContractsPage() {
       success(response.message || "Tạo hợp đồng thành công!");
       setIsCreateOpen(false);
       fetchContracts();
+      // reload employees so the newly contracted person is excluded
+      fetchEmployeeList();
     } catch (err) {
       error(err.response?.data?.message || "Không thể tạo hợp đồng.");
     } finally {
@@ -501,6 +510,8 @@ export default function ContractsPage() {
       success(response.message || "Cập nhật hợp đồng thành công!");
       setIsEditOpen(false);
       fetchContracts();
+      // in case editing changed anything that affects available employees (unlikely)
+      fetchEmployeeList();
     } catch (err) {
       const errorMsg =
         err.response?.data?.message || "Không thể cập nhật hợp đồng.";
@@ -527,6 +538,7 @@ export default function ContractsPage() {
       success(response.message);
       setIsTerminateOpen(false);
       fetchContracts();
+      fetchEmployeeList();
     } catch (err) {
       error(err.response?.data?.message || "Có lỗi xảy ra");
     } finally {
@@ -541,6 +553,7 @@ export default function ContractsPage() {
       success(response.message);
       setIsDeleteOpen(false);
       fetchContracts();
+      fetchEmployeeList();
     } catch (err) {
       error(err.response?.data?.message || "Có lỗi xảy ra");
     } finally {
@@ -648,7 +661,6 @@ export default function ContractsPage() {
         formData={formData}
         onFormChange={setFormData}
         errors={errors}
-        contractList={contractList}
         employeeList={employeeList}
         jobGradesList={jobGradesList}
         positionsList={positionsList}

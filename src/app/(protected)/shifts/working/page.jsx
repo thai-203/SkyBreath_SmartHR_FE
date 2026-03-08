@@ -55,12 +55,18 @@ export default function WorkingShiftsPage() {
   // -- Actions --
   const fetchGroups = async () => {
     try {
-      const res = await shiftGroupsService.getAll({ page: 1, limit: 100 });
+      const res = await shiftGroupsService.getAll({
+        page: 1,
+        limit: 100,
+        status: "active",
+      });
       setGroupOptions(
-        (res.items || []).map((g) => ({
-          value: g.id,
-          label: g.groupName,
-        })),
+        (res.items || [])
+          .filter((g) => g.status === "active")
+          .map((g) => ({
+            value: g.id,
+            label: g.groupName,
+          })),
       );
     } catch (err) {
       console.error("Lỗi lấy danh sách nhóm:", err);
