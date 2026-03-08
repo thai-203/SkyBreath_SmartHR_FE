@@ -445,6 +445,7 @@ export default function ContractFormModal({
                   }
                   placeholder="HĐLĐ/2024/001"
                   className={errors.contractNumber ? "border-red-500" : ""}
+                  disabled={mode === "edit"}
                 />
                 <ErrorMsg name="contractNumber" />
               </div>
