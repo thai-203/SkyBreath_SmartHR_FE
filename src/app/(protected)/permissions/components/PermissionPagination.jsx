@@ -73,7 +73,6 @@ export default function PermissionPagination({ currentPage, totalPages, onPageCh
                         label="Trước"
                     />
                 </PaginationItem>
-
                 {renderPageNumbers()}
 
                 <PaginationItem>

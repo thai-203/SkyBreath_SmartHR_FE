@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, ChevronDown, Upload } from "lucide-react";
 import { useToast } from "@/components/common/Toast";
 import { onboardingsService } from "@/services";
+import { ChevronDown, Upload, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function PlanDetailModal({ plan, onClose }) {
   const { success, error: toastError } = useToast();
@@ -35,10 +35,10 @@ export default function PlanDetailModal({ plan, onClose }) {
   const completedPercent =
     tasks.length > 0
       ? Math.round(
-          (tasks.filter((t) => t.status === "completed").length /
-            tasks.length) *
-            100
-        )
+        (tasks.filter((t) => t.status === "completed").length /
+          tasks.length) *
+        100
+      )
       : 0;
 
   return (
@@ -118,8 +118,8 @@ export default function PlanDetailModal({ plan, onClose }) {
                       task.status === "completed"
                         ? "bg-green-100 text-green-700"
                         : task.status === "in_progress"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-gray-100 text-gray-700";
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-gray-100 text-gray-700";
 
                     return (
                       <div
@@ -159,13 +159,12 @@ export default function PlanDetailModal({ plan, onClose }) {
                               {task.status === "completed"
                                 ? "ĐÃ HOÀN THÀNH"
                                 : task.status === "in_progress"
-                                ? "ĐANG THỰC HIỆN"
-                                : "CHƯA BẮT ĐẦU"}
+                                  ? "ĐANG THỰC HIỆN"
+                                  : "CHƯA BẮT ĐẦU"}
                             </span>
                             <ChevronDown
-                              className={`w-5 h-5 transition-transform ${
-                                isExpanded ? "rotate-180" : ""
-                              }`}
+                              className={`w-5 h-5 transition-transform ${isExpanded ? "rotate-180" : ""
+                                }`}
                             />
                           </div>
                         </button>

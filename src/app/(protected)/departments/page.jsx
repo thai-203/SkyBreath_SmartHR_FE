@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
+import { regex, required, unique, validate } from "@/lib/validation";
 import { departmentsService, employeesService } from "@/services";
-import { Plus, Download } from "lucide-react";
-import { validate, required, unique, regex } from "@/lib/validation";
+import { Download, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 
 // Local components
-import DepartmentTable from "./components/DepartmentTable";
-import DepartmentFormModal from "./components/DepartmentFormModal";
 import DepartmentDeleteModal from "./components/DepartmentDeleteModal";
 import DepartmentDetailModal from "./components/DepartmentDetailModal";
+import DepartmentFormModal from "./components/DepartmentFormModal";
+import DepartmentTable from "./components/DepartmentTable";
 
 const initialFormData = {
     departmentName: "",

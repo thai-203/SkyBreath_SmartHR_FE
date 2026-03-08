@@ -1,11 +1,11 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Menu, Bell, Search, LogOut, User } from "lucide-react";
-import { Button } from "../common/Button";
-import { useState, useRef, useEffect } from "react";
 import { authService } from "@/services";
+import { Bell, LogOut, Menu, Search, User } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "../common/Button";
 
 export function Header({ onMenuClick }) {
   const pathname = usePathname();
@@ -30,6 +30,15 @@ export function Header({ onMenuClick }) {
     users: "Người dùng",
     onboardings: "Tiếp nhận nhân sự",
     template: "Mẫu",
+<<<<<<< Updated upstream
+=======
+    users: "Người dùng",
+    plans: "Kế hoạch",
+    shifts: "Ca làm việc",
+    employee: "Nhân viên",
+    groups: "Nhóm ca",
+    working: "Ca",
+>>>>>>> Stashed changes
   };
 
   const pathParts = pathname.split("/").filter(Boolean);

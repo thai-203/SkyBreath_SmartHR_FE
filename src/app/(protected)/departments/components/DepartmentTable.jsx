@@ -1,12 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  flexRender,
-} from "@tanstack/react-table";
 import { Button } from "@/components/common/Button";
 import {
   Card,
@@ -15,9 +8,16 @@ import {
   CardTitle,
 } from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
-import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Search, Edit2, Trash2, Eye } from "lucide-react";
+import { Skeleton } from "@/components/common/Skeleton";
+import {
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { Edit2, Eye, Search, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 
 export default function DepartmentTable({
   data,
@@ -133,7 +133,7 @@ export default function DepartmentTable({
                 className="pl-9 w-64"
               />
             </div>
-            
+
             <div className="flex items-center gap-2">
               <select
                 className="h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[180px]"
@@ -168,9 +168,9 @@ export default function DepartmentTable({
               </select>
 
               {(search || filters.parentDepartmentId || filters.managerEmployeeId || filters.hasEmployees) && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     onSearchChange("");
                     onFilterChange({
