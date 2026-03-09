@@ -36,7 +36,7 @@ export default function CreateTemplateModal({
     description: "",
     durationDays: 30,
     status: "ACTIVE",
-    isTemplate: 1,
+    isTemplate: true,
   });
 
   const [tasks, setTasks] = useState([]);
@@ -82,7 +82,7 @@ export default function CreateTemplateModal({
       description: initialData.description || "",
       durationDays: initialData.durationDays || initialData.duration_days || 30,
       status: initialData.status || "ACTIVE",
-      isTemplate: 1,
+      isTemplate: true,
     });
 
     const currentDept = departmentsList.find(
