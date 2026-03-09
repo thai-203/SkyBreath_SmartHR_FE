@@ -1,5 +1,6 @@
 "use client";
 
+// 1,Import thư viện và component
 import { useState, useEffect } from "react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
@@ -7,52 +8,52 @@ import { useToast } from "@/components/common/Toast";
 import { departmentsService, employeesService } from "@/services";
 import { Plus, Download } from "lucide-react";
 import { validate, required, unique, regex } from "@/lib/validation";
-
-// Local components
 import DepartmentTable from "./components/DepartmentTable";
 import DepartmentFormModal from "./components/DepartmentFormModal";
 import DepartmentDeleteModal from "./components/DepartmentDeleteModal";
 import DepartmentDetailModal from "./components/DepartmentDetailModal";
 
+// 2,Khai báo dữ liệu ban đầu
 const initialFormData = {
     departmentName: "",
     parentDepartmentId: "",
     managerEmployeeId: "",
 };
-
+// 3.Khai báo state 
 export default function DepartmentsPage() {
     const { success, error } = useToast();
 
     // Data states
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
-    const [filters, setFilters] = useState({
+    const [data, setData] = useState([]); // Danh sách phòng ban trong table
+    const [loading, setLoading] = useState(true);//Loading khi gọi API
+    const [search, setSearch] = useState("");// Search phòng ban
+    const [filters, setFilters] = useState({ // Filter theo phòng ban cha, quản lý và có nhân viên hay không
         parentDepartmentId: "",
         managerEmployeeId: "",
         hasEmployees: ""
     });
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-    const [totalPages, setTotalPages] = useState(1);
+    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });// Phân trang
+    const [totalPages, setTotalPages] = useState(1);// Tổng số trang trả về từ API
 
     // Modal states
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [isDetailOpen, setIsDetailOpen] = useState(false);
-    const [selectedDepartment, setSelectedDepartment] = useState(null);
-    const [formLoading, setFormLoading] = useState(false);
-    const [exportLoading, setExportLoading] = useState(false);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);// 4 modal tạo, sửa, xóa và xem chi tiết
+
+    const [selectedDepartment, setSelectedDepartment] = useState(null);// Phòng ban đang chọn
+    const [formLoading, setFormLoading] = useState(false);// Loading khi submit
+    const [exportLoading, setExportLoading] = useState(false);// Loading khi xuất file
 
     // Form state
-    const [formData, setFormData] = useState(initialFormData);
-    const [errors, setErrors] = useState({});
+    const [formData, setFormData] = useState(initialFormData);// Dữ liệu form tạo/sửa phòng ban
+    const [errors, setErrors] = useState({});// Lỗi validation form
 
     // Dropdown data
     const [departmentList, setDepartmentList] = useState([]);
-    const [employeeList, setEmployeeList] = useState([]);
+    const [employeeList, setEmployeeList] = useState([]);// Danh sách cho select.
 
-    // ==================== API Calls ====================
+    //4,API calls (fetchDepartments để lấy danh sách phòng ban, fetchDropdownData để lấy dữ liệu cho dropdown filter và form )
     const fetchDepartments = async () => {
         setLoading(true);
         try {
@@ -71,7 +72,7 @@ export default function DepartmentsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    };// Lấy danh sách phòng ban với các tham số phân trang, tìm kiếm và lọc. Cập nhật state data và totalPages dựa trên phản hồi từ API. Xử lý lỗi và cập nhật trạng thái loading.
 
     const fetchDropdownData = async () => {
         try {
@@ -102,22 +103,23 @@ export default function DepartmentsPage() {
         } catch (err) {
             console.error("Error fetching dropdown data:", err);
         }
-    };
+    };// Lấy dữ liệu cho dropdown phòng ban và nhân viên. Sử dụng Promise.all để gọi đồng thời hai API và xử lý lỗi riêng biệt cho từng API để đảm bảo một lỗi không ảnh hưởng đến dữ liệu còn lại.
 
+    //5,UseEffect để gọi API khi component mount và khi các tham số thay đổi
     useEffect(() => {
         fetchDepartments();
-    }, [pagination.pageIndex, pagination.pageSize, search, filters]);
+    }, [pagination.pageIndex, pagination.pageSize, search, filters]);// Load departments khi filter/search/pagination thay đổi 
 
     useEffect(() => {
         fetchDropdownData();
-    }, []);
+    }, []); // Load dropdown data khi component mount
 
-    // ==================== Handlers ====================
+    //6,Handlers (Các hàm xử lý sự kiện như mở modal tạo/sửa/xóa, submit form, xuất file Excel)
     const handleCreate = () => {
         setFormData(initialFormData);
         setErrors({});
         setIsCreateOpen(true);
-    };
+    };//Mở modal tạo phòng ban mới
 
     const handleEdit = (department) => {
         setSelectedDepartment(department);
@@ -128,17 +130,17 @@ export default function DepartmentsPage() {
         });
         setErrors({});
         setIsEditOpen(true);
-    };
+    };//Mở modal chỉnh sửa phòng ban
 
     const handleDeleteClick = (department) => {
         setSelectedDepartment(department);
         setIsDeleteOpen(true);
-    };
+    };//Mở modal xác nhận xóa phòng ban
 
     const handleViewDetail = (department) => {
         setSelectedDepartment(department);
         setIsDetailOpen(true);
-    };
+    };//Mở modal xem chi tiết phòng ban
 
     const validateForm = () => {
         const validationErrors = validate(formData, {
@@ -154,7 +156,7 @@ export default function DepartmentsPage() {
         }
         setErrors({});
         return true;
-    };
+    };// Validate form dữ liệu trước khi submit. 
 
     const handleSubmitCreate = async () => {
         if (!validateForm()) return;
@@ -175,7 +177,7 @@ export default function DepartmentsPage() {
         } finally {
             setFormLoading(false);
         }
-    };
+    };// Xử lý submit form tạo phòng ban mới. 
 
     const handleSubmitEdit = async () => {
         if (!validateForm()) return;
@@ -196,7 +198,7 @@ export default function DepartmentsPage() {
         } finally {
             setFormLoading(false);
         }
-    };
+    };// Xử lý submit form chỉnh sửa phòng ban. 
 
     const handleDelete = async () => {
         setFormLoading(true);
@@ -211,7 +213,7 @@ export default function DepartmentsPage() {
         } finally {
             setFormLoading(false);
         }
-    };
+    };// Xử lý xác nhận xóa phòng ban. Gọi API xóa và cập nhật lại danh sách phòng ban sau khi xóa thành công.
 
     const handleExport = async () => {
         setExportLoading(true);
@@ -231,7 +233,7 @@ export default function DepartmentsPage() {
         } finally {
             setExportLoading(false);
         }
-    };
+    };// Xử lý xuất file Excel. Gọi API để lấy file, tạo URL tạm thời và trigger download trên trình duyệt. Xử lý lỗi và cập nhật trạng thái loading.
 
     // ==================== Render ====================
     return (
