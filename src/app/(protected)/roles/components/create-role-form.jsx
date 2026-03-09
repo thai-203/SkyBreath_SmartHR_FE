@@ -33,6 +33,7 @@ const formSchema = z.object({
         .string()
         .min(2, 'Tên vai trò phải có ít nhất 2 ký tự')
         .max(50, 'Tên vai trò tối đa 50 ký tự')
+        .regex(/^[a-zA-Z0-9ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼẾỀỂưăạảấầẩẫậắằẳẵặẹẻẽếềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰỳỵỷỹ\s]+$/, 'Tên vai trò không được chứa ký tự đặc biệt')
         .transform(val => val.trim()),
     description: z
         .string()

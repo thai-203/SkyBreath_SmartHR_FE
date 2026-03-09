@@ -43,4 +43,10 @@ export const holidayService = {
         const response = await api.post('/holiday-list/bulk-create', data);
         return response.data;
     },
+
+    async sendNotification(data) {
+        // data: { employeeIds: string[], holidayId: string, type: 'manual' | 'auto', scheduledAt?: Date }
+        const response = await api.post('/holiday-list/send-notification', data);
+        return response.data;
+    },
 };

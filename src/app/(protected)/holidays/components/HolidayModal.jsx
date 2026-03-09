@@ -18,10 +18,14 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { departmentsService } from "@/services/departments.service";
+import { employeesService } from "@/services/employees.service";
+import EmployeeTreeSelector from "./EmployeeTreeSelector";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
-import { useEffect } from "react";
+import { X, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -32,6 +36,7 @@ const holidaySchema = z.object({
     holidayType: z.string().min(1, "Loại ngày nghỉ là bắt buộc"),
     isPaid: z.boolean().default(true),
     description: z.string().optional(),
+    employeeIds: z.array(z.number()).default([]),
 }).refine((data) => {
     const start = new Date(data.startDate);
     const end = new Date(data.endDate);
@@ -43,6 +48,9 @@ const holidaySchema = z.object({
 
 export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
     const { error: toastError } = useToast();
+    const [treeData, setTreeData] = useState([]);
+    const [loadingTree, setLoadingTree] = useState(false);
+    
     const form = useForm({
         resolver: zodResolver(holidaySchema),
         mode: "onChange",
@@ -53,8 +61,79 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
             holidayType: "Nghỉ lễ, tết",
             isPaid: true,
             description: "",
+            employeeIds: [],
         },
     });
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchTreeData();
+        }
+    }, [isOpen]);
+
+    const fetchTreeData = async () => {
+        setLoadingTree(true);
+        try {
+            const [deptRes, empRes] = await Promise.all([
+                departmentsService.getChart(),
+                employeesService.getAll({ limit: 1000 })
+            ]);
+
+            const departments = deptRes.data || [];
+            const employees = empRes.data?.items || empRes.data || [];
+
+            const buildTree = (depts) => {
+                return depts.map(dept => {
+                    const deptEmployees = employees.filter(emp => emp.departmentId === dept.id);
+                    return {
+                        ...dept,
+                        employees: deptEmployees,
+                        children: dept.children ? buildTree(dept.children) : []
+                    };
+                });
+            };
+
+            setTreeData(buildTree(departments));
+        } catch (err) {
+            console.error("Failed to fetch tree data:", err);
+            toastError("Không thể tải danh sách nhân sự");
+        } finally {
+            setLoadingTree(false);
+        }
+    };
+
+    const handleNodeSelect = (item, checked) => {
+        const isEmployee = !!item.fullName;
+        const currentIds = form.getValues("employeeIds") || [];
+        
+        let idsToToggle = [];
+        if (isEmployee) {
+            idsToToggle = [item.id];
+        } else {
+            idsToToggle = item.employees?.map(e => e.id) || [];
+        }
+
+        if (idsToToggle.length === 0) return;
+
+        if (checked) {
+            form.setValue("employeeIds", Array.from(new Set([...currentIds, ...idsToToggle])), { shouldValidate: true });
+        } else {
+            form.setValue("employeeIds", currentIds.filter(id => !idsToToggle.includes(id)), { shouldValidate: true });
+        }
+    };
+
+    const getAllEmployeeIds = (items) => {
+        let ids = [];
+        items.forEach(item => {
+            if (item.employees) {
+                ids.push(...item.employees.map(e => e.id));
+            }
+            if (item.children) {
+                ids.push(...getAllEmployeeIds(item.children));
+            }
+        });
+        return Array.from(new Set(ids));
+    };
 
     useEffect(() => {
         if (holiday) {
@@ -65,6 +144,7 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                 holidayType: holiday.holidayType || "Nghỉ lễ, tết",
                 isPaid: holiday.isPaid ?? true,
                 description: holiday.description || "",
+                employeeIds: holiday.employees?.map(e => e.id) || [],
             });
         } else {
             form.reset({
@@ -74,9 +154,10 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                 holidayType: "Nghỉ lễ, tết",
                 isPaid: true,
                 description: "",
+                employeeIds: [],
             });
         }
-    }, [holiday, form, isOpen]); // Added isOpen to reset when modal opens
+    }, [holiday, form, isOpen]);
 
     const onHandleSubmit = async (data) => {
         try {
@@ -108,9 +189,12 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent hideClose className="max-w-6xl bg-white p-0 gap-0 overflow-hidden border-none shadow-2xl">
+            <DialogContent hideClose className="w-[95vw] sm:max-w-4xl lg:max-w-5xl bg-white p-0 gap-0 overflow-hidden border-none shadow-2xl max-h-[90vh] flex flex-col">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onHandleSubmit, onInvalid)}>
+                    <form 
+                        onSubmit={form.handleSubmit(onHandleSubmit, onInvalid)}
+                        className="flex flex-col h-full max-h-[90vh]"
+                    >
                         {/* Custom Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b">
                             <div className="flex items-center gap-4">
@@ -132,7 +216,8 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                         </div>
 
                         {/* Content */}
-                        <div className="p-8 space-y-6">
+                        <ScrollArea className="flex-1 overflow-y-auto">
+                            <div className="p-4 sm:p-8 space-y-6">
                             {/* Unit Badge */}
                             <div className="flex justify-end mb-2">
                                 <div className="bg-[#fff7ed] border border-[#ffedd5] px-3 py-1.5 rounded text-[13px] text-[#9a3412]">
@@ -140,7 +225,7 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
                                 <FormField
                                     control={form.control}
                                     name="startDate"
@@ -223,15 +308,18 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                                     )}
                                 />
 
-                                <div className="col-span-2">
+                                <div className="col-span-1 sm:col-span-1">
                                     <FormField
                                         control={form.control}
                                         name="holidayName"
                                         render={({ field }) => (
                                             <FormItem>
+                                                <FormLabel className="text-[13px] font-medium text-gray-700">
+                                                    Tên/Ghi chú ngắn
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
-                                                        placeholder="Nhập ghi chú"
+                                                        placeholder="Nhập tên ngày lễ..."
                                                         {...field}
                                                         className="h-10 border-gray-200 focus:border-blue-500 focus:ring-0 rounded text-[14px]"
                                                     />
@@ -242,16 +330,68 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                                     />
                                 </div>
 
-                                <div className="col-span-2">
+                                <div className="col-span-1 sm:col-span-2 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel className="text-[13px] font-bold text-gray-900 uppercase tracking-tight flex items-center gap-2">
+                                            <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                                            Nhân sự áp dụng
+                                        </FormLabel>
+                                        <div className="flex gap-4">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => {
+                                                    const allIds = getAllEmployeeIds(treeData);
+                                                    form.setValue('employeeIds', allIds, { shouldValidate: true });
+                                                }}
+                                                className="text-[12px] text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+                                            >
+                                                Chọn tất cả
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => form.setValue('employeeIds', [])}
+                                                className="text-[12px] text-gray-400 font-semibold hover:text-gray-600 transition-colors"
+                                            >
+                                                Bỏ chọn
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <FormField
+                                        control={form.control}
+                                        name="employeeIds"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <EmployeeTreeSelector 
+                                                        treeData={treeData}
+                                                        selectedIds={field.value}
+                                                        onSelect={handleNodeSelect}
+                                                        loading={loadingTree}
+                                                        maxHeight="250px"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    
+                                    <p className="text-[11px] text-gray-400 italic mt-1">
+                                        * Các nhân sự được chọn sẽ áp dụng ngày nghỉ này để tính công và lịch làm việc.
+                                    </p>
+                                </div>
+
+                                <div className="col-span-1 sm:col-span-2 mt-4">
                                     <FormField
                                         control={form.control}
                                         name="description"
                                         render={({ field }) => (
                                             <FormItem>
+                                                <FormLabel className="text-[13px] font-medium text-gray-700">Mô tả/Ghi chú chi tiết</FormLabel>
                                                 <FormControl>
                                                     <Textarea
-                                                        placeholder="Nhập ghi chú"
-                                                        className="resize-none min-h-[120px] border-gray-200 focus:border-blue-500 focus:ring-0 rounded text-[14px]"
+                                                        placeholder="Nhập mô tả chi tiết..."
+                                                        className="resize-none min-h-[100px] border-gray-200 focus:border-blue-500 focus:ring-0 rounded text-[14px]"
                                                         {...field}
                                                     />
                                                 </FormControl>
@@ -262,7 +402,8 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                                 </div>
                             </div>
                         </div>
-                    </form>
+                    </ScrollArea>
+                </form>
                 </Form>
             </DialogContent>
         </Dialog>
