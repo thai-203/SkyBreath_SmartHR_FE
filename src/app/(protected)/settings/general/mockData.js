@@ -9,6 +9,7 @@ export const mockUserProfile = {
     fullName: "Nguyễn Văn A",
     email: "nguyen.van.a@skybreath.com",
     personalEmail: "nva.personal@gmail.com",
+    employeeId: 123,
     phone: "0912345678",
     address: "123 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh",
     avatar:

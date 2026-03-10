@@ -46,7 +46,7 @@ export default function AssignmentsPage() {
       const [empRes, deptRes, shiftRes] = await Promise.all([
         employeesService.getList(),
         departmentsService.getList(),
-        workingShiftsService.getAll({ page: 1, limit: 100 }),
+        workingShiftsService.getList(),
       ]);
       setEmployeeOptions(
         (empRes.data || []).map((e) => ({ value: e.id, label: e.fullName })),
@@ -58,7 +58,7 @@ export default function AssignmentsPage() {
         })),
       );
       setShiftOptions(
-        (shiftRes.data.items || []).map((s) => ({
+        (shiftRes.data || []).map((s) => ({
           value: s.id,
           label: s.shiftName,
         })),
@@ -75,10 +75,11 @@ export default function AssignmentsPage() {
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
       });
-      setData(res.data.items || []);
-      setTotalPages(res.data.totalPages || 1);
+      console.log(res);
+      setData(res.items || []);
+      setTotalPages(res.totalPages || 1);
     } catch (err) {
-      error(err.response?.data?.message || "Lỗi tải danh sách");
+      error(err.response?.message || "Lỗi tải danh sách");
     } finally {
       setLoading(false);
     }

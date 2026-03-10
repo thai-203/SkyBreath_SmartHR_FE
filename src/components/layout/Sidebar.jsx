@@ -72,6 +72,12 @@ const menuItems = [
     ],
   },
   {
+    title: "Lịch cá nhân",
+    icon: Calendar,
+    href: "/shifts/personal",
+    roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
+  },
+  {
     title: "Ngày nghỉ lễ",
     icon: Calendar,
     href: "/holidays",
@@ -223,7 +229,7 @@ export function Sidebar({ className, onMobileClose }) {
   };
 
   useEffect(() => {
-    const activeItem = menuItems.find(item => isMenuActive(item));
+    const activeItem = menuItems.find((item) => isMenuActive(item));
     if (activeItem && activeItem.children) {
       setOpenMenuHref(activeItem.href);
     }
