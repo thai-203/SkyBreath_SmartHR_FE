@@ -5,6 +5,8 @@ import { Inter } from "next/font/google";
 import "nprogress/nprogress.css";
 import "./globals.css";
 
+// Force rebuild
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {

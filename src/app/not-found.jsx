@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Home, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/common/Button";
 
+// Force rebuild
+
 export default function NotFound() {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4 text-center">
