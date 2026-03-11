@@ -5,6 +5,7 @@ import { authService } from "@/services";
 import {
   BookOpen,
   Building2,
+  Camera,
   Calendar,
   CalendarClock,
   ChevronDown,
@@ -19,6 +20,7 @@ import {
   UserPlus,
   Users,
   X,
+  UserCog
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -58,6 +60,17 @@ const menuItems = [
     icon: Clock,
     href: "/timesheets",
     roles: ["ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Danh sách", href: "/timesheets" },
+      { title: "Điểm danh (Camera)", href: "/face/checkin" },
+      { title: "Đăng ký khuôn mặt", href: "/face/register" },
+    ],
+  },
+  {
+    title: "Quản lý Face Data",
+    icon: Camera,
+    href: "/face/manage",
+    roles: ["ADMIN"],
   },
   {
     title: "Ca làm việc",
@@ -125,7 +138,7 @@ const menuItems = [
   },
   {
     title: "Cài đặt",
-    icon: Settings,
+    icon: UserCog,
     href: "/settings",
     roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
@@ -133,6 +146,12 @@ const menuItems = [
       { title: "Mật khẩu", href: "/settings/security" },
     ],
   },
+  {
+    title: "Cấu hình hệ thống",
+    icon: Settings,
+    href: "/configurations",
+    roles: ["ADMIN"],
+  }
 ];
 
 function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {

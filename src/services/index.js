@@ -14,3 +14,7 @@ export * from "./user.service";
 export * from "./shift-groups.service";
 export * from "./working-shifts.service";
 export * from "./shift-assignments.service";
+export * from "./face-recognition.service";
+export * from "./face.service";
+export * from "./attendance-security.service";
+export * from "./attendance-allowed-ip.service";

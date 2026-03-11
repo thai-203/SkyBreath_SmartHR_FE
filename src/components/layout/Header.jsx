@@ -36,6 +36,8 @@ export function Header({ onMenuClick }) {
     employee: "Nhân viên",
     groups: "Nhóm ca",
     working: "Ca",
+    configurations: "Cấu hình",
+    "face-recognition": "Nhận diện khuôn mặt",
   };
 
   const pathParts = pathname.split("/").filter(Boolean);

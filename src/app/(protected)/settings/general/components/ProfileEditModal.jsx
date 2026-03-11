@@ -233,7 +233,6 @@ export default function ProfileEditModal({
                         width={64}
                         height={64}
                         className="w-16 h-16 rounded-lg object-cover border-2 border-slate-100"
-                        unoptimized
                       />
                     </div>
                     <div className="flex-1">
