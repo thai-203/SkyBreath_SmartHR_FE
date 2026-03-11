@@ -1,21 +1,40 @@
 "use client";
 
-import { PageTitle } from "@/components/common/PageTitle";
 import { HolidayModal } from "@/app/(protected)/holidays/components/HolidayModal";
 import { HolidayTable } from "@/app/(protected)/holidays/components/HolidayTable";
+import { InheritModal } from "@/app/(protected)/holidays/components/InheritModal";
+import NotificationDrawer from "@/app/(protected)/holidays/components/NotificationDrawer";
+import { PageTitle } from "@/components/common/PageTitle";
+import { useToast } from "@/components/common/Toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { holidayService } from "@/services/holiday.service";
-import { Calendar, Download, Plus, Search } from "lucide-react";
+import { Calendar, Download, History, Plus, Search, Bell } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 
 export default function HolidaysPage() {
+    const router = useRouter();
+    const { success: toastSuccess, error: toastError } = useToast();
     const [holidays, setHolidays] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedHoliday, setSelectedHoliday] = useState(null);
+
+    // Notification state
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [notificationHoliday, setNotificationHoliday] = useState(null);
+
+    // Inheritance state
+    const [isInheritModalOpen, setIsInheritModalOpen] = useState(false);
+    const [inheritPreviewData, setInheritPreviewData] = useState([]);
+    const [isInheritLoading, setIsInheritLoading] = useState(false);
+
+    const handleOpenNotification = (holiday = null) => {
+        setNotificationHoliday(holiday);
+        setIsNotificationOpen(true);
+    };
 
     const fetchHolidays = useCallback(async () => {
         setLoading(true);
@@ -23,7 +42,7 @@ export default function HolidaysPage() {
             const response = await holidayService.findAll({ search });
             setHolidays(response.data || []);
         } catch (error) {
-            toast.error("Không thể tải danh sách ngày lễ");
+            toastError("Không thể tải danh sách ngày lễ");
             console.error(error);
         } finally {
             setLoading(false);
@@ -48,10 +67,10 @@ export default function HolidaysPage() {
         if (confirm("Bạn có chắc chắn muốn xóa ngày lễ này?")) {
             try {
                 await holidayService.delete(id);
-                toast.success("Xóa ngày lễ thành công");
+                toastSuccess("Xóa ngày lễ thành công");
                 fetchHolidays();
             } catch (error) {
-                toast.error("Xóa ngày lễ thất bại");
+                toastError("Xóa ngày lễ thất bại");
             }
         }
     };
@@ -60,15 +79,16 @@ export default function HolidaysPage() {
         try {
             if (selectedHoliday) {
                 await holidayService.update(selectedHoliday.id, data);
-                toast.success("Cập nhật ngày lễ thành công");
+                toastSuccess("Cập nhật ngày lễ thành công");
             } else {
                 await holidayService.create(data);
-                toast.success("Thêm mới ngày lễ thành công");
+                toastSuccess("Thêm mới ngày lễ thành công");
             }
             setIsModalOpen(false);
             fetchHolidays();
         } catch (error) {
-            toast.error(error.response?.data?.message || "Thao tác thất bại");
+            toastError(error.response?.data?.message || "Thao tác thất bại");
+            throw error; // Re-throw to prevent form reset in modal
         }
     };
 
@@ -83,8 +103,35 @@ export default function HolidaysPage() {
             link.click();
             link.remove();
         } catch (error) {
-            toast.error("Xuất dữ liệu thất bại");
+            toastError("Xuất dữ liệu thất bại");
         }
+    };
+
+    const handleView = (holiday) => {
+        router.push(`/holidays/${holiday.id}`);
+    };
+
+    const handleInherit = async () => {
+        const currentYear = new Date().getFullYear();
+        setIsInheritLoading(true);
+        try {
+            const response = await holidayService.getInheritPreview(currentYear);
+            if (response.data.length === 0) {
+                toastError(`Không tìm thấy ngày lễ nào trong năm ${currentYear} để kế thừa`);
+                return;
+            }
+            setInheritPreviewData(response.data);
+            setIsInheritModalOpen(true);
+        } catch (error) {
+            toastError("Không thể lấy dữ liệu kế thừa");
+        } finally {
+            setIsInheritLoading(false);
+        }
+    };
+
+    const handleInheritConfirm = async (data) => {
+        await holidayService.bulkCreate(data);
+        fetchHolidays();
     };
 
     return (
@@ -101,6 +148,23 @@ export default function HolidaysPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Button
+                        variant="ghost"
+                        onClick={() => handleOpenNotification()}
+                        className="text-orange-600 border-orange-100 hover:bg-orange-50 hover:text-orange-700 transition-all font-semibold"
+                    >
+                        <Bell className="mr-2 h-4 w-4" />
+                        Gửi thông báo
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        onClick={handleInherit}
+                        disabled={isInheritLoading}
+                        className="text-blue-600 border-blue-100 hover:bg-blue-50"
+                    >
+                        <History className="mr-2 h-4 w-4" />
+                        {isInheritLoading ? "Đang tải..." : "Kế thừa cho năm sau"}
+                    </Button>
                     <Button variant="outline" onClick={handleExport} className="border-gray-200 hover:bg-gray-100">
                         <Download className="mr-2 h-4 w-4" /> Xuất Excel
                     </Button>
@@ -122,17 +186,21 @@ export default function HolidaysPage() {
                 </div>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center items-center h-64">
-                    <p className="text-muted-foreground">Đang tải dữ liệu...</p>
-                </div>
-            ) : (
-                <HolidayTable
-                    holidays={holidays}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                />
-            )}
+            {
+                loading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+                    </div>
+                ) : (
+                    <HolidayTable
+                        holidays={holidays}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onView={handleView}
+                        onOpenNotification={handleOpenNotification}
+                    />
+                )
+            }
 
             <HolidayModal
                 isOpen={isModalOpen}
@@ -140,6 +208,19 @@ export default function HolidaysPage() {
                 onSubmit={handleSubmit}
                 holiday={selectedHoliday}
             />
-        </div>
+
+            <InheritModal
+                isOpen={isInheritModalOpen}
+                onClose={() => setIsInheritModalOpen(false)}
+                previewData={inheritPreviewData}
+                onConfirm={handleInheritConfirm}
+            />
+
+            <NotificationDrawer 
+                open={isNotificationOpen}
+                onOpenChange={setIsNotificationOpen}
+                holiday={notificationHoliday}
+            />
+        </div >
     );
 }

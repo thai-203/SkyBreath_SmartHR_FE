@@ -33,3 +33,5 @@ export function formatDate(date, format = "datetime") {
 
   return formatter.format(dateObj);
 }
+
+

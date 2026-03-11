@@ -1,5 +1,6 @@
-import { authService } from "@/services";
+import { authService } from "@/services/auth.service";
 import axios from "axios";
+import { toast } from "sonner";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1",
@@ -50,7 +51,7 @@ api.interceptors.response.use(
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           window.location.href = "/login";
-          return new Promise(() => {});
+          return new Promise(() => { });
         }
       }
       if (status === 401 && !originalRequest._retry) {
@@ -83,7 +84,7 @@ api.interceptors.response.use(
           localStorage.removeItem("user");
           window.location.href = "/login";
           toast.info("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
-          return new Promise(() => {});
+          return new Promise(() => { });
         } finally {
           isRefreshing = false;
         }

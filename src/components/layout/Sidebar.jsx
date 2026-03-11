@@ -3,10 +3,13 @@
 import { cn } from "@/lib/utils";
 import { authService } from "@/services";
 import {
+  BookOpen,
   Building2,
   Calendar,
+  CalendarClock,
   ChevronDown,
   ChevronRight,
+  ClipboardCheck,
   Clock,
   FileText,
   LayoutDashboard,
@@ -19,7 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const menuItems = [
   {
@@ -57,6 +60,18 @@ const menuItems = [
     roles: ["ADMIN", "HR", "MANAGER"],
   },
   {
+    title: "Ca làm việc",
+    icon: CalendarClock,
+    href: "/shifts/groups",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Nhóm ca", href: "/shifts/groups" },
+      { title: "Ca làm việc", href: "/shifts/working" },
+      { title: "Phân ca", href: "/shifts/assignments" },
+      { title: "Lịch ca", href: "/shifts/schedule" },
+    ],
+  },
+  {
     title: "Ngày nghỉ lễ",
     icon: Calendar,
     href: "/holidays",
@@ -64,18 +79,28 @@ const menuItems = [
   },
   {
     title: "Việc cần làm",
-    icon: UserPlus,
+    icon: ClipboardCheck,
     href: "/onboardings/employee",
     roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
   },
   {
     title: "Quản lý tiếp nhận nhân sự mới",
     icon: UserPlus,
-    href: "/onboardings",
+    href: "/onboardings/plans",
     roles: ["ADMIN", "HR"],
     children: [
-      { title: "Danh sách", href: "/onboardings" },
+      { title: "Danh sách", href: "/onboardings/plans" },
       { title: "Mẫu", href: "/onboardings/template" },
+    ],
+  },
+  {
+    title: "Quy định",
+    icon: BookOpen,
+    href: "/regulations",
+    roles: ["HR", "ADMIN"],
+    children: [
+      { title: "Làm thêm giờ", href: "/regulations/overtime" },
+      { title: "Hình phạt", href: "/regulations/penalties" },
     ],
   },
   {
@@ -110,14 +135,13 @@ const menuItems = [
   },
 ];
 
-function MenuItem({ item, isActive, onMobileClose }) {
-  const [isOpen, setIsOpen] = useState(isActive);
+function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
   const hasChildren = item.children && item.children.length > 0;
   const pathname = usePathname();
 
   const handleClick = () => {
     if (hasChildren) {
-      setIsOpen(!isOpen);
+      onToggle(); // Gọi hàm toggle từ Sidebar
     } else if (onMobileClose) {
       onMobileClose();
     }
@@ -186,10 +210,28 @@ function MenuItem({ item, isActive, onMobileClose }) {
 export function Sidebar({ className, onMobileClose }) {
   const pathname = usePathname();
   const user = authService.getCurrentUser();
+  const [openMenuHref, setOpenMenuHref] = useState(null);
 
-  console.log("Current User:", user);
-  console.log("User Roles:", user?.roles);
-  console.log("Sidebar rendered."); // Added log
+  const isMenuActive = (item) => {
+    if (item.children && item.children.length) {
+      if (pathname === item.href) return true;
+      return item.children.some(
+        (child) => pathname === child.href || pathname.startsWith(child.href),
+      );
+    }
+    return pathname === item.href || pathname.startsWith(item.href);
+  };
+
+  useEffect(() => {
+    const activeItem = menuItems.find(item => isMenuActive(item));
+    if (activeItem && activeItem.children) {
+      setOpenMenuHref(activeItem.href);
+    }
+  }, [pathname]);
+
+  const handleToggle = (href) => {
+    setOpenMenuHref((prev) => (prev === href ? null : href));
+  };
 
   return (
     <aside
@@ -221,7 +263,9 @@ export function Sidebar({ className, onMobileClose }) {
             <MenuItem
               key={item.href}
               item={item}
-              isActive={pathname.startsWith(item.href)}
+              isActive={isMenuActive(item)}
+              isOpen={openMenuHref === item.href}
+              onToggle={() => handleToggle(item.href)}
               onMobileClose={onMobileClose}
             />
           ))}

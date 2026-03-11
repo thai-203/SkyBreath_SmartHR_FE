@@ -15,14 +15,11 @@ import {
   Briefcase,
   Building2,
   X,
-  FileCheck,
   Eye,
-  Image as ImageIcon,
 } from "lucide-react";
 import { onboardingsService } from "@/services";
 import { useToast } from "@/components/common/Toast";
 
-// Port 3000 theo file .env của bạn
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 const CATEGORY_CONFIG = {
@@ -57,7 +54,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null); // Quản lý URL hiển thị ảnh
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const [editForm, setEditForm] = useState({
     status: "",
@@ -75,6 +72,11 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
   }, [onboardingData?.id]);
 
   const handleExpand = (task) => {
+    if (onboardingData.overallStatus === "COMPLETED") {
+      success("Lộ trình đã hoàn tất, không thể chỉnh sửa thêm.");
+      return;
+    }
+
     if (expandedTaskId === task.id) {
       setExpandedTaskId(null);
       setSelectedFile(null);
@@ -82,14 +84,9 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
     } else {
       setExpandedTaskId(task.id);
       setSelectedFile(null);
-
-      // LOGIC HIỂN THỊ ẢNH CŨ:
-      if (task.evidencePath) {
-        setPreviewUrl(`${API_BASE_URL}/${task.evidencePath}`);
-      } else {
-        setPreviewUrl(null);
-      }
-
+      setPreviewUrl(
+        task.evidencePath ? `${API_BASE_URL}/${task.evidencePath}` : null,
+      );
       setEditForm({
         status: task.status || "NOT_STARTED",
         assetCode: task.assetCode || "",
@@ -102,12 +99,10 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        // 10MB theo .env
         error("File quá lớn (tối đa 10MB)");
         return;
       }
       setSelectedFile(file);
-      // LOGIC PREVIEW ẢNH MỚI:
       setPreviewUrl(URL.createObjectURL(file));
     }
   };
@@ -126,11 +121,9 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
 
       await onboardingsService.updateAssignment(taskId, formData);
       success("Cập nhật nhiệm vụ thành công!");
-
       setExpandedTaskId(null);
       setSelectedFile(null);
       setPreviewUrl(null);
-
       if (onRefresh) await onRefresh();
     } catch (err) {
       error(err?.response?.data?.message || "Lỗi cập nhật dữ liệu");
@@ -155,7 +148,6 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
   return (
     <div className="relative min-h-screen bg-[#f8fafc] flex flex-col animate-in fade-in duration-500 font-sans">
       <div className="max-w-6xl mx-auto w-full p-6 md:p-8">
-        {/* --- HEADER --- */}
         <div className="bg-white rounded-[32px] p-8 border border-slate-200 shadow-sm mb-10 flex flex-wrap justify-between items-center gap-8">
           <div className="flex items-center gap-6">
             <div className="relative">
@@ -179,11 +171,11 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
               </div>
               <div className="flex flex-wrap gap-4 text-sm font-bold">
                 <span className="flex items-center gap-1.5 text-indigo-600">
-                  <Briefcase className="w-4 h-4" />{" "}
+                  <Briefcase className="w-4 h-4" />
                   {onboardingData.employee?.position?.positionName}
                 </span>
                 <span className="flex items-center gap-1.5 text-slate-400 border-l pl-4 border-slate-200">
-                  <Building2 className="w-4 h-4" />{" "}
+                  <Building2 className="w-4 h-4" />
                   {onboardingData.employee?.department?.departmentName}
                 </span>
                 <span className="flex items-center gap-1.5 text-slate-400 border-l pl-4 border-slate-200">
@@ -227,7 +219,6 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
           </span>
         </h2>
 
-        {/* --- DANH SÁCH NHIỆM VỤ --- */}
         <div className="space-y-5">
           {onboardingData.taskAssignments?.map((task) => {
             const isExpanded = expandedTaskId === task.id;
@@ -243,7 +234,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
             return (
               <div
                 key={task.id}
-                className={`bg-white rounded-[24px] border-2 transition-all duration-300 ${
+                className={`bg-white rounded-[24px] border-2 transition-all duration-300 overflow-hidden ${
                   isExpanded
                     ? "border-indigo-500 shadow-xl scale-[1.01]"
                     : "border-transparent shadow-sm hover:border-slate-200"
@@ -251,7 +242,11 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
               >
                 <div
                   onClick={() => handleExpand(task)}
-                  className="p-6 flex items-center justify-between cursor-pointer"
+                  className={`p-6 flex items-center justify-between transition-all ${
+                    onboardingData.overallStatus === "COMPLETED"
+                      ? "opacity-80 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
                 >
                   <div className="flex items-center gap-5">
                     <div
@@ -270,6 +265,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                       </p>
                     </div>
                   </div>
+
                   <div className="flex items-center gap-6">
                     <span
                       className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
@@ -295,10 +291,9 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                 </div>
 
                 {isExpanded && (
-                  <div className="p-8 border-t border-slate-50 animate-in slide-in-from-top-4 duration-500">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                  <div className="p-8 pt-0 border-t border-slate-50 animate-in slide-in-from-top-4 duration-500">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-8">
                       <div className="space-y-8">
-                        {/* Trạng thái */}
                         <div>
                           <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 block">
                             Trạng thái hiện tại
@@ -314,7 +309,11 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                                 onClick={() =>
                                   setEditForm({ ...editForm, status: s.val })
                                 }
-                                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${editForm.status === s.val ? "bg-white text-indigo-600 shadow-md scale-105" : "text-slate-400 hover:text-slate-600"}`}
+                                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                  editForm.status === s.val
+                                    ? "bg-white text-indigo-600 shadow-md scale-105"
+                                    : "text-slate-400 hover:text-slate-600"
+                                }`}
                               >
                                 {s.label}
                               </button>
@@ -322,7 +321,6 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                           </div>
                         </div>
 
-                        {/* Mã tài sản */}
                         <div>
                           <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 block">
                             Mã tài sản / Số Serial
@@ -341,7 +339,6 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                           />
                         </div>
 
-                        {/* --- SỬA PHẦN HIỂN THỊ HÌNH ẢNH Ở ĐÂY --- */}
                         <div>
                           <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 block">
                             Hình ảnh minh chứng{" "}
@@ -351,10 +348,9 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                               </span>
                             )}
                           </label>
-
                           <div className="relative group border-2 border-dashed border-slate-200 rounded-3xl overflow-hidden bg-slate-50 transition-all hover:border-indigo-300">
                             {previewUrl ? (
-                              <div className="relative aspect-video flex items-center justify-center bg-black">
+                              <div className="relative aspect-video flex items-center justify-center bg-slate-900">
                                 <img
                                   src={previewUrl}
                                   className="w-full h-full object-contain"
@@ -364,7 +360,6 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                                       "https://placehold.co/600x400?text=File+Không+Hỗ+Trợ+Xem+Trước";
                                   }}
                                 />
-                                {/* Nút thao tác nhanh khi đã có ảnh */}
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                                   <label className="cursor-pointer bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-black shadow-lg hover:scale-105 transition-transform">
                                     Thay đổi
@@ -421,7 +416,6 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                         </div>
                       </div>
 
-                      {/* Ghi chú & Nút Lưu */}
                       <div className="flex flex-col">
                         <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 block">
                           Ghi chú phản hồi
@@ -434,7 +428,6 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                           placeholder="Nhập ghi chú cụ thể..."
                           className="flex-1 w-full p-6 bg-slate-50 border border-slate-200 rounded-[24px] text-sm font-medium focus:bg-white focus:border-indigo-400 transition-all outline-none resize-none min-h-[200px]"
                         ></textarea>
-
                         <div className="flex items-center justify-end gap-4 mt-6">
                           <button
                             onClick={() => {
@@ -468,7 +461,6 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
           })}
         </div>
 
-        {/* --- FOOTER --- */}
         <div className="mt-12 p-6 bg-white rounded-[32px] border border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-slate-50 rounded-xl">

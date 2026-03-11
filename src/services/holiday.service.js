@@ -33,4 +33,20 @@ export const holidayService = {
         });
         return response.data;
     },
+
+    async getInheritPreview(year) {
+        const response = await api.get('/holiday-list/inherit-preview', { params: { year } });
+        return response.data;
+    },
+
+    async bulkCreate(data) {
+        const response = await api.post('/holiday-list/bulk-create', data);
+        return response.data;
+    },
+
+    async sendNotification(data) {
+        // data: { employeeIds: string[], holidayId: string, type: 'manual' | 'auto', scheduledAt?: Date }
+        const response = await api.post('/holiday-list/send-notification', data);
+        return response.data;
+    },
 };
