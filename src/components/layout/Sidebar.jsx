@@ -22,11 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-<<<<<<< Updated upstream
-import { useMemo, useState } from "react";
-=======
-import { useState, useEffect } from "react";
->>>>>>> Stashed changes
+import { useMemo, useState, useEffect } from "react";
 
 const menuItems = [
   {
@@ -213,22 +209,23 @@ function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
 
 export function Sidebar({ className, onMobileClose }) {
   const pathname = usePathname();
-<<<<<<< Updated upstream
-
-  // Lọc menu items theo role của user hiện tại
   const filteredMenuItems = useMemo(() => {
-    const currentUser = authService.getCurrentUser();
-    const userRoles = currentUser?.roles || [];
+    let userRoles = [];
+    if (typeof window !== "undefined") {
+      const user = authService.getCurrentUser();
+      userRoles = user?.roles || [];
+    }
 
     return menuItems.filter((item) => {
       // Nếu menu item không có field roles → hiện cho tất cả
       if (!item.roles) return true;
       // Nếu có field roles → chỉ hiện khi user có ít nhất 1 role trùng
-      return item.roles.some((role) => userRoles.includes(role));
+      return item.roles.some((role) => 
+        userRoles.some((r) => r.toUpperCase() === role.toUpperCase())
+      );
     });
   }, []);
-=======
-  const user = authService.getCurrentUser();
+
   const [openMenuHref, setOpenMenuHref] = useState(null);
 
   const isMenuActive = (item) => {
@@ -242,16 +239,15 @@ export function Sidebar({ className, onMobileClose }) {
   };
 
   useEffect(() => {
-    const activeItem = menuItems.find(item => isMenuActive(item));
+    const activeItem = filteredMenuItems.find(item => isMenuActive(item));
     if (activeItem && activeItem.children) {
       setOpenMenuHref(activeItem.href);
     }
-  }, [pathname]);
+  }, [pathname, filteredMenuItems]);
 
   const handleToggle = (href) => {
     setOpenMenuHref((prev) => (prev === href ? null : href));
   };
->>>>>>> Stashed changes
 
   return (
     <aside
@@ -277,29 +273,16 @@ export function Sidebar({ className, onMobileClose }) {
         )}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-<<<<<<< Updated upstream
         {filteredMenuItems.map((item) => (
           <MenuItem
             key={item.href}
             item={item}
-            isActive={pathname.startsWith(item.href)}
+            isActive={isMenuActive(item)}
+            isOpen={openMenuHref === item.href}
+            onToggle={() => handleToggle(item.href)}
             onMobileClose={onMobileClose}
           />
         ))}
-=======
-        {menuItems
-          .filter((item) => !item.roles || authService.hasAnyRole(item.roles))
-          .map((item) => (
-            <MenuItem
-              key={item.href}
-              item={item}
-              isActive={isMenuActive(item)}
-              isOpen={openMenuHref === item.href}
-              onToggle={() => handleToggle(item.href)}
-              onMobileClose={onMobileClose}
-            />
-          ))}
->>>>>>> Stashed changes
       </nav>
     </aside>
   );
