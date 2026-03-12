@@ -223,7 +223,8 @@ export function Sidebar({ className, onMobileClose }) {
   };
 
   useEffect(() => {
-    const activeItem = menuItems.find(item => isMenuActive(item));
+    const filtered = menuItems.filter((item) => !item.roles || authService.hasAnyRole(item.roles));
+    const activeItem = filtered.find(item => isMenuActive(item));
     if (activeItem && activeItem.children) {
       setOpenMenuHref(activeItem.href);
     }

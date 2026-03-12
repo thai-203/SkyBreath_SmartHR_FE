@@ -27,7 +27,6 @@ export function Header({ onMenuClick }) {
     security: "Mật khẩu",
     "audit-log": "Lịch sử hoạt động",
     roles: "Vai trò",
-    users: "Người dùng",
     onboardings: "Tiếp nhận nhân sự",
     template: "Mẫu",
     users: "Người dùng",

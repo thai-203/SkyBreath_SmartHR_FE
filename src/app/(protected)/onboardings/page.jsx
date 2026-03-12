@@ -1,6 +1,5 @@
 "use client";
 
-<<<<<<< Updated upstream
 import { useToast } from "@/components/common/Toast";
 import {
   departmentsService,
@@ -56,15 +55,8 @@ export default function OnboardingPage() {
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   /* ===================== FETCH DATA ===================== */
-=======
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
->>>>>>> Stashed changes
 
-export default function OnboardingIndex() {
-  const router = useRouter();
   useEffect(() => {
-<<<<<<< Updated upstream
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -294,9 +286,4 @@ export default function OnboardingIndex() {
       )}
     </div>
   );
-=======
-    router.replace("/onboardings/plans");
-  }, [router]);
-  return null;
->>>>>>> Stashed changes
 }
