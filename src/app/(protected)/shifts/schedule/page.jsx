@@ -9,25 +9,37 @@ import {
   employeesService,
   departmentsService,
   shiftAssignmentsService,
+  workingShiftsService,
 } from "@/services";
 
 export default function SchedulePage() {
   const { error } = useToast();
-  const [mode, setMode] = useState("employee"); // 'employee' or 'department'
-  const [employees, setEmployees] = useState([]);
+  // controls
   const [departments, setDepartments] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [monthYear, setMonthYear] = useState("");
+  const [employees, setEmployees] = useState([]);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [filterDept, setFilterDept] = useState("");
+  const [filterShift, setFilterShift] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    const day = now.getDay();
+    // compute Monday of current week (1)
+    const diff = (day + 6) % 7; // days since Monday
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - diff);
+    return monday.toISOString().slice(0, 10);
+  });
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const [empRes, deptRes] = await Promise.all([
+        const [empRes, deptRes, shiftRes] = await Promise.all([
           employeesService.getList(),
           departmentsService.getList(),
+          workingShiftsService.getList(),
         ]);
         setEmployees(
           (empRes.data || []).map((e) => ({ value: e.id, label: e.fullName })),
@@ -38,6 +50,12 @@ export default function SchedulePage() {
             label: d.departmentName,
           })),
         );
+        setShiftOptions(
+          (shiftRes.data || []).map((s) => ({
+            value: s.id,
+            label: s.shiftName,
+          })),
+        );
       } catch (err) {
         console.error(err);
       }
@@ -45,27 +63,25 @@ export default function SchedulePage() {
     fetchOptions();
   }, []);
 
+  // reload schedule whenever week or filters change
+  useEffect(() => {
+    fetchSchedule();
+  }, [startDate, filterDept, filterShift, keyword]);
+
   const fetchSchedule = async () => {
-    if (!monthYear) return;
-    const [year, month] = monthYear.split("-").map(Number);
     setLoading(true);
     try {
-      let res;
-      if (mode === "employee") {
-        if (!selectedEmployee) return;
-        res = await shiftAssignmentsService.getEmployeeSchedule(
-          selectedEmployee,
-          month,
-          year,
-        );
-      } else {
-        if (!selectedDepartment) return;
-        res = await shiftAssignmentsService.getDepartmentSchedule(
-          selectedDepartment,
-          month,
-          year,
-        );
-      }
+      const sd = new Date(startDate);
+      const ed = new Date(sd);
+      ed.setDate(sd.getDate() + 6);
+      const params = {
+        startDate: sd.toISOString().slice(0, 10),
+        endDate: ed.toISOString().slice(0, 10),
+      };
+      if (filterDept) params.departmentId = filterDept;
+      if (filterShift) params.shiftId = filterShift;
+      if (keyword) params.keyword = keyword;
+      const res = await shiftAssignmentsService.getSchedules(params);
       setSchedule(res.data || []);
     } catch (err) {
       error(err.response?.data?.message || "Lỗi tải lịch");
@@ -75,64 +91,45 @@ export default function SchedulePage() {
   };
 
   const renderTable = () => {
-    if (!schedule.length || !monthYear) {
+    if (!schedule.length) {
       return <p className="text-center text-slate-500">Không có lịch nào</p>;
     }
 
-    const [year, month] = monthYear.split("-").map(Number);
-    const days = new Date(year, month, 0).getDate();
+    const sd = new Date(startDate);
+    const ed = new Date(sd);
+    ed.setDate(sd.getDate() + 6);
 
-    // create header days array with week day names
-    const headerCells = [];
-    for (let d = 1; d <= days; d++) {
-      const date = new Date(year, month - 1, d);
-      headerCells.push(
-        <th key={d} className="border p-2 text-center text-xs">
-          {`Thứ ${date.getDay() === 0 ? 7 : date.getDay()}`}
-          <br />
-          {`${String(d).padStart(2, "0")}/${String(month).padStart(2, "0")}`}
-        </th>,
-      );
+    const days = [];
+    for (let d = new Date(sd); d <= ed; d.setDate(d.getDate() + 1)) {
+      days.push(new Date(d));
     }
 
-    // group schedule items by employee (if department) or single row for employee
-    const rows = [];
-    if (mode === "department") {
-      const byEmp = {};
-      schedule.forEach((a) => {
-        const name = a.employee?.fullName || "(không tên)";
-        if (!byEmp[name]) byEmp[name] = [];
-        byEmp[name].push(a);
-      });
-      Object.keys(byEmp).forEach((name) => {
-        rows.push({ name, items: byEmp[name] });
-      });
-    } else {
-      rows.push({
-        name: schedule[0]?.employee?.fullName || "",
-        items: schedule,
-      });
-    }
+    // group schedule items by employee name
+    const byEmp = {};
+    schedule.forEach((a) => {
+      const name = a.employee?.fullName || "(không tên)";
+      if (!byEmp[name]) byEmp[name] = [];
+      byEmp[name].push(a);
+    });
+    const rows = Object.keys(byEmp).map((name) => ({
+      name,
+      items: byEmp[name],
+    }));
 
     const renderRow = (row) => {
-      const cells = [];
-      for (let d = 1; d <= days; d++) {
-        const date = new Date(year, month - 1, d);
-        const assignment = row.items.find((a) => {
-          const from = a.effectiveFrom ? new Date(a.effectiveFrom) : null;
-          const to = a.effectiveTo ? new Date(a.effectiveTo) : null;
-          if (from && date < from) return false;
-          if (to && date > to) return false;
-          return true;
-        });
-        cells.push(
-          <td key={d} className="border p-2 text-center text-sm">
-            {assignment ? (
-              <span>{assignment.shift?.shiftName || ""}</span>
-            ) : null}
-          </td>,
+      const cells = days.map((date) => {
+        const str = date.toISOString().slice(0, 10);
+        const assignmentsForDate = row.items.filter((a) => a.date === str);
+        const label = assignmentsForDate
+          .map((a) => a.shift?.shiftName)
+          .filter(Boolean)
+          .join(", ");
+        return (
+          <td key={str} className="border p-2 text-center text-sm">
+            {label || null}
+          </td>
         );
-      }
+      });
       return (
         <tr key={row.name} className="hover:bg-slate-50">
           <td className="border p-2 font-medium">{row.name}</td>
@@ -147,7 +144,18 @@ export default function SchedulePage() {
           <thead>
             <tr>
               <th className="border p-2">Nhân viên</th>
-              {headerCells}
+              {days.map((date) => (
+                <th
+                  key={date.toISOString()}
+                  className="border p-2 text-center text-xs"
+                >
+                  {`Thứ ${date.getDay() === 0 ? 7 : date.getDay()}`}
+                  <br />
+                  {`${String(date.getDate()).padStart(2, "0")}/${String(
+                    date.getMonth() + 1,
+                  ).padStart(2, "0")}`}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>{rows.map(renderRow)}</tbody>
@@ -160,68 +168,77 @@ export default function SchedulePage() {
     <div>
       <PageTitle title="Xem lịch ca" />
       <div className="grid gap-4 mb-4">
-        <div className="flex items-center gap-4">
-          <label>Lọc theo</label>
+        <div className="flex flex-wrap items-center gap-4">
+          <label>Phòng ban</label>
           <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value)}
+            value={filterDept}
+            onChange={(e) => setFilterDept(e.target.value)}
             className="border rounded px-2 py-1"
           >
-            <option value="employee">Nhân viên</option>
-            <option value="department">Phòng ban</option>
+            <option value="">--Tất cả--</option>
+            {departments.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
-        </div>
-        {mode === "employee" ? (
-          <div className="flex items-center gap-2">
-            <label>Nhân viên</label>
-            <select
-              value={selectedEmployee}
-              onChange={(e) => setSelectedEmployee(e.target.value)}
-              className="border rounded px-2 py-1"
-            >
-              <option value="">--Chọn--</option>
-              {employees.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <label>Phòng ban</label>
-            <select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="border rounded px-2 py-1"
-            >
-              <option value="">--Chọn--</option>
-              {departments.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <label>Tháng</label>
+
+          <label>Ca</label>
+          <select
+            value={filterShift}
+            onChange={(e) => setFilterShift(e.target.value)}
+            className="border rounded px-2 py-1"
+          >
+            <option value="">--Tất cả--</option>
+            {shiftOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+
+          <label>Từ ngày</label>
           <Input
-            type="month"
-            value={monthYear}
-            onChange={(e) => setMonthYear(e.target.value)}
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border rounded"
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const sd = new Date(startDate);
+              sd.setDate(sd.getDate() - 7);
+              setStartDate(sd.toISOString().slice(0, 10));
+            }}
+          >
+            &lt;
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const sd = new Date(startDate);
+              sd.setDate(sd.getDate() + 7);
+              setStartDate(sd.toISOString().slice(0, 10));
+            }}
+          >
+            &gt;
+          </Button>
+
+          <label>Tìm kiếm</label>
+          <Input
+            type="text"
+            placeholder="Nhân viên hoặc mã"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+
+          <Button onClick={fetchSchedule} disabled={loading || !startDate}>
+            {loading ? "Đang tải..." : "Xem"}
+          </Button>
         </div>
-        <Button
-          onClick={fetchSchedule}
-          disabled={
-            loading ||
-            !monthYear ||
-            (mode === "employee" ? !selectedEmployee : !selectedDepartment)
-          }
-        >
-          {loading ? "Đang tải..." : "Xem lịch"}
-        </Button>
       </div>
       <div>{renderTable()}</div>
     </div>

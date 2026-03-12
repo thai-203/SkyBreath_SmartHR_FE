@@ -9,7 +9,14 @@ import { shiftAssignmentsService, userService } from "@/services";
 
 export default function PersonalSchedulePage() {
   const { error } = useToast();
-  const [monthYear, setMonthYear] = useState("");
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = (day + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - diff);
+    return monday.toISOString().slice(0, 10);
+  });
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(false);
   const [employeeId, setEmployeeId] = useState(null);
@@ -27,15 +34,21 @@ export default function PersonalSchedulePage() {
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    fetchSchedule();
+  }, [startDate, employeeId]);
+
   const fetchSchedule = async () => {
-    if (!monthYear || !employeeId) return;
-    const [year, month] = monthYear.split("-").map(Number);
+    if (!startDate || !employeeId) return;
     setLoading(true);
     try {
+      const sd = startDate;
+      const ed = new Date(sd);
+      ed.setDate(new Date(sd).getDate() + 6);
       const res = await shiftAssignmentsService.getEmployeeSchedule(
         employeeId,
-        month,
-        year,
+        sd,
+        ed.toISOString().slice(0, 10),
       );
       setSchedule(res.data || []);
     } catch (err) {
@@ -110,16 +123,38 @@ export default function PersonalSchedulePage() {
   return (
     <div>
       <PageTitle title="Lịch làm việc của tôi" />
-      <div className="mb-4 flex items-center gap-4">
-        <label>Tháng</label>
+      <div className="mb-4 flex items-center gap-2 flex-wrap">
+        <label>Từ tuần</label>
         <Input
-          type="month"
-          value={monthYear}
-          onChange={(e) => setMonthYear(e.target.value)}
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
         />
         <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const sd = new Date(startDate);
+            sd.setDate(sd.getDate() - 7);
+            setStartDate(sd.toISOString().slice(0, 10));
+          }}
+        >
+          &lt;
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const sd = new Date(startDate);
+            sd.setDate(sd.getDate() + 7);
+            setStartDate(sd.toISOString().slice(0, 10));
+          }}
+        >
+          &gt;
+        </Button>
+        <Button
           onClick={fetchSchedule}
-          disabled={loading || !monthYear || !employeeId}
+          disabled={loading || !startDate || !employeeId}
         >
           {loading ? "Đang tải..." : "Xem lịch"}
         </Button>

@@ -39,10 +39,25 @@ export default function AssignmentTable({
           </span>
         ),
       },
-      { accessorKey: "employee.fullName", header: "Nhân viên" },
+      {
+        accessorKey: "employee.fullName",
+        header: "Nhân viên",
+        cell: ({ row }) => (
+          <div className="whitespace-nowrap transform origin-left">
+            {row.original.employee?.fullName || ""}
+          </div>
+        ),
+        size: 80,
+      },
       { accessorKey: "shift.shiftName", header: "Ca" },
       { accessorKey: "effectiveFrom", header: "Từ ngày" },
       { accessorKey: "effectiveTo", header: "Đến ngày" },
+      {
+        accessorKey: "weekdays",
+        header: "Thứ",
+        cell: ({ row }) => row.original.weekdays || "",
+      },
+      { accessorKey: "repeatType", header: "Chu kỳ" },
       {
         id: "actions",
         header: "Thao tác",

@@ -17,11 +17,13 @@ import AssignmentFormModal from "./components/AssignmentFormModal";
 import AssignmentDeleteModal from "./components/AssignmentDeleteModal";
 
 const initialData = {
-  employeeId: "",
-  departmentId: "",
-  shiftId: "",
-  effectiveFrom: "",
-  effectiveTo: "",
+  employeeIds: [],
+  departmentIds: [],
+  shiftIds: [],
+  startDate: "",
+  endDate: "",
+  weekdays: [],
+  repeatType: "weekly",
 };
 
 export default function AssignmentsPage() {
@@ -38,21 +40,26 @@ export default function AssignmentsPage() {
   const [formLoading, setFormLoading] = useState(false);
 
   const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [employeeList, setEmployeeList] = useState([]); // full objects for tree
   const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [departmentList, setDepartmentList] = useState([]);
   const [shiftOptions, setShiftOptions] = useState([]);
 
   const fetchOptions = async () => {
     try {
-      const [empRes, deptRes, shiftRes] = await Promise.all([
-        employeesService.getList(),
+      // need full employee objects (including departmentId) to show tree
+      const [empAllRes, deptRes, shiftRes] = await Promise.all([
+        employeesService.getAll({ page: 1, limit: 1000 }),
         departmentsService.getList(),
         workingShiftsService.getList(),
       ]);
-      setEmployeeOptions(
-        (empRes.data || []).map((e) => ({ value: e.id, label: e.fullName })),
-      );
+      const emps = empAllRes.data?.items || [];
+      const deps = deptRes.data || [];
+      setEmployeeList(emps);
+      setDepartmentList(deps);
+      setEmployeeOptions(emps.map((e) => ({ value: e.id, label: e.fullName })));
       setDepartmentOptions(
-        (deptRes.data || []).map((d) => ({
+        deps.map((d) => ({
           value: d.id,
           label: d.departmentName,
         })),
@@ -98,11 +105,26 @@ export default function AssignmentsPage() {
   const handleEdit = (item) => {
     setSelected(item);
     setFormData({
-      employeeId: item.employeeId || "",
-      departmentId: item.employee?.departmentId || "",
-      shiftId: item.shiftId || "",
-      effectiveFrom: item.effectiveFrom || "",
-      effectiveTo: item.effectiveTo || "",
+      // prefer original metadata arrays if present
+      employeeIds: item.employeeIds
+        ? item.employeeIds.split(",").map(Number)
+        : item.employeeId
+          ? [item.employeeId]
+          : [],
+      departmentIds: item.departmentIds
+        ? item.departmentIds.split(",").map(Number)
+        : item.departmentId
+          ? [item.departmentId]
+          : [],
+      shiftIds: item.shiftIds
+        ? item.shiftIds.split(",").map(Number)
+        : item.shiftId
+          ? [item.shiftId]
+          : [],
+      startDate: item.effectiveFrom || "",
+      endDate: item.effectiveTo || "",
+      weekdays: item.weekdays ? item.weekdays.split(",").map(Number) : [],
+      repeatType: item.repeatType || "weekly",
     });
     setIsFormOpen(true);
   };
@@ -118,6 +140,7 @@ export default function AssignmentsPage() {
         await shiftAssignmentsService.update(selected.id, formData);
         success("Cập nhật phân ca thành công");
       } else {
+        // send payload to create route -- service will handle employees or departments arrays
         await shiftAssignmentsService.assignToEmployee(formData);
         success("Phân ca thành công");
       }
@@ -167,7 +190,9 @@ export default function AssignmentsPage() {
         data={formData}
         setData={setFormData}
         employees={employeeOptions}
+        employeeList={employeeList}
         departments={departmentOptions}
+        departmentList={departmentList}
         shifts={shiftOptions}
         onClose={() => setIsFormOpen(false)}
         onSubmit={submitForm}
