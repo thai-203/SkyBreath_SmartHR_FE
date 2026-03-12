@@ -202,6 +202,7 @@ export default function PermissionsPage() {
                 onOpenChange={setIsModalOpen}
                 permission={editingPermission}
                 onSuccess={handleSuccess}
+                modules={modules}
             />
         </div>
     );

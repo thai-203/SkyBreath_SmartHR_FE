@@ -10,9 +10,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
-import { Edit, Eye, Trash2 } from "lucide-react";
+import { Edit, Eye, Trash2, Bell } from "lucide-react";
 
-export function HolidayTable({ holidays, onEdit, onDelete, onView }) {
+export function HolidayTable({ holidays, onEdit, onDelete, onView, onOpenNotification }) {
     return (
         <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             <Table>
@@ -62,6 +62,15 @@ export function HolidayTable({ holidays, onEdit, onDelete, onView }) {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-full"
+                                            onClick={() => onOpenNotification?.(holiday)}
+                                            title="Gửi thông báo"
+                                        >
+                                            <Bell className="h-4 w-4" />
+                                        </Button>
                                         <Button
                                             variant="ghost"
                                             size="icon"

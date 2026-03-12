@@ -6,8 +6,10 @@ import {
   BookOpen,
   Building2,
   Calendar,
+  CalendarClock,
   ChevronDown,
   ChevronRight,
+  ClipboardCheck,
   Clock,
   FileText,
   LayoutDashboard,
@@ -17,12 +19,10 @@ import {
   UserPlus,
   Users,
   X,
-  CalendarClock,
-  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const menuItems = [
   {
@@ -209,23 +209,7 @@ function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
 
 export function Sidebar({ className, onMobileClose }) {
   const pathname = usePathname();
-  const filteredMenuItems = useMemo(() => {
-    let userRoles = [];
-    if (typeof window !== "undefined") {
-      const user = authService.getCurrentUser();
-      userRoles = user?.roles || [];
-    }
-
-    return menuItems.filter((item) => {
-      // Nếu menu item không có field roles → hiện cho tất cả
-      if (!item.roles) return true;
-      // Nếu có field roles → chỉ hiện khi user có ít nhất 1 role trùng
-      return item.roles.some((role) => 
-        userRoles.some((r) => r.toUpperCase() === role.toUpperCase())
-      );
-    });
-  }, []);
-
+  const user = authService.getCurrentUser();
   const [openMenuHref, setOpenMenuHref] = useState(null);
 
   const isMenuActive = (item) => {
@@ -239,11 +223,12 @@ export function Sidebar({ className, onMobileClose }) {
   };
 
   useEffect(() => {
-    const activeItem = filteredMenuItems.find(item => isMenuActive(item));
+    const filtered = menuItems.filter((item) => !item.roles || authService.hasAnyRole(item.roles));
+    const activeItem = filtered.find(item => isMenuActive(item));
     if (activeItem && activeItem.children) {
       setOpenMenuHref(activeItem.href);
     }
-  }, [pathname, filteredMenuItems]);
+  }, [pathname]);
 
   const handleToggle = (href) => {
     setOpenMenuHref((prev) => (prev === href ? null : href));
@@ -273,16 +258,18 @@ export function Sidebar({ className, onMobileClose }) {
         )}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-        {filteredMenuItems.map((item) => (
-          <MenuItem
-            key={item.href}
-            item={item}
-            isActive={isMenuActive(item)}
-            isOpen={openMenuHref === item.href}
-            onToggle={() => handleToggle(item.href)}
-            onMobileClose={onMobileClose}
-          />
-        ))}
+        {menuItems
+          .filter((item) => !item.roles || authService.hasAnyRole(item.roles))
+          .map((item) => (
+            <MenuItem
+              key={item.href}
+              item={item}
+              isActive={isMenuActive(item)}
+              isOpen={openMenuHref === item.href}
+              onToggle={() => handleToggle(item.href)}
+              onMobileClose={onMobileClose}
+            />
+          ))}
       </nav>
     </aside>
   );
