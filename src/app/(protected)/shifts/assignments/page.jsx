@@ -134,6 +134,33 @@ export default function AssignmentsPage() {
   };
 
   const submitForm = async () => {
+    // client-side sanity checks before hitting the API
+    if (
+      (!formData.shiftIds || formData.shiftIds.length === 0) &&
+      !formData.shiftId
+    ) {
+      return error("Vui lòng chọn ít nhất một ca làm việc");
+    }
+    if (
+      formData.startDate &&
+      formData.endDate &&
+      new Date(formData.startDate) > new Date(formData.endDate)
+    ) {
+      return error("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc");
+    }
+    if (
+      (formData.repeatType === "weekly" || formData.repeatType === "2weeks") &&
+      (!formData.weekdays || formData.weekdays.length === 0)
+    ) {
+      return error("Khi chọn lặp hàng tuần/2 tuần phải chọn ít nhất một thứ");
+    }
+    if (
+      (!formData.employeeIds || formData.employeeIds.length === 0) &&
+      (!formData.departmentIds || formData.departmentIds.length === 0)
+    ) {
+      return error("Phải chọn nhân viên hoặc phòng ban");
+    }
+
     setFormLoading(true);
     try {
       if (selected) {
