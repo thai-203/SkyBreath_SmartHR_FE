@@ -70,9 +70,9 @@ export default function AttendanceDetailModal({ isOpen, onClose, data }) {
                             >
                                 <td className="px-3 py-2 text-slate-700">{day.date}</td>
                                 <td className="px-3 py-2 text-slate-500">{day.dayOfWeek}</td>
-                                <td className="px-3 py-2">{day.checkIn || "-"}</td>
-                                <td className="px-3 py-2">{day.checkOut || "-"}</td>
-                                <td className="px-3 py-2 font-medium">{day.workingHours || "-"}</td>
+                                <td className="px-3 py-2">{day.checkIn || day.check_in || "-"}</td>
+                                <td className="px-3 py-2">{day.checkOut || day.check_out || "-"}</td>
+                                <td className="px-3 py-2 font-medium">{day.workingHours || day.working_hours || "-"}</td>
                                 <td className="px-3 py-2">
                                     {day.lateMinutes > 0 ? (
                                         <span className="text-amber-600 font-medium">{day.lateMinutes}</span>

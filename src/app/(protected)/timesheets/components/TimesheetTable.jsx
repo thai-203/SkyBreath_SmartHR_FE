@@ -13,6 +13,7 @@ import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { Search, Eye, Edit2, RefreshCw, Lock, Unlock } from "lucide-react";
+import { authService } from "@/services/auth.service";
 
 export default function TimesheetTable({
     data,
@@ -120,22 +121,30 @@ export default function TimesheetTable({
                         </Button>
                         {!row.original.isLocked && (
                             <>
-                                <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)} title="Chỉnh sửa">
-                                    <Edit2 className="h-4 w-4 text-blue-500" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => onRecalculate(row.original)} title="Tính lại">
-                                    <RefreshCw className="h-4 w-4 text-amber-500" />
-                                </Button>
+                                {authService.hasPermission("TIMESHEET_UPDATE") && (
+                                    <>
+                                        <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)} title="Chỉnh sửa">
+                                            <Edit2 className="h-4 w-4 text-blue-500" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => onRecalculate(row.original)} title="Tính lại">
+                                            <RefreshCw className="h-4 w-4 text-amber-500" />
+                                        </Button>
+                                    </>
+                                )}
                             </>
                         )}
-                        {row.original.isLocked ? (
-                            <Button variant="ghost" size="icon" onClick={() => onUnlock(row.original)} title="Mở khóa">
-                                <Unlock className="h-4 w-4 text-emerald-500" />
-                            </Button>
-                        ) : (
-                            <Button variant="ghost" size="icon" onClick={() => onLock(row.original)} title="Khóa">
-                                <Lock className="h-4 w-4 text-rose-500" />
-                            </Button>
+                        {authService.hasPermission("TIMESHEET_LOCK") && (
+                            <>
+                                {row.original.isLocked ? (
+                                    <Button variant="ghost" size="icon" onClick={() => onUnlock(row.original)} title="Mở khóa">
+                                        <Unlock className="h-4 w-4 text-emerald-500" />
+                                    </Button>
+                                ) : (
+                                    <Button variant="ghost" size="icon" onClick={() => onLock(row.original)} title="Khóa">
+                                        <Lock className="h-4 w-4 text-rose-500" />
+                                    </Button>
+                                )}
+                            </>
                         )}
                     </div>
                 ),
