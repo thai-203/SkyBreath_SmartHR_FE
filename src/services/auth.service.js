@@ -79,6 +79,18 @@ export const authService = {
     );
   },
 
+  hasPermission: (permissionCode) => {
+    const user = authService.getCurrentUser();
+    const permissions = user?.permissions || [];
+    return permissions.includes(permissionCode);
+  },
+
+  hasAnyPermission: (permissionCodes) => {
+    const user = authService.getCurrentUser();
+    const permissions = user?.permissions || [];
+    return permissionCodes.some((code) => permissions.includes(code));
+  },
+
   getCurrentEmployeeByUserId: async () => {
     const user = JSON.parse(localStorage.getItem("user"));
     const userId = user?.id;

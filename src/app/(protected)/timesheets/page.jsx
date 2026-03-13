@@ -11,6 +11,7 @@ import TimesheetTable from "./components/TimesheetTable";
 import AttendanceDetailModal from "./components/AttendanceDetailModal";
 import TimesheetEditModal from "./components/TimesheetEditModal";
 import { CalendarDays, Plus, Download, FileSpreadsheet } from "lucide-react";
+import { authService } from "@/services/auth.service";
 
 const currentDate = new Date();
 
@@ -286,18 +287,24 @@ export default function TimesheetsPage() {
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button onClick={handleGenerateClick} loading={generating} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Tạo bảng chấm công
-                    </Button>
-                    <Button variant="outline" onClick={handleExportSummary} className="gap-2">
-                        <FileSpreadsheet className="h-4 w-4" />
-                        Xuất tổng hợp
-                    </Button>
-                    <Button variant="outline" onClick={handleExportDetailed} className="gap-2">
-                        <Download className="h-4 w-4" />
-                        Xuất chi tiết
-                    </Button>
+                    {authService.hasPermission("TIMESHEET_CREATE") && (
+                        <Button onClick={handleGenerateClick} loading={generating} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Tạo bảng chấm công
+                        </Button>
+                    )}
+                    {authService.hasPermission("TIMESHEET_EXPORT") && (
+                        <>
+                            <Button variant="outline" onClick={handleExportSummary} className="gap-2">
+                                <FileSpreadsheet className="h-4 w-4" />
+                                Xuất tổng hợp
+                            </Button>
+                            <Button variant="outline" onClick={handleExportDetailed} className="gap-2">
+                                <Download className="h-4 w-4" />
+                                Xuất chi tiết
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
