@@ -6,8 +6,10 @@ import {
   BookOpen,
   Building2,
   Calendar,
+  CalendarClock,
   ChevronDown,
   ChevronRight,
+  ClipboardCheck,
   Clock,
   FileText,
   LayoutDashboard,
@@ -17,12 +19,10 @@ import {
   UserPlus,
   Users,
   X,
-  CalendarClock,
-  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const menuItems = [
   {

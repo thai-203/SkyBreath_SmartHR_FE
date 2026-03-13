@@ -3,12 +3,13 @@
 import { HolidayModal } from "@/app/(protected)/holidays/components/HolidayModal";
 import { HolidayTable } from "@/app/(protected)/holidays/components/HolidayTable";
 import { InheritModal } from "@/app/(protected)/holidays/components/InheritModal";
+import NotificationDrawer from "@/app/(protected)/holidays/components/NotificationDrawer";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { holidayService } from "@/services/holiday.service";
-import { Calendar, Download, History, Plus, Search } from "lucide-react";
+import { Calendar, Download, History, Plus, Search, Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -21,10 +22,19 @@ export default function HolidaysPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedHoliday, setSelectedHoliday] = useState(null);
 
+    // Notification state
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [notificationHoliday, setNotificationHoliday] = useState(null);
+
     // Inheritance state
     const [isInheritModalOpen, setIsInheritModalOpen] = useState(false);
     const [inheritPreviewData, setInheritPreviewData] = useState([]);
     const [isInheritLoading, setIsInheritLoading] = useState(false);
+
+    const handleOpenNotification = (holiday = null) => {
+        setNotificationHoliday(holiday);
+        setIsNotificationOpen(true);
+    };
 
     const fetchHolidays = useCallback(async () => {
         setLoading(true);
@@ -140,6 +150,14 @@ export default function HolidaysPage() {
                 <div className="flex gap-2">
                     <Button
                         variant="ghost"
+                        onClick={() => handleOpenNotification()}
+                        className="text-orange-600 border-orange-100 hover:bg-orange-50 hover:text-orange-700 transition-all font-semibold"
+                    >
+                        <Bell className="mr-2 h-4 w-4" />
+                        Gửi thông báo
+                    </Button>
+                    <Button
+                        variant="ghost"
                         onClick={handleInherit}
                         disabled={isInheritLoading}
                         className="text-blue-600 border-blue-100 hover:bg-blue-50"
@@ -179,6 +197,7 @@ export default function HolidaysPage() {
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onView={handleView}
+                        onOpenNotification={handleOpenNotification}
                     />
                 )
             }
@@ -195,6 +214,12 @@ export default function HolidaysPage() {
                 onClose={() => setIsInheritModalOpen(false)}
                 previewData={inheritPreviewData}
                 onConfirm={handleInheritConfirm}
+            />
+
+            <NotificationDrawer 
+                open={isNotificationOpen}
+                onOpenChange={setIsNotificationOpen}
+                holiday={notificationHoliday}
             />
         </div >
     );
