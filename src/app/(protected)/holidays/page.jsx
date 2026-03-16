@@ -3,7 +3,6 @@
 import { HolidayModal } from "@/app/(protected)/holidays/components/HolidayModal";
 import { HolidayTable } from "@/app/(protected)/holidays/components/HolidayTable";
 import { InheritModal } from "@/app/(protected)/holidays/components/InheritModal";
-import NotificationDrawer from "@/app/(protected)/holidays/components/NotificationDrawer";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
 import { Button } from "@/components/ui/button";
@@ -22,18 +21,17 @@ export default function HolidaysPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedHoliday, setSelectedHoliday] = useState(null);
 
-    // Notification state
-    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-    const [notificationHoliday, setNotificationHoliday] = useState(null);
-
     // Inheritance state
     const [isInheritModalOpen, setIsInheritModalOpen] = useState(false);
     const [inheritPreviewData, setInheritPreviewData] = useState([]);
     const [isInheritLoading, setIsInheritLoading] = useState(false);
 
     const handleOpenNotification = (holiday = null) => {
-        setNotificationHoliday(holiday);
-        setIsNotificationOpen(true);
+        if (holiday) {
+            router.push(`/holidays/notifications?holidayId=${holiday.id}`);
+        } else {
+            router.push('/holidays/notifications');
+        }
     };
 
     const fetchHolidays = useCallback(async () => {
@@ -214,12 +212,6 @@ export default function HolidaysPage() {
                 onClose={() => setIsInheritModalOpen(false)}
                 previewData={inheritPreviewData}
                 onConfirm={handleInheritConfirm}
-            />
-
-            <NotificationDrawer 
-                open={isNotificationOpen}
-                onOpenChange={setIsNotificationOpen}
-                holiday={notificationHoliday}
             />
         </div >
     );

@@ -1,70 +1,11 @@
 "use client";
 
-<<<<<<< Updated upstream
-import { useToast } from "@/components/common/Toast";
-import {
-  departmentsService,
-  employeesService,
-  onboardingsService,
-} from "@/services";
-import {
-  CheckCircle2,
-  ClipboardList,
-  FileDown,
-  Plus,
-  Search,
-  Users,
-} from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-
-import CreatePlanModal from "./components/CreatePlanModal";
-import OnboardingDetailView from "./components/OnboardingDetailView";
-import OnboardingPlansTable from "./components/OnboardingPlansTable";
-import OnboardingStatsCard from "./components/OnboardingStatsCard";
-
-/* ===================== HELPERS ===================== */
-
-const normalizeList = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.items)) return data.items;
-  return [];
-};
-
-/* ===================== COMPONENT ===================== */
-
-export default function OnboardingPage() {
-  const toast = useToast();
-
-  const [showCreatePlan, setShowCreatePlan] = useState(false);
-
-  const [progress, setProgress] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [templates, setTemplates] = useState([]);
-
-  const [stats, setStats] = useState({
-    newEmployeesLast30Days: 0,
-    inProgress: 0,
-    completed: 0,
-    growthRate: 0,
-  });
-
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState(null);
-
-  /* ===================== FETCH DATA ===================== */
-=======
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
->>>>>>> Stashed changes
+import { useEffect } from "react";
 
 export default function OnboardingIndex() {
   const router = useRouter();
   useEffect(() => {
-<<<<<<< Updated upstream
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -294,9 +235,4 @@ export default function OnboardingIndex() {
       )}
     </div>
   );
-=======
-    router.replace("/onboardings/plans");
-  }, [router]);
-  return null;
->>>>>>> Stashed changes
 }
