@@ -20,7 +20,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  // (error) => Promise.reject(error),
+  (error) => Promise.reject(error),
 );
 
 let isRefreshing = false;
@@ -38,15 +38,16 @@ const processQueue = (error, token = null) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    
     const originalRequest = error.config;
     const status = error.response?.status;
-
+    
     if (!error.response) {
       return Promise.reject(error);
     }
 
     if (!originalRequest?.skipAuthRedirect) {
-      if (status === 401 && originalRequest.url.includes("/auth/refresh")) {
+      if (status === 401 && originalRequest.url.includes("auth/refresh")) {
         if (typeof window !== "undefined") {
           localStorage.removeItem("token");
           localStorage.removeItem("user");

@@ -16,6 +16,7 @@ import {
   fileType,
 } from "@/lib/validation";
 import { Upload, X, Lock, Info } from "lucide-react";
+import Image from "next/image";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -225,7 +226,7 @@ export default function ProfileEditModal({
                 <div className="space-y-3">
                   <div className="flex items-center gap-4 p-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm transition-shadow">
                     <div className="relative">
-                      <img
+                      <Image
                         src={
                           previewAvatar || `${API_BASE_URL}/${formData.avatar}`
                         }
