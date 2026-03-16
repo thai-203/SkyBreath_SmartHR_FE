@@ -6,9 +6,8 @@ export const auditService = {
     return response.data;
   },
 
-  export: async (params = {}) => {
-    const response = await api.get("/action-logs/export", {
-      params,
+  export: async () => {
+    const response = await api.get("/action-logs/export/excel", {
       responseType: "blob",
     });
     return response.data;

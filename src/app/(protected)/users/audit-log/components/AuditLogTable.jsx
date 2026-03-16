@@ -14,34 +14,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/common/Card";
-import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Search, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 
 export default function AuditLogTable({
   data,
   loading,
-  search,
-  onSearchChange,
   pagination,
   onPaginationChange,
   totalPages,
-  onExport,
 }) {
   const [selected, setSelected] = useState(null);
 
   const columns = useMemo(
     () => [
       {
-        id: "stt",
-        header: "STT",
-        size: 60,
+        accessorKey: "actor",
+        header: "Người thực hiện",
+        // size: 60,
         cell: ({ row }) => (
-          <span className="text-slate-500">
-            {pagination.pageIndex * pagination.pageSize + row.index + 1}
-          </span>
+          <div>
+            <div className="font-medium text-slate-900">
+              {row.original.user?.username || "-"}
+            </div>
+            <div className="text-xs text-slate-500">
+              {row.original.user?.email || "-"}
+            </div>
+          </div>
         ),
       },
       {
@@ -51,12 +52,6 @@ export default function AuditLogTable({
           const d = new Date(row.original.createdAt);
           return d.toLocaleString();
         },
-      },
-      {
-        accessorKey: "actor",
-        header: "Người thực hiện",
-        cell: ({ row }) =>
-          row.original.user?.username || row.original.user || "-",
       },
       {
         accessorKey: "ip",
@@ -75,6 +70,25 @@ export default function AuditLogTable({
             {row.original.userAgent?.device || "-"}
           </>
         ),
+      },
+      {
+        accessorKey: "status",
+        header: "Trạng thái",
+        cell: ({ row }) => {
+          const status = row.original.status;
+          const statusColors = {
+            SUCCESS: "bg-green-100 text-green-800",
+            FAILED: "bg-red-100 text-red-800",
+          };
+          return (
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || "bg-slate-100 text-slate-800"}`}
+            >
+              {status === "SUCCESS" && "Thành công"}
+              {status === "FAILED" && "Thất bại"}
+            </span>
+          );
+        },
       },
       {
         id: "details",
@@ -113,20 +127,6 @@ export default function AuditLogTable({
         <CardHeader className="border-b border-slate-200">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>Lịch sử hoạt động</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  placeholder="Tìm kiếm (người, hành động, đối tượng)..."
-                  value={search}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="pl-9 w-full sm:w-72"
-                />
-              </div>
-              {/* <Button variant="outline" onClick={onExport}>
-                Xuất CSV
-              </Button> */}
-            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -216,7 +216,7 @@ export default function AuditLogTable({
         size="lg"
       >
         {selected && (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1 pr-3 custom-scrollbar">
             <div className="text-sm text-slate-700">
               <strong>Thời gian:</strong>{" "}
               {new Date(selected.createdAt).toLocaleString()}
