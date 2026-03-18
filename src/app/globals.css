@@ -10,8 +10,6 @@
   --warning: #F6C23E;
   --danger: #E74A3B;
   --info: #36B9CC;
-  --background: #F8F9FC;
-  --foreground: #1E293B;
   --card: #FFFFFF;
   --border: #E2E8F0;
   --muted: #64748B;
@@ -32,8 +30,6 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -73,4 +69,179 @@ a {
   left: 0;
   width: 100%;
   height: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Organization Chart Layouts */
+.org-tree-ngang {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.org-tree-ngang ul {
+  padding-top: 20px;
+  position: relative;
+  transition: all 0.5s;
+  display: flex;
+  justify-content: center;
+}
+
+.org-tree-ngang li {
+  float: left;
+  text-align: center;
+  list-style-type: none;
+  position: relative;
+  padding: 20px 10px 0 10px;
+  transition: all 0.5s;
+}
+
+/* Connectors */
+.org-tree-ngang li::before, .org-tree-ngang li::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 50%;
+  border-top: 2px solid #cbd5e1;
+  width: 50%; height: 20px;
+}
+.org-tree-ngang li::after {
+  right: auto; left: 50%;
+  border-left: 2px solid #cbd5e1;
+}
+.org-tree-ngang li:only-child::after, .org-tree-ngang li:only-child::before {
+  display: none;
+}
+.org-tree-ngang li:only-child { padding-top: 0;}
+.org-tree-ngang li:first-child::before, .org-tree-ngang li:last-child::after {
+  border: 0 none;
+}
+.org-tree-ngang li:last-child::before {
+  border-right: 2px solid #cbd5e1;
+  border-radius: 0 5px 0 0;
+}
+.org-tree-ngang li:first-child::after {
+  border-radius: 5px 0 0 0;
+}
+.org-tree-ngang ul::before {
+  content: '';
+  position: absolute; top: 0; left: 50%;
+  border-left: 2px solid #cbd5e1;
+  width: 0; height: 20px;
+  transform: translateX(-50%);
+}
+.org-tree-ngang .node-content {
+  margin: 0 auto;
+}
+
+/* Kiểu dọc (Vertical tree / Left-to-right spread) */
+.org-tree-doc {
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.org-tree-doc-children::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  bottom: 50%;
+  left: -16px; 
+  border-left: 2px solid #cbd5e1;
+}
+
+.org-tree-doc-node:last-child > .org-tree-doc-children::before {
+  bottom: 0;
+}
+
+.org-tree-doc-node::before {
+  content: '';
+  position: absolute;
+  top: 25px; /* Adjust to hit the middle of the card header height */
+  left: -16px;
+  border-top: 2px solid #cbd5e1;
+  width: 16px;
+}
+
+.org-tree-doc > .org-tree-doc-node::before {
+  display: none;
 }

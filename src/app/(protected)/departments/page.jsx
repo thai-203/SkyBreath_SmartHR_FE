@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
+import { regex, required, unique, validate } from "@/lib/validation";
 import { departmentsService, employeesService } from "@/services";
-import { Plus, Download } from "lucide-react";
-import { validate, required, unique } from "@/lib/validation";
+import { Download, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 
 // Local components
-import DepartmentTable from "./components/DepartmentTable";
-import DepartmentFormModal from "./components/DepartmentFormModal";
 import DepartmentDeleteModal from "./components/DepartmentDeleteModal";
+import DepartmentDetailModal from "./components/DepartmentDetailModal";
+import DepartmentFormModal from "./components/DepartmentFormModal";
+import DepartmentTable from "./components/DepartmentTable";
 
 const initialFormData = {
     departmentName: "",
@@ -26,6 +27,11 @@ export default function DepartmentsPage() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [filters, setFilters] = useState({
+        parentDepartmentId: "",
+        managerEmployeeId: "",
+        hasEmployees: ""
+    });
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [totalPages, setTotalPages] = useState(1);
 
@@ -33,6 +39,7 @@ export default function DepartmentsPage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
@@ -53,6 +60,9 @@ export default function DepartmentsPage() {
                 page: pagination.pageIndex + 1,
                 limit: pagination.pageSize,
                 search,
+                parentDepartmentId: filters.parentDepartmentId || undefined,
+                managerEmployeeId: filters.managerEmployeeId || undefined,
+                hasEmployees: filters.hasEmployees || undefined,
             });
             setData(response.data || []);
             setTotalPages(response.meta?.totalPages || 1);
@@ -65,10 +75,18 @@ export default function DepartmentsPage() {
 
     const fetchDropdownData = async () => {
         try {
-            const [deptRes, empRes] = await Promise.all([
-                departmentsService.getList(),
-                employeesService.getList(),
-            ]);
+            // Fetch independently to prevent one failure from blocking others
+            const deptPromise = departmentsService.getList().catch(err => {
+                console.error("Error fetching departments list:", err);
+                return { data: [] };
+            });
+            const empPromise = employeesService.getList().catch(err => {
+                console.error("Error fetching employees list:", err);
+                return { data: [] };
+            });
+
+            const [deptRes, empRes] = await Promise.all([deptPromise, empPromise]);
+
             setDepartmentList(
                 (deptRes.data || []).map((d) => ({
                     value: d.id,
@@ -88,7 +106,7 @@ export default function DepartmentsPage() {
 
     useEffect(() => {
         fetchDepartments();
-    }, [pagination.pageIndex, pagination.pageSize, search]);
+    }, [pagination.pageIndex, pagination.pageSize, search, filters]);
 
     useEffect(() => {
         fetchDropdownData();
@@ -117,10 +135,16 @@ export default function DepartmentsPage() {
         setIsDeleteOpen(true);
     };
 
+    const handleViewDetail = (department) => {
+        setSelectedDepartment(department);
+        setIsDetailOpen(true);
+    };
+
     const validateForm = () => {
         const validationErrors = validate(formData, {
             departmentName: [
                 required("Tên phòng ban là bắt buộc"),
+                regex(/^[a-zA-Z0-9À-ỹ\s]+$/, "Tên phòng ban chỉ được chứa chữ cái, số và khoảng trắng"),
                 unique(departmentList, selectedDepartment?.id, "Tên phòng ban đã tồn tại"),
             ],
         });
@@ -145,6 +169,7 @@ export default function DepartmentsPage() {
             success(response.message);
             setIsCreateOpen(false);
             fetchDepartments();
+            fetchDropdownData();
         } catch (err) {
             error(err.response?.data?.message || "Có lỗi xảy ra");
         } finally {
@@ -165,6 +190,7 @@ export default function DepartmentsPage() {
             success(response.message);
             setIsEditOpen(false);
             fetchDepartments();
+            fetchDropdownData();
         } catch (err) {
             error(err.response?.data?.message || "Có lỗi xảy ra");
         } finally {
@@ -179,6 +205,7 @@ export default function DepartmentsPage() {
             success(response.message);
             setIsDeleteOpen(false);
             fetchDepartments();
+            fetchDropdownData();
         } catch (err) {
             error(err.response?.data?.message || "Có lỗi xảy ra");
         } finally {
@@ -235,11 +262,16 @@ export default function DepartmentsPage() {
                 loading={loading}
                 search={search}
                 onSearchChange={setSearch}
+                filters={filters}
+                onFilterChange={setFilters}
+                departmentList={departmentList}
+                employeeList={employeeList}
                 pagination={pagination}
                 onPaginationChange={setPagination}
                 totalPages={totalPages}
                 onEdit={handleEdit}
                 onDelete={handleDeleteClick}
+                onViewDetail={handleViewDetail}
             />
 
             {/* Create Modal */}
@@ -278,6 +310,13 @@ export default function DepartmentsPage() {
                 onConfirm={handleDelete}
                 department={selectedDepartment}
                 loading={formLoading}
+            />
+
+            {/* Detail Modal */}
+            <DepartmentDetailModal
+                isOpen={isDetailOpen}
+                onClose={() => setIsDetailOpen(false)}
+                department={selectedDepartment}
             />
         </div>
     );
