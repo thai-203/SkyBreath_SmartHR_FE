@@ -10,8 +10,9 @@ import { departmentsService } from "@/services/departments.service";
 import TimesheetTable from "./components/TimesheetTable";
 import AttendanceDetailModal from "./components/AttendanceDetailModal";
 import TimesheetEditModal from "./components/TimesheetEditModal";
-import { CalendarDays, Plus, Download, FileSpreadsheet } from "lucide-react";
+import { CalendarDays, Plus, Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import { authService } from "@/services/auth.service";
+import CalendarView from "./components/CalendarView";
 
 const currentDate = new Date();
 
@@ -30,6 +31,9 @@ export default function TimesheetsPage() {
     });
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [totalPages, setTotalPages] = useState(0);
+    const [viewMode, setViewMode] = useState("table"); // 'table' or 'calendar'
+    const [calendarData, setCalendarData] = useState(null);
+    const [calendarLoading, setCalendarLoading] = useState(false);
 
     // Modals
     const [detailModal, setDetailModal] = useState({ open: false, data: null });
@@ -82,6 +86,50 @@ export default function TimesheetsPage() {
     useEffect(() => {
         fetchTimesheets();
     }, [fetchTimesheets]);
+
+    // Fetch calendar data (attendance details)
+    const fetchCalendarData = useCallback(async () => {
+        if (viewMode !== "calendar") return;
+        
+        setCalendarLoading(true);
+        try {
+            // If user is employee, find their timesheet first
+            let targetTimesheetId = null;
+            
+            // First try to find in current timesheets list
+            const userTimesheet = timesheets.find(ts => ts.employee?.userId === authService.getCurrentUser()?.id);
+            if (userTimesheet) {
+                targetTimesheetId = userTimesheet.id;
+            } else {
+                // If not found in list (e.g., list is empty or paginated), fetch specifically
+                const params = {
+                    month: filters.month,
+                    year: filters.year,
+                    limit: 1,
+                };
+                const res = await timesheetsService.getAll(params);
+                if (res?.data?.items?.length > 0) {
+                    targetTimesheetId = res.data.items[0].id;
+                }
+            }
+
+            if (targetTimesheetId) {
+                const detailRes = await timesheetsService.getAttendanceDetails(targetTimesheetId);
+                setCalendarData(detailRes?.data);
+            } else {
+                setCalendarData(null);
+            }
+        } catch (err) {
+            console.error("Error fetching calendar data:", err);
+            toastError("Lỗi khi tải dữ liệu lịch");
+        } finally {
+            setCalendarLoading(false);
+        }
+    }, [viewMode, filters, timesheets]);
+
+    useEffect(() => {
+        fetchCalendarData();
+    }, [fetchCalendarData]);
 
     // Generate
     const handleGenerateClick = () => {
@@ -305,6 +353,30 @@ export default function TimesheetsPage() {
                             </Button>
                         </>
                     )}
+                    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                        <button
+                            onClick={() => setViewMode("table")}
+                            className={`p-1.5 rounded-md transition-all ${
+                                viewMode === "table" 
+                                ? "bg-white text-indigo-600 shadow-sm" 
+                                : "text-slate-500 hover:text-slate-700"
+                            }`}
+                            title="Xem bảng"
+                        >
+                            <LayoutGrid className="h-4 w-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode("calendar")}
+                            className={`p-1.5 rounded-md transition-all ${
+                                viewMode === "calendar" 
+                                ? "bg-white text-indigo-600 shadow-sm" 
+                                : "text-slate-500 hover:text-slate-700"
+                            }`}
+                            title="Xem lịch"
+                        >
+                            <CalendarIcon className="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -351,21 +423,47 @@ export default function TimesheetsPage() {
                 </div>
             </div>
 
-            {/* Table */}
-            <TimesheetTable
-                data={timesheets}
-                loading={loading}
-                search={search}
-                onSearchChange={setSearch}
-                pagination={pagination}
-                onPaginationChange={setPagination}
-                totalPages={totalPages}
-                onViewDetail={handleViewDetail}
-                onEdit={handleOpenEdit}
-                onRecalculate={handleRecalculate}
-                onLock={handleLock}
-                onUnlock={handleUnlock}
-            />
+            {/* Content View */}
+            {viewMode === "table" ? (
+                <TimesheetTable
+                    data={timesheets}
+                    loading={loading}
+                    search={search}
+                    onSearchChange={setSearch}
+                    pagination={pagination}
+                    onPaginationChange={setPagination}
+                    totalPages={totalPages}
+                    onViewDetail={handleViewDetail}
+                    onEdit={handleOpenEdit}
+                    onRecalculate={handleRecalculate}
+                    onLock={handleLock}
+                    onUnlock={handleUnlock}
+                />
+            ) : (
+                <div className="space-y-4">
+                    {calendarLoading ? (
+                        <div className="flex justify-center items-center py-20 bg-white rounded-xl border border-slate-200">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+                                <p className="text-slate-500 font-medium">Đang tải lịch...</p>
+                            </div>
+                        </div>
+                    ) : calendarData ? (
+                        <CalendarView 
+                            data={calendarData} 
+                            month={filters.month} 
+                            year={filters.year}
+                            onMonthChange={(m, y) => setFilters({ ...filters, month: m, year: y })}
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-slate-200 text-slate-500">
+                            <CalendarIcon className="h-12 w-12 mb-4 opacity-20" />
+                            <p className="font-medium">Chưa có dữ liệu chấm công cho kỳ này</p>
+                            <p className="text-sm opacity-70">Vui lòng liên hệ quản trị viên để tạo bảng công</p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Attendance Detail Modal */}
             <AttendanceDetailModal

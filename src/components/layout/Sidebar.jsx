@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Clock,
+  DollarSign,
   FileText,
   LayoutDashboard,
   Settings,
@@ -18,7 +19,7 @@ import {
   User,
   UserPlus,
   Users,
-  X,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -44,8 +45,11 @@ const menuItems = [
     title: "Nhân viên",
     icon: Users,
     href: "/employees",
-    roles: ["ADMIN", "HR", "MANAGER"],
-    children: [{ title: "Danh sách", href: "/employees" }],
+    roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+    children: [
+      { title: "Danh sách", href: "/employees", roles: ["ADMIN", "HR", "MANAGER"] },
+      { title: "Lịch nghỉ", href: "/employees/leave-calendar", roles: ["ADMIN", "MANAGER", "EMPLOYEE"] }
+    ],
   },
   {
     title: "Hợp đồng",
@@ -58,6 +62,16 @@ const menuItems = [
     icon: Clock,
     href: "/timesheets",
     roles: ["ADMIN", "HR", "MANAGER"],
+  },
+  {
+    title: "Bảng lương",
+    icon: DollarSign,
+    href: "/payroll",
+    roles: ["ADMIN", "HR"],
+    children: [
+      { title: "Bảng lương tháng", href: "/payroll" },
+      { title: "Loại bảng lương", href: "/payroll/types" },
+    ],
   },
   {
     title: "Ca làm việc",
@@ -82,6 +96,10 @@ const menuItems = [
     icon: Calendar,
     href: "/holidays",
     roles: ["ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Danh sách", href: "/holidays" },
+      { title: "Gửi nhắc nhở", href: "/holidays/notifications" },
+    ],
   },
   {
     title: "Việc cần làm",
@@ -192,21 +210,23 @@ function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
       )}
       {hasChildren && isOpen && (
         <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 pl-4">
-          {item.children.map((child) => (
-            <Link
-              key={child.href}
-              href={child.href}
-              onClick={onMobileClose}
-              className={cn(
-                "block rounded-lg px-3 py-2 text-sm transition-all duration-200",
-                pathname === child.href
-                  ? "bg-slate-100 font-medium text-indigo-500"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              {child.title}
-            </Link>
-          ))}
+          {item.children
+            .filter(child => !child.roles || authService.hasAnyRole(child.roles))
+            .map((child) => (
+              <Link
+                key={child.href}
+                href={child.href}
+                onClick={onMobileClose}
+                className={cn(
+                  "block rounded-lg px-3 py-2 text-sm transition-all duration-200",
+                  pathname === child.href
+                    ? "bg-slate-100 font-medium text-indigo-500"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                )}
+              >
+                {child.title}
+              </Link>
+            ))}
         </div>
       )}
     </div>
