@@ -254,6 +254,7 @@ function PreviewSchedule({ params, shifts }) {
 export default function AssignmentFormModal({
   open,
   loading,
+  isEditing = false,
   data,
   setData,
   employeeList = [],
@@ -280,7 +281,7 @@ export default function AssignmentFormModal({
         <div className="bg-white px-8 pt-6 pb-4 border-b flex-shrink-0">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900">
-              {data?.id ? "Cập nhật phân ca" : "Thiết lập lịch làm việc"}
+              {isEditing ? "Cập nhật phân ca" : "Thiết lập lịch làm việc"}
             </DialogTitle>
             <p className="text-slate-500 text-sm">
               Tạo lịch làm việc định kỳ cho nhân sự theo chu kỳ lặp lại.
@@ -414,6 +415,22 @@ export default function AssignmentFormModal({
               <div className="flex items-center gap-2 font-semibold text-slate-800 border-b pb-3">
                 <Clock className="w-4 h-4 text-blue-600" /> Cấu hình thời gian
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Tên bản phân ca
+                </label>
+                <Input
+                  type="text"
+                  value={data.assignmentName || ""}
+                  onChange={(e) =>
+                    setData({ ...data, assignmentName: e.target.value })
+                  }
+                  placeholder="Ví dụ: Ca hành chính tháng 3"
+                  className="h-10 border-slate-200 focus:ring-blue-500"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -472,7 +489,7 @@ export default function AssignmentFormModal({
                   className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-500"
                   value=""
                   onChange={(e) => {
-                    const val = e.target.value;
+                    const val = Number(e.target.value);
                     if (val && !data.shiftIds?.includes(val))
                       setData({
                         ...data,
@@ -585,6 +602,7 @@ export default function AssignmentFormModal({
             onClick={onSubmit}
             loading={loading}
             disabled={
+              !data.assignmentName?.trim() ||
               !data.startDate ||
               !data.shiftIds?.length ||
               !data.employeeIds?.length ||

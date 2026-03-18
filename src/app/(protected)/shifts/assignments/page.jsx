@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, Search, Filter } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
@@ -15,8 +15,10 @@ import {
 import AssignmentTable from "./components/AssignmentTable";
 import AssignmentFormModal from "./components/AssignmentFormModal";
 import AssignmentDeleteModal from "./components/AssignmentDeleteModal";
+import AssignmentDetailModal from "./components/AssignmentDetailModal";
 
 const initialData = {
+  assignmentName: "",
   employeeIds: [],
   departmentIds: [],
   shiftIds: [],
@@ -32,9 +34,13 @@ export default function AssignmentsPage() {
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [shiftFilter, setShiftFilter] = useState("");
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [formData, setFormData] = useState(initialData);
   const [formLoading, setFormLoading] = useState(false);
@@ -45,7 +51,7 @@ export default function AssignmentsPage() {
   const [departmentList, setDepartmentList] = useState([]);
   const [shiftOptions, setShiftOptions] = useState([]);
 
-  const fetchOptions = async () => {
+  const fetchOptions = useCallback(async () => {
     try {
       // need full employee objects (including departmentId) to show tree
       const [empAllRes, deptRes, shiftRes] = await Promise.all([
@@ -73,29 +79,42 @@ export default function AssignmentsPage() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await shiftAssignmentsService.list({
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
+        search: search || undefined,
+        departmentId: departmentFilter || undefined,
+        shiftId: shiftFilter || undefined,
       });
-      console.log(res);
       setData(res.items || []);
       setTotalPages(res.totalPages || 1);
     } catch (err) {
-      error(err.response?.message || "Lỗi tải danh sách");
+      error(err.response?.data?.message || "Lỗi tải danh sách");
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    search,
+    departmentFilter,
+    shiftFilter,
+    error,
+  ]);
 
   useEffect(() => {
     fetchData();
     fetchOptions();
-  }, [pagination]);
+  }, [fetchData, fetchOptions]);
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [search, departmentFilter, shiftFilter]);
 
   const handleCreate = () => {
     setSelected(null);
@@ -105,25 +124,15 @@ export default function AssignmentsPage() {
   const handleEdit = (item) => {
     setSelected(item);
     setFormData({
-      // prefer original metadata arrays if present
-      employeeIds: item.employeeIds
-        ? item.employeeIds.split(",").map(Number)
-        : item.employeeId
-          ? [item.employeeId]
-          : [],
-      departmentIds: item.departmentIds
-        ? item.departmentIds.split(",").map(Number)
-        : item.departmentId
-          ? [item.departmentId]
-          : [],
-      shiftIds: item.shiftIds
-        ? item.shiftIds.split(",").map(Number)
-        : item.shiftId
-          ? [item.shiftId]
-          : [],
+      assignmentName: item.assignmentName || "",
+      employeeIds: Array.isArray(item.employeeIds) ? item.employeeIds : [],
+      departmentIds: Array.isArray(item.departmentIds)
+        ? item.departmentIds
+        : [],
+      shiftIds: Array.isArray(item.shiftIds) ? item.shiftIds : [],
       startDate: item.effectiveFrom || "",
       endDate: item.effectiveTo || "",
-      weekdays: item.weekdays ? item.weekdays.split(",").map(Number) : [],
+      weekdays: Array.isArray(item.weekdays) ? item.weekdays : [],
       repeatType: item.repeatType || "weekly",
     });
     setIsFormOpen(true);
@@ -133,7 +142,16 @@ export default function AssignmentsPage() {
     setIsDeleteOpen(true);
   };
 
+  const handleView = (item) => {
+    setSelected(item);
+    setIsDetailOpen(true);
+  };
+
   const submitForm = async () => {
+    if (!formData.assignmentName || !formData.assignmentName.trim()) {
+      return error("Vui lòng nhập tên bản phân ca");
+    }
+
     // client-side sanity checks before hitting the API
     if (
       (!formData.shiftIds || formData.shiftIds.length === 0) &&
@@ -195,9 +213,56 @@ export default function AssignmentsPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageTitle title="Quản lý phân ca" />
-      <div className="mb-4 flex justify-end">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="relative w-full md:max-w-md">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm tên bảng, ca làm, phòng ban, đối tượng"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none ring-0 transition focus:border-blue-500"
+            />
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3">
+              <Filter size={16} className="text-slate-400" />
+              <select
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                className="h-10 bg-transparent text-sm outline-none"
+              >
+                <option value="">Tất cả phòng ban</option>
+                {departmentOptions.map((dept) => (
+                  <option key={dept.value} value={dept.value}>
+                    {dept.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="rounded-lg border border-slate-200 px-3">
+              <select
+                value={shiftFilter}
+                onChange={(e) => setShiftFilter(e.target.value)}
+                className="h-10 bg-transparent text-sm outline-none"
+              >
+                <option value="">Tất cả ca làm</option>
+                {shiftOptions.map((shift) => (
+                  <option key={shift.value} value={shift.value}>
+                    {shift.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-end">
         <Button onClick={handleCreate} icon={<Plus />}>
           Phân ca
         </Button>
@@ -208,12 +273,14 @@ export default function AssignmentsPage() {
         pagination={pagination}
         onPaginationChange={setPagination}
         totalPages={totalPages}
+        onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
       <AssignmentFormModal
         open={isFormOpen}
         loading={formLoading}
+        isEditing={!!selected}
         data={formData}
         setData={setFormData}
         employees={employeeOptions}
@@ -229,6 +296,11 @@ export default function AssignmentsPage() {
         loading={formLoading}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={confirmDelete}
+      />
+      <AssignmentDetailModal
+        open={isDetailOpen}
+        data={selected}
+        onClose={() => setIsDetailOpen(false)}
       />
     </div>
   );

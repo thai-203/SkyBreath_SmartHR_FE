@@ -1,165 +1,414 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/common/Card";
+import { Skeleton } from "@/components/common/Skeleton";
 import { useToast } from "@/components/common/Toast";
 import { shiftAssignmentsService, userService } from "@/services";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+} from "lucide-react";
+
+// --- Constants & Config ---
+const VIEW_MODE = { WEEK: "week", MONTH: "month" };
+
+const SHIFT_COLORS = [
+  "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "bg-sky-50 text-sky-700 border-sky-200",
+  "bg-amber-50 text-amber-700 border-amber-200",
+  "bg-rose-50 text-rose-700 border-rose-200",
+  "bg-indigo-50 text-indigo-700 border-indigo-200",
+];
+
+// --- Utilities ---
+const isValidDate = (d) => d instanceof Date && !isNaN(d.getTime());
+
+const formatYmd = (date) => {
+  if (!isValidDate(date)) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const parseYmd = (ymd) => {
+  if (!ymd) return null;
+  const d = new Date(`${ymd}T00:00:00`);
+  return isValidDate(d) ? d : null;
+};
+
+const getScheduleDateKey = (item) => {
+  const candidate = item?.workDate ?? item?.date;
+  if (!candidate) return "";
+
+  if (typeof candidate === "string") {
+    const match = candidate.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+
+  return formatYmd(new Date(candidate));
+};
+
+// Tính toán dải ngày để lấp đầy lưới 7 cột
+const getCalendarRange = (anchor, mode) => {
+  const date = isValidDate(anchor) ? new Date(anchor) : new Date();
+  if (mode === VIEW_MODE.WEEK) {
+    const day = date.getDay();
+    const diff = (day + 6) % 7;
+    const start = new Date(date);
+    start.setDate(date.getDate() - diff);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start, end };
+  } else {
+    // Lấy ngày đầu tháng
+    const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    // Lùi về Thứ 2 của tuần chứa ngày đầu tháng
+    const startDiff = (firstOfMonth.getDay() + 6) % 7;
+    const start = new Date(firstOfMonth);
+    start.setDate(firstOfMonth.getDate() - startDiff);
+
+    // Lấy ngày cuối tháng
+    const lastOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    // Tiến đến Chủ nhật của tuần chứa ngày cuối tháng
+    const endDiff = lastOfMonth.getDay() === 0 ? 0 : 7 - lastOfMonth.getDay();
+    const end = new Date(lastOfMonth);
+    end.setDate(lastOfMonth.getDate() + endDiff);
+
+    return { start, end };
+  }
+};
 
 export default function PersonalSchedulePage() {
   const { error } = useToast();
-  const [startDate, setStartDate] = useState(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = (day + 6) % 7;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - diff);
-    return monday.toISOString().slice(0, 10);
-  });
+
+  const [employeeId, setEmployeeId] = useState(null);
+  const [viewMode, setViewMode] = useState(VIEW_MODE.MONTH);
+  const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [employeeId, setEmployeeId] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+
+  const range = useMemo(
+    () => getCalendarRange(anchorDate, viewMode),
+    [anchorDate, viewMode],
+  );
+
+  const rangeDays = useMemo(() => {
+    const days = [];
+    let cur = new Date(range.start);
+    while (cur <= range.end) {
+      days.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return days;
+  }, [range]);
 
   useEffect(() => {
-    // load current user profile to obtain employeeId
-    const loadProfile = async () => {
+    const initProfile = async () => {
       try {
-        const data = await userService.getProfile();
-        if (data.employeeId) setEmployeeId(data.employeeId);
-      } catch (err) {
-        console.error(err);
+        const res = await userService.getProfile();
+        const data = res?.data || res;
+        let id = Number(data?.employeeId || data?.employee?.id || 0);
+        if (id > 0) setEmployeeId(id);
+        else error("Tài khoản chưa liên kết hồ sơ nhân viên");
+      } catch {
+        error("Không thể xác thực thông tin nhân viên");
+      } finally {
+        setIsReady(true);
       }
     };
-    loadProfile();
-  }, []);
+    initProfile();
+  }, [error]);
 
-  useEffect(() => {
-    fetchSchedule();
-  }, [startDate, employeeId]);
-
-  const fetchSchedule = async () => {
-    if (!startDate || !employeeId) return;
+  const fetchSchedule = useCallback(async () => {
+    if (!employeeId || !isReady) return;
+    const startYmd = formatYmd(range.start);
+    const endYmd = formatYmd(range.end);
     setLoading(true);
     try {
-      const sd = startDate;
-      const ed = new Date(sd);
-      ed.setDate(new Date(sd).getDate() + 6);
       const res = await shiftAssignmentsService.getEmployeeSchedule(
         employeeId,
-        sd,
-        ed.toISOString().slice(0, 10),
+        startYmd,
+        endYmd,
       );
-      setSchedule(res.data || []);
-    } catch (err) {
-      error(err.response?.data?.message || "Lỗi tải lịch");
+      setSchedule(
+        Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [],
+      );
+    } catch {
+      error("Lỗi khi tải lịch làm việc");
     } finally {
       setLoading(false);
     }
+  }, [employeeId, range, isReady, error]);
+
+  useEffect(() => {
+    fetchSchedule();
+  }, [fetchSchedule]);
+
+  const groupedData = useMemo(() => {
+    return schedule.reduce((acc, item) => {
+      const key = getScheduleDateKey(item);
+      if (key) {
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+      }
+      return acc;
+    }, {});
+  }, [schedule]);
+
+  const visibleDateKeys = useMemo(() => {
+    const keys = rangeDays
+      .filter((d) =>
+        viewMode === VIEW_MODE.WEEK
+          ? true
+          : d.getMonth() === anchorDate.getMonth() &&
+            d.getFullYear() === anchorDate.getFullYear(),
+      )
+      .map((d) => formatYmd(d));
+
+    return new Set(keys);
+  }, [rangeDays, viewMode, anchorDate]);
+
+  const scheduleInView = useMemo(
+    () =>
+      schedule.filter((item) => visibleDateKeys.has(getScheduleDateKey(item))),
+    [schedule, visibleDateKeys],
+  );
+
+  const workingDaysInView = useMemo(() => {
+    const keys = new Set(
+      scheduleInView.map((item) => getScheduleDateKey(item)).filter(Boolean),
+    );
+    return keys.size;
+  }, [scheduleInView]);
+
+  const restDaysInView = Math.max(0, visibleDateKeys.size - workingDaysInView);
+
+  const stats = [
+    { label: "Số ca làm", val: scheduleInView.length, color: "text-slate-900" },
+    { label: "Ngày làm", val: workingDaysInView, color: "text-emerald-600" },
+    { label: "Ngày nghỉ", val: restDaysInView, color: "text-amber-600" },
+    {
+      label: "Chế độ",
+      val: viewMode === VIEW_MODE.WEEK ? "Tuần" : "Tháng",
+      color: "text-blue-600",
+    },
+  ];
+
+  const handleMove = (step) => {
+    setAnchorDate((prev) => {
+      const next = new Date(prev);
+      if (viewMode === VIEW_MODE.WEEK) {
+        next.setDate(next.getDate() + step * 7);
+      } else {
+        next.setMonth(next.getMonth() + step);
+      }
+      return next;
+    });
   };
 
-  const renderTable = () => {
-    if (!schedule.length || !monthYear) {
-      return <p className="text-center text-slate-500">Không có lịch nào</p>;
-    }
-
-    const [year, month] = monthYear.split("-").map(Number);
-    const days = new Date(year, month, 0).getDate();
-
-    const headerCells = [];
-    for (let d = 1; d <= days; d++) {
-      const date = new Date(year, month - 1, d);
-      headerCells.push(
-        <th key={d} className="border p-2 text-center text-xs">
-          {`Thứ ${date.getDay() === 0 ? 7 : date.getDay()}`}
-          <br />
-          {`${String(d).padStart(2, "0")}/${String(month).padStart(2, "0")}`}
-        </th>,
-      );
-    }
-
-    const row = {
-      name: schedule[0]?.employee?.fullName || "",
-      items: schedule,
-    };
-
-    const cells = [];
-    for (let d = 1; d <= days; d++) {
-      const date = new Date(year, month - 1, d);
-      const assignment = row.items.find((a) => {
-        const from = a.effectiveFrom ? new Date(a.effectiveFrom) : null;
-        const to = a.effectiveTo ? new Date(a.effectiveTo) : null;
-        if (from && date < from) return false;
-        if (to && date > to) return false;
-        return true;
-      });
-      cells.push(
-        <td key={d} className="border p-2 text-center text-sm">
-          {assignment ? assignment.shift?.shiftName : null}
-        </td>,
-      );
-    }
-
+  const renderBadges = (date) => {
+    const items = groupedData[formatYmd(date)];
+    if (!items?.length) return null;
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="border p-2">Nhân viên</th>
-              {headerCells}
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="hover:bg-slate-50">
-              <td className="border p-2 font-medium">{row.name}</td>
-              {cells}
-            </tr>
-          </tbody>
-        </table>
+      <div className="flex flex-col gap-1 mt-1">
+        {items.map((item, idx) => (
+          <div
+            key={idx}
+            className={`px-1.5 py-0.5 rounded border text-[9px] font-medium truncate ${SHIFT_COLORS[idx % SHIFT_COLORS.length]}`}
+          >
+            {item.shift?.shiftName || "Ca làm"}
+          </div>
+        ))}
       </div>
     );
   };
 
   return (
-    <div>
-      <PageTitle title="Lịch làm việc của tôi" />
-      <div className="mb-4 flex items-center gap-2 flex-wrap">
-        <label>Từ tuần</label>
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const sd = new Date(startDate);
-            sd.setDate(sd.getDate() - 7);
-            setStartDate(sd.toISOString().slice(0, 10));
-          }}
-        >
-          &lt;
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const sd = new Date(startDate);
-            sd.setDate(sd.getDate() + 7);
-            setStartDate(sd.toISOString().slice(0, 10));
-          }}
-        >
-          &gt;
-        </Button>
-        <Button
-          onClick={fetchSchedule}
-          disabled={loading || !startDate || !employeeId}
-        >
-          {loading ? "Đang tải..." : "Xem lịch"}
-        </Button>
+    <div className="max-w-7xl mx-auto space-y-6 p-2 md:p-6">
+      <PageTitle title="Lịch làm việc cá nhân" />
+
+      {/* Stats Section - Giữ nguyên */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {stats.map((s, i) => (
+          <Card key={i} className="shadow-sm border-none">
+            <CardContent className="p-4">
+              <p className="text-[10px] uppercase text-slate-500 font-bold">
+                {s.label}
+              </p>
+              <p className={`text-xl font-bold ${s.color}`}>{s.val}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      <div>{renderTable()}</div>
+
+      <Card className="border-none shadow-md overflow-hidden bg-white">
+        <CardHeader className="bg-white border-b space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-primary" />
+              {anchorDate.toLocaleDateString("vi-VN", {
+                month: "long",
+                year: "numeric",
+              })}
+            </CardTitle>
+
+            <div className="flex bg-slate-100 p-1 rounded-lg">
+              {Object.values(VIEW_MODE).map((m) => (
+                <Button
+                  key={m}
+                  variant={viewMode === m ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode(m)}
+                  className="h-8 capitalize px-4"
+                >
+                  {m === "week" ? "Tuần" : "Tháng"}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-md border">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleMove(-1)}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Input
+                type={viewMode === VIEW_MODE.WEEK ? "date" : "month"}
+                className="h-8 border-none bg-transparent w-[140px] focus-visible:ring-0 text-sm font-medium"
+                value={
+                  viewMode === VIEW_MODE.WEEK
+                    ? formatYmd(anchorDate)
+                    : `${anchorDate.getFullYear()}-${String(anchorDate.getMonth() + 1).padStart(2, "0")}`
+                }
+                onChange={(e) =>
+                  setAnchorDate(
+                    parseYmd(
+                      viewMode === VIEW_MODE.WEEK
+                        ? e.target.value
+                        : `${e.target.value}-01`,
+                    ) || new Date(),
+                  )
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleMove(1)}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAnchorDate(new Date())}
+            >
+              Hôm nay
+            </Button>
+            <Button
+              size="sm"
+              onClick={fetchSchedule}
+              disabled={loading}
+              className="gap-2"
+            >
+              <RefreshCw
+                className={`w-3 h-3 ${loading ? "animate-spin" : ""}`}
+              />
+              Làm mới
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 grid grid-cols-7 gap-px bg-slate-200">
+              {[...Array(28)].map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full bg-white" />
+              ))}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="min-w-[700px]">
+                {/* Header Thứ */}
+                <div className="grid grid-cols-7 border-b bg-slate-50">
+                  {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day) => (
+                    <div
+                      key={day}
+                      className="py-2 text-center text-[10px] font-bold text-slate-500 uppercase"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Grid Ngày */}
+                <div className="grid grid-cols-7 bg-slate-200 gap-px border-b">
+                  {rangeDays.map((date, idx) => {
+                    const isToday = formatYmd(date) === formatYmd(new Date());
+                    const isCurrentMonth =
+                      date.getMonth() === anchorDate.getMonth();
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`min-h-[110px] p-2 transition-colors
+                          ${isCurrentMonth ? "bg-white" : "bg-slate-50 text-slate-400"}
+                        `}
+                      >
+                        <div className="flex justify-between">
+                          <span
+                            className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full
+                            ${isToday ? "bg-primary text-white" : ""}
+                          `}
+                          >
+                            {date.getDate()}
+                          </span>
+                        </div>
+                        {renderBadges(date)}
+                        {(!groupedData[formatYmd(date)] ||
+                          groupedData[formatYmd(date)].length === 0) &&
+                          isCurrentMonth && (
+                            <div className="text-[9px] text-slate-300 mt-1 italic">
+                              Nghỉ
+                            </div>
+                          )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {!loading && schedule.length === 0 && (
+                <div className="p-10 text-center flex flex-col items-center gap-2 bg-white">
+                  <CalendarDays className="w-10 h-10 text-slate-200" />
+                  <p className="text-slate-400 text-sm italic">
+                    Không có lịch làm việc trong giai đoạn này
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
