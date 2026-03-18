@@ -11,6 +11,16 @@ export const timesheetsService = {
         return response.data;
     },
 
+    addEmployee: async (data) => {
+        const response = await api.post("/timesheets/add-employee", data);
+        return response.data;
+    },
+
+    remove: async (id) => {
+        const response = await api.delete(`/timesheets/${id}`);
+        return response.data;
+    },
+
     getById: async (id) => {
         const response = await api.get(`/timesheets/${id}`);
         return response.data;
