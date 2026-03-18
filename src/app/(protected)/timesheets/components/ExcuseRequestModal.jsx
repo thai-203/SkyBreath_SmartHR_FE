@@ -21,7 +21,8 @@ export default function ExcuseRequestModal({
     mode = "view",
     date,
     employeeId,
-    data
+    data,
+    canEdit = false
 }) {
     const [submitting, setSubmitting] = useState(false);
     const [file, setFile] = useState(null);
@@ -101,6 +102,22 @@ export default function ExcuseRequestModal({
         }
     };
 
+    const handleUpdateStatus = async (status) => {
+        if (!data?.id) return;
+        setSubmitting(true);
+        try {
+            await requestsService.updateStatus(data.id, status);
+            toast.success(status === 'APPROVED' ? 'Đã duyệt đơn' : 'Đã từ chối đơn');
+            onSuccess?.();
+            onClose();
+        } catch (error) {
+            console.error("Lỗi duyệt đơn:", error);
+            toast.error(error.response?.data?.message || "Lỗi cập nhật trạng thái");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     if (mode === "view" && data) {
@@ -165,7 +182,26 @@ export default function ExcuseRequestModal({
                         )}
                     </div>
                 </div>
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex justify-end gap-2">
+                    {canEdit && status === 'PENDING' && (
+                        <>
+                            <Button 
+                                onClick={() => handleUpdateStatus('REJECTED')} 
+                                variant="outline" 
+                                className="text-rose-600 border-rose-200 hover:bg-rose-50" 
+                                disabled={submitting}
+                            >
+                                Từ chối
+                            </Button>
+                            <Button 
+                                onClick={() => handleUpdateStatus('APPROVED')} 
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent" 
+                                loading={submitting}
+                            >
+                                Phê duyệt
+                            </Button>
+                        </>
+                    )}
                     <Button onClick={onClose} variant="outline">
                         Đóng
                     </Button>

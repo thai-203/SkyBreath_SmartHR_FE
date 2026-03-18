@@ -10,22 +10,24 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
-import { Edit, Eye, Trash2, Bell } from "lucide-react";
+import { Edit, Eye, Trash2, Bell, CalendarCheck } from "lucide-react";
 
 export function HolidayTable({ holidays, onEdit, onDelete, onView, onOpenNotification }) {
     return (
         <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
             <Table>
                 <TableHeader className="bg-gray-50/50">
                     <TableRow className="hover:bg-transparent border-gray-100">
-                        <TableHead className="w-[60px] font-bold text-gray-700">STT</TableHead>
-                        <TableHead className="font-bold text-gray-700">Ngày nghỉ từ (DL)</TableHead>
-                        <TableHead className="font-bold text-gray-700">Ngày nghỉ đến (DL)</TableHead>
-                        <TableHead className="font-bold text-gray-700">Loại ngày</TableHead>
-                        <TableHead className="w-[100px] text-center font-bold text-gray-700">Tính công</TableHead>
-                        <TableHead className="font-bold text-gray-700">Người cập nhật</TableHead>
-                        <TableHead className="font-bold text-gray-700">Ngày cập nhật</TableHead>
-                        <TableHead className="w-[120px] text-right font-bold text-gray-700">Hành động</TableHead>
+                        <TableHead className="w-[50px] font-bold text-gray-700 whitespace-nowrap">STT</TableHead>
+                        <TableHead className="min-w-[140px] font-bold text-gray-700 whitespace-nowrap">Ngày nghỉ từ (DL)</TableHead>
+                        <TableHead className="min-w-[140px] font-bold text-gray-700 whitespace-nowrap">Ngày nghỉ đến (DL)</TableHead>
+                        <TableHead className="min-w-[110px] font-bold text-gray-700 whitespace-nowrap">Loại ngày</TableHead>
+                        <TableHead className="min-w-[90px] text-center font-bold text-gray-700 whitespace-nowrap">Tính công</TableHead>
+                        <TableHead className="min-w-[160px] font-bold text-gray-700 whitespace-nowrap">Ngày làm bù</TableHead>
+                        <TableHead className="min-w-[120px] font-bold text-gray-700 whitespace-nowrap">Người cập nhật</TableHead>
+                        <TableHead className="min-w-[130px] font-bold text-gray-700 whitespace-nowrap">Ngày cập nhật</TableHead>
+                        <TableHead className="min-w-[120px] text-right font-bold text-gray-700 whitespace-nowrap">Hành động</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -53,6 +55,33 @@ export function HolidayTable({ holidays, onEdit, onDelete, onView, onOpenNotific
                                             className="w-4 h-4 rounded-full border-gray-300 text-blue-600"
                                         />
                                     </div>
+                                </TableCell>
+                                <TableCell>
+                                    {Array.isArray(holiday.compensatoryDays) && holiday.compensatoryDays.length > 0 ? (
+                                        <div className="flex flex-col gap-1">
+                                            {holiday.compensatoryDays.map((cd, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="flex items-center gap-1.5 group"
+                                                    title={cd.note || "Ngày làm bù"}
+                                                >
+                                                    <CalendarCheck className="h-3.5 w-3.5 text-indigo-500 flex-shrink-0" />
+                                                    <span className="text-[12px] font-semibold text-indigo-700">
+                                                        {cd.date
+                                                            ? new Date(cd.date).toLocaleDateString("vi-VN")
+                                                            : "—"}
+                                                    </span>
+                                                    {cd.note && (
+                                                        <span className="text-[11px] text-gray-400 truncate max-w-[120px] hidden group-hover:inline">
+                                                            — {cd.note}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <span className="text-[12px] text-gray-300 italic">—</span>
+                                    )}
                                 </TableCell>
                                 <TableCell className="text-gray-600">
                                     {holiday.updatedBy || "System"}
@@ -101,13 +130,14 @@ export function HolidayTable({ holidays, onEdit, onDelete, onView, onOpenNotific
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={8} className="h-32 text-center text-gray-400">
+                            <TableCell colSpan={9} className="h-32 text-center text-gray-400">
                                 Không có dữ liệu ngày lễ.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
             </Table>
+            </div>
         </div>
     );
 }

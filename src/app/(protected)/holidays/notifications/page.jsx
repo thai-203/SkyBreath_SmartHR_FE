@@ -1,33 +1,33 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Input } from '@/components/ui/input';
 import { PageTitle } from '@/components/common/PageTitle';
 import { useToast } from '@/components/common/Toast';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { departmentsService, employeesService, holidayService } from '@/services';
-import { 
-    ChevronDown, 
-    ChevronRight, 
-    Building2, 
-    User, 
-    Bell, 
-    Send, 
-    Clock, 
-    CheckSquare,
-    Users,
+import {
     ArrowLeft,
-    Loader2
+    Bell,
+    Building2,
+    CheckSquare,
+    ChevronDown,
+    ChevronRight,
+    Clock,
+    Loader2,
+    Send,
+    User,
+    Users
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function TreeNode({ item, onSelect, selectedIds, level = 0 }) {
     const [isOpen, setIsOpen] = useState(level < 1);
     const hasChildren = (item.children && item.children.length > 0) || (item.employees && item.employees.length > 0);
     const isEmployee = !!item.fullName;
-    
+
     const isSelected = useMemo(() => {
         if (isEmployee) return selectedIds.includes(item.id);
         if (!item.employees || item.employees.length === 0) return false;
@@ -42,13 +42,12 @@ function TreeNode({ item, onSelect, selectedIds, level = 0 }) {
 
     return (
         <div className="select-none">
-            <div 
-                className={`flex items-center py-2 px-2 rounded-md hover:bg-gray-50 transition-colors group ${
-                    isEmployee ? 'ml-6' : ''
-                }`}
+            <div
+                className={`flex items-center py-2 px-2 rounded-md hover:bg-gray-50 transition-colors group ${isEmployee ? 'ml-6' : ''
+                    }`}
             >
                 {!isEmployee && hasChildren && (
-                    <button 
+                    <button
                         onClick={() => setIsOpen(!isOpen)}
                         className="p-1 mr-1 text-gray-400 hover:text-gray-600 transition-colors"
                     >
@@ -56,14 +55,14 @@ function TreeNode({ item, onSelect, selectedIds, level = 0 }) {
                     </button>
                 )}
                 {!isEmployee && !hasChildren && <div className="w-6 mr-1" />}
-                
+
                 <div className="flex items-center gap-2 flex-1">
-                    <Checkbox 
+                    <Checkbox
                         id={`node-${item.id}`}
                         checked={isIndeterminate ? 'indeterminate' : isSelected}
                         onCheckedChange={(checked) => onSelect(item, !!checked)}
                     />
-                    
+
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => onSelect(item, !isSelected)}>
                         {isEmployee ? (
                             <User className="h-4 w-4 text-blue-500" />
@@ -80,21 +79,21 @@ function TreeNode({ item, onSelect, selectedIds, level = 0 }) {
             {isOpen && hasChildren && (
                 <div className="ml-4 border-l border-gray-100 pl-2">
                     {item.children?.map(child => (
-                        <TreeNode 
-                            key={`dept-${child.id}`} 
-                            item={child} 
-                            onSelect={onSelect} 
-                            selectedIds={selectedIds} 
-                            level={level + 1} 
+                        <TreeNode
+                            key={`dept-${child.id}`}
+                            item={child}
+                            onSelect={onSelect}
+                            selectedIds={selectedIds}
+                            level={level + 1}
                         />
                     ))}
                     {item.employees?.map(emp => (
-                        <TreeNode 
-                            key={`emp-${emp.id}`} 
-                            item={emp} 
-                            onSelect={onSelect} 
-                            selectedIds={selectedIds} 
-                            level={level + 1} 
+                        <TreeNode
+                            key={`emp-${emp.id}`}
+                            item={emp}
+                            onSelect={onSelect}
+                            selectedIds={selectedIds}
+                            level={level + 1}
                         />
                     ))}
                 </div>
@@ -229,7 +228,7 @@ export default function HolidayNotificationPage() {
                                 <Bell className="h-4 w-4 text-blue-600" />
                                 Chọn ngày lễ
                             </label>
-                            <select 
+                            <select
                                 value={selectedHolidayId}
                                 onChange={(e) => setSelectedHolidayId(e.target.value)}
                                 className="w-full p-2 rounded-md border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -255,9 +254,9 @@ export default function HolidayNotificationPage() {
                                     Danh sách nhân sự ({selectedEmployeeIds.length})
                                 </h3>
                                 {selectedEmployeeIds.length > 0 && (
-                                    <Button 
-                                        variant="ghost" 
-                                        size="sm" 
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => setSelectedEmployeeIds([])}
                                         className="h-8 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
                                     >
@@ -275,11 +274,11 @@ export default function HolidayNotificationPage() {
                                 ) : (
                                     <div className="space-y-1">
                                         {treeData.map(dept => (
-                                            <TreeNode 
-                                                key={dept.id} 
-                                                item={dept} 
-                                                onSelect={handleSelect} 
-                                                selectedIds={selectedEmployeeIds} 
+                                            <TreeNode
+                                                key={dept.id}
+                                                item={dept}
+                                                onSelect={handleSelect}
+                                                selectedIds={selectedEmployeeIds}
                                             />
                                         ))}
                                     </div>
@@ -295,20 +294,18 @@ export default function HolidayNotificationPage() {
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-700">Chế độ gửi</label>
                             <div className="flex p-1 bg-slate-100 rounded-lg">
-                                <button 
+                                <button
                                     onClick={() => setMode('manual')}
-                                    className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${
-                                        mode === 'manual' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                                    }`}
+                                    className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${mode === 'manual' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                        }`}
                                 >
                                     <Users className="h-3 w-3 inline mr-1" />
                                     Thủ công
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setMode('auto')}
-                                    className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${
-                                        mode === 'auto' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                                    }`}
+                                    className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${mode === 'auto' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                        }`}
                                 >
                                     <Clock className="h-3 w-3 inline mr-1" />
                                     Tự động
@@ -319,8 +316,8 @@ export default function HolidayNotificationPage() {
                         {mode === 'auto' && (
                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                 <label className="text-sm font-semibold text-slate-700">Thời gian gửi</label>
-                                <Input 
-                                    type="datetime-local" 
+                                <Input
+                                    type="datetime-local"
                                     value={scheduledAt}
                                     onChange={(e) => setScheduledAt(e.target.value)}
                                     className="w-full"
@@ -330,7 +327,7 @@ export default function HolidayNotificationPage() {
                         )}
 
                         <div className="pt-4 border-t border-slate-100">
-                            <Button 
+                            <Button
                                 className="w-full py-6 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100"
                                 disabled={sending || selectedEmployeeIds.length === 0 || !selectedHolidayId}
                                 onClick={handleSend}
