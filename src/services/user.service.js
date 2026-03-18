@@ -7,7 +7,7 @@ export const userService = {
    */
   getProfile: async () => {
     const response = await api.get("/auth/profile");
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   /**

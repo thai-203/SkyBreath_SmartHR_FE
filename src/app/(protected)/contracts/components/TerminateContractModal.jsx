@@ -77,10 +77,7 @@ export default function TerminateContractModal({
             placeholder="Nhập số tiền bồi thường"
             value={formData.terminationCompensation ?? ""}
             onChange={(e) =>
-              handleInputChange(
-                "terminationCompensation",
-                e.target.value
-              )
+              handleInputChange("terminationCompensation", e.target.value)
             }
             error={errors?.terminationCompensation}
           />
@@ -102,8 +99,16 @@ export default function TerminateContractModal({
         {/* Warning */}
         <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
           <p className="text-sm text-yellow-800">
-            <strong>Cảnh báo:</strong> Hành động này sẽ đánh dấu hợp đồng là chấm
-            dứt. Vui lòng kiểm tra lại thông tin trước khi xác nhận.
+            <strong>Cảnh báo:</strong>{" "}
+            {formData.terminationDate &&
+            new Date(formData.terminationDate) > new Date() ? (
+              <>
+                Ngày này nằm trong tương lai – hợp đồng sẽ được đánh dấu chấm
+                dứt khi đến ngày.
+              </>
+            ) : (
+              "Hành động này sẽ đánh dấu hợp đồng là chấm dứt. Vui lòng kiểm tra lại thông tin trước khi xác nhận."
+            )}
           </p>
         </div>
 
@@ -112,11 +117,7 @@ export default function TerminateContractModal({
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Hủy
           </Button>
-          <Button
-            variant="destructive"
-            onClick={onSubmit}
-            loading={loading}
-          >
+          <Button variant="destructive" onClick={onSubmit} loading={loading}>
             Chấm dứt hợp đồng
           </Button>
         </div>

@@ -19,6 +19,7 @@ export default function ShiftGroupTable({
   totalPages,
   onEdit,
   onDelete,
+  onView, // new callback for detail
 }) {
   const columns = useMemo(
     () => [
@@ -47,6 +48,32 @@ export default function ShiftGroupTable({
         ),
       },
       {
+        accessorKey: "shiftCount",
+        header: "Số ca",
+        size: 80,
+        cell: ({ row }) => (
+          <span className="text-slate-700 font-medium">
+            {row.original.shiftCount || 0}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Trạng thái",
+        size: 100,
+        cell: ({ row }) => (
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              row.original.status === "active"
+                ? "bg-green-50 text-green-600"
+                : "bg-slate-50 text-slate-400"
+            }`}
+          >
+            {row.original.status === "active" ? "Đang hoạt động" : "Tạm ngưng"}
+          </span>
+        ),
+      },
+      {
         accessorKey: "description",
         header: "Mô tả",
         cell: ({ row }) => (
@@ -58,9 +85,18 @@ export default function ShiftGroupTable({
       {
         id: "actions",
         header: () => <div className="text-right">Thao tác</div>,
-        size: 100,
+        size: 140,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              onClick={() => onView && onView(row.original)}
+              title="Xem chi tiết"
+            >
+              <Info size={16} />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -83,7 +119,7 @@ export default function ShiftGroupTable({
         ),
       },
     ],
-    [onEdit, onDelete, pagination]
+    [onEdit, onDelete, onView, pagination],
   );
 
   const table = useReactTable({
@@ -111,7 +147,7 @@ export default function ShiftGroupTable({
                   >
                     {flexRender(
                       header.column.columnDef.header,
-                      header.getContext()
+                      header.getContext(),
                     )}
                   </th>
                 ))}
@@ -134,7 +170,9 @@ export default function ShiftGroupTable({
                 <td colSpan={columns.length} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center gap-2 text-slate-400">
                     <Info size={40} strokeWidth={1} />
-                    <p className="text-sm font-medium">Không tìm thấy nhóm ca nào</p>
+                    <p className="text-sm font-medium">
+                      Không tìm thấy nhóm ca nào
+                    </p>
                   </div>
                 </td>
               </tr>
@@ -151,7 +189,7 @@ export default function ShiftGroupTable({
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </td>
                   ))}
@@ -166,7 +204,8 @@ export default function ShiftGroupTable({
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-slate-100 bg-white">
         <div className="text-xs text-slate-500 font-medium">
           Hiển thị <span className="text-slate-900">{data.length}</span> kết quả
-          tại trang <span className="text-slate-900">{pagination.pageIndex + 1}</span>
+          tại trang{" "}
+          <span className="text-slate-900">{pagination.pageIndex + 1}</span>
         </div>
         <Pagination table={table} />
       </div>

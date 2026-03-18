@@ -367,9 +367,15 @@ export default function CreatePlanModal({
     }
     setSubmitting(true);
     try {
+      // compute durationDays from task estimates (sum of estimatedDays)
+      const totalEstimated = tasks.reduce(
+        (sum, t) => sum + (parseInt(t.estimatedDays) || 0),
+        0,
+      );
       const payload = {
         ...formData,
         status: "ACTIVE",
+        durationDays: totalEstimated,
         tasks: tasks.map(({ id, ...rest }) => rest),
       };
       await onboardingsService.createPlan(payload);
@@ -453,7 +459,7 @@ export default function CreatePlanModal({
             </label>
             <input
               type="date"
-              min={new Date().toISOString().split("T")[0]} 
+              min={new Date().toISOString().split("T")[0]}
               className="w-full p-3 bg-indigo-50 border border-indigo-100 rounded-xl font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
               value={formData.startDate}
               onChange={(e) =>
