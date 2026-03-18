@@ -41,6 +41,11 @@ export const timesheetsService = {
         return response.data;
     },
 
+    bulkLock: async (data) => {
+        const response = await api.post("/timesheets/bulk-lock", data);
+        return response.data;
+    },
+
     exportSummary: async (params = {}) => {
         const response = await api.get("/timesheets/export/summary", {
             params,

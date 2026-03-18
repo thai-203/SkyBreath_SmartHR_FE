@@ -90,12 +90,12 @@ export default function TimesheetsPage() {
     // Fetch calendar data (attendance details)
     const fetchCalendarData = useCallback(async () => {
         if (viewMode !== "calendar") return;
-        
+
         setCalendarLoading(true);
         try {
             // If user is employee, find their timesheet first
             let targetTimesheetId = null;
-            
+
             // First try to find in current timesheets list
             const userTimesheet = timesheets.find(ts => ts.employee?.userId === authService.getCurrentUser()?.id);
             if (userTimesheet) {
@@ -223,6 +223,10 @@ export default function TimesheetsPage() {
         setConfirmModal({ open: true, data: timesheet, action: "unlock" });
     };
 
+    const handleBulkLock = () => {
+        setConfirmModal({ open: true, data: null, action: "bulkLock" });
+    };
+
     const handleConfirmAction = async () => {
         const { data, action } = confirmModal;
         setConfirmLoading(true);
@@ -241,6 +245,13 @@ export default function TimesheetsPage() {
             } else if (action === "unlock") {
                 await timesheetsService.unlock(data.id);
                 success("Đã mở khóa bảng chấm công");
+            } else if (action === "bulkLock") {
+                const res = await timesheetsService.bulkLock({
+                    month: filters.month,
+                    year: filters.year,
+                    departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                });
+                success(`Đã khóa ${res?.data?.locked || 0} bảng chấm công`);
             }
             setConfirmModal({ open: false, data: null, action: null });
             fetchTimesheets();
@@ -309,6 +320,7 @@ export default function TimesheetsPage() {
         recalculate: "Bạn có chắc chắn muốn tính lại bảng chấm công này? Dữ liệu sẽ được cập nhật từ bảng chấm công gốc.",
         lock: "Bạn có chắc chắn muốn khóa bảng chấm công này? Sau khi khóa sẽ không thể chỉnh sửa.",
         unlock: "Bạn có chắc chắn muốn mở khóa bảng chấm công này?",
+        bulkLock: `Bạn có chắc chắn muốn khóa TẤT CẢ bảng chấm công đang mở trong Tháng ${filters.month}/${filters.year}? Các bảng đã khóa sẽ không thể chỉnh sửa.`,
     };
 
     const confirmTitles = {
@@ -316,6 +328,7 @@ export default function TimesheetsPage() {
         recalculate: "Tính lại bảng chấm công",
         lock: "Khóa bảng chấm công",
         unlock: "Mở khóa bảng chấm công",
+        bulkLock: "Khóa TẤT CẢ bảng chấm công",
     };
 
     return (
@@ -341,6 +354,12 @@ export default function TimesheetsPage() {
                             Tạo bảng chấm công
                         </Button>
                     )}
+                    {authService.hasPermission("TIMESHEET_LOCK") && (
+                        <Button variant="outline" onClick={handleBulkLock} className="gap-2 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+                            <Lock className="h-4 w-4" />
+                            Khóa tất cả
+                        </Button>
+                    )}
                     {authService.hasPermission("TIMESHEET_EXPORT") && (
                         <>
                             <Button variant="outline" onClick={handleExportSummary} className="gap-2">
@@ -356,22 +375,20 @@ export default function TimesheetsPage() {
                     <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
                         <button
                             onClick={() => setViewMode("table")}
-                            className={`p-1.5 rounded-md transition-all ${
-                                viewMode === "table" 
-                                ? "bg-white text-indigo-600 shadow-sm" 
-                                : "text-slate-500 hover:text-slate-700"
-                            }`}
+                            className={`p-1.5 rounded-md transition-all ${viewMode === "table"
+                                    ? "bg-white text-indigo-600 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700"
+                                }`}
                             title="Xem bảng"
                         >
                             <LayoutGrid className="h-4 w-4" />
                         </button>
                         <button
                             onClick={() => setViewMode("calendar")}
-                            className={`p-1.5 rounded-md transition-all ${
-                                viewMode === "calendar" 
-                                ? "bg-white text-indigo-600 shadow-sm" 
-                                : "text-slate-500 hover:text-slate-700"
-                            }`}
+                            className={`p-1.5 rounded-md transition-all ${viewMode === "calendar"
+                                    ? "bg-white text-indigo-600 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700"
+                                }`}
                             title="Xem lịch"
                         >
                             <CalendarIcon className="h-4 w-4" />
@@ -449,9 +466,9 @@ export default function TimesheetsPage() {
                             </div>
                         </div>
                     ) : calendarData ? (
-                        <CalendarView 
-                            data={calendarData} 
-                            month={filters.month} 
+                        <CalendarView
+                            data={calendarData}
+                            month={filters.month}
                             year={filters.year}
                             onMonthChange={(m, y) => setFilters({ ...filters, month: m, year: y })}
                         />
@@ -491,7 +508,7 @@ export default function TimesheetsPage() {
                 description={confirmMessages[confirmModal.action] || ""}
                 confirmText="Xác nhận"
                 cancelText="Hủy"
-                variant={confirmModal.action === "lock" ? "destructive" : "default"}
+                variant={["lock", "bulkLock"].includes(confirmModal.action) ? "destructive" : "default"}
                 loading={confirmLoading}
             />
         </div>

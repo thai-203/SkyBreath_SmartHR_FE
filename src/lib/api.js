@@ -1,4 +1,4 @@
-import { authService } from "@/services/auth.service";
+
 import axios from "axios";
 import { toast } from "sonner";
 
@@ -38,10 +38,10 @@ const processQueue = (error, token = null) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    
+
     const originalRequest = error.config;
     const status = error.response?.status;
-    
+
     if (!error.response) {
       return Promise.reject(error);
     }
@@ -73,6 +73,7 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
+          const { authService } = await import("@/services/auth.service");
           const res = await authService.refreshToken();
           const newAccessToken = res.data;
           localStorage.setItem("token", newAccessToken);
