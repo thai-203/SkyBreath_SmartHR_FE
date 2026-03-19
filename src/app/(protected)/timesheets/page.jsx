@@ -9,10 +9,10 @@ import { timesheetsService } from "@/services/timesheets.service";
 import { departmentsService } from "@/services/departments.service";
 import TimesheetTable from "./components/TimesheetTable";
 import AttendanceDetailModal from "./components/AttendanceDetailModal";
-import TimesheetEditModal from "./components/TimesheetEditModal";
 import TimesheetActionLogModal from "./components/TimesheetActionLogModal";
 import GenerateTimesheetModal from "./components/GenerateTimesheetModal";
-import { CalendarDays, Plus, Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, Lock, History, FilterX } from "lucide-react";
+import AddEmployeeModal from "./components/AddEmployeeModal";
+import { CalendarDays, Plus, UserPlus, Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, Lock, History, FilterX } from "lucide-react";
 import { authService } from "@/services/auth.service";
 import { employeesService } from "@/services/employees.service";
 import CalendarView from "./components/CalendarView";
@@ -85,6 +85,7 @@ export default function TimesheetsPage() {
     const [confirmModal, setConfirmModal] = useState({ open: false, data: null, action: null });
     const [actionLogModal, setActionLogModal] = useState(false);
     const [generateModalOpen, setGenerateModalOpen] = useState(false);
+    const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
     const [employeeList, setEmployeeList] = useState([]);
     const [editLoading, setEditLoading] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
@@ -193,15 +194,21 @@ export default function TimesheetsPage() {
         setGenerateModalOpen(true);
     };
 
-    const handleGenerateSubmit = async (employeeIds) => {
+    const handleGenerateSubmit = async (employeeIds, regenerateMode = false) => {
         setGenerating(true);
         try {
             const res = await timesheetsService.generate({
                 month: filters.month,
                 year: filters.year,
                 employeeIds,
+                regenerate: regenerateMode,
             });
-            success(`Đã tạo bảng chấm công cho ${res?.data?.generated || 0} nhân viên`);
+            const { generated = 0, updated = 0, failed = 0 } = res?.data || {};
+            const parts = [];
+            if (generated > 0) parts.push(`✅ Tạo mới: ${generated} bảng`);
+            if (updated > 0) parts.push(`🔄 Ghi đè: ${updated} bảng`);
+            if (failed > 0) parts.push(`❌ Thất bại: ${failed} bảng`);
+            success(parts.length > 0 ? parts.join(' | ') : 'Hoàn tất tạo bảng chấm công');
             fetchTimesheets();
             setGenerateModalOpen(false);
         } catch (err) {
@@ -212,8 +219,30 @@ export default function TimesheetsPage() {
         }
     };
 
+    const handleAddEmployeeSubmit = async (employeeId) => {
+        setLoading(true);
+        try {
+            await timesheetsService.addEmployee({
+                employeeId,
+                month: filters.month,
+                year: filters.year
+            });
+            success("Đã thêm nhân viên vào bảng công");
+            setAddEmployeeModalOpen(false);
+            fetchTimesheets();
+        } catch (err) {
+            console.error("Error adding employee:", err);
+            toastError(err?.response?.data?.message || "Lỗi khi thêm nhân viên");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // View Detail
+    const [detailTimesheetRef, setDetailTimesheetRef] = useState(null);
+
     const handleViewDetail = async (timesheet) => {
+        setDetailTimesheetRef(timesheet);
         try {
             const res = await timesheetsService.getAttendanceDetails(timesheet.id);
             setDetailModal({ open: true, data: res?.data });
@@ -223,35 +252,50 @@ export default function TimesheetsPage() {
         }
     };
 
-    // Edit
-    const handleOpenEdit = (timesheet) => {
-        setEditModal({
-            open: true,
-            data: {
-                ...timesheet,
-                totalWorkingDays: timesheet.totalWorkingDays ?? 0,
-                totalWorkingHours: timesheet.totalWorkingHours ?? 0,
-                overtimeHours: timesheet.overtimeHours ?? 0,
-            },
-        });
+    const reloadDetailModal = async (id) => {
+        try {
+            const res = await timesheetsService.getAttendanceDetails(id);
+            setDetailModal(prev => ({ ...prev, data: res?.data }));
+        } catch {}
     };
 
-    const handleSubmitEdit = async () => {
-        setEditLoading(true);
+    const handleDetailUpdate = async (id, updateData) => {
         try {
-            await timesheetsService.update(editModal.data.id, {
-                totalWorkingDays: editModal.data.totalWorkingDays,
-                totalWorkingHours: editModal.data.totalWorkingHours,
-                overtimeHours: editModal.data.overtimeHours,
-            });
+            await timesheetsService.update(id, updateData);
             success("Cập nhật bảng chấm công thành công");
-            setEditModal({ open: false, data: null });
+            await reloadDetailModal(id);
             fetchTimesheets();
         } catch (err) {
-            console.error("Error updating:", err);
             toastError(err?.response?.data?.message || "Lỗi khi cập nhật");
-        } finally {
-            setEditLoading(false);
+            throw err;
+        }
+    };
+
+    const handleDetailLock = async (id) => {
+        const ts = detailModal?.data?.timesheet;
+        const hasNoWork = (ts?.totalWorkingDays ?? 0) === 0;
+        if (!window.confirm(hasNoWork
+            ? `⚠️ Bảng này có 0 ngày công. Bạn có chắc muốn khóa?`
+            : `Khóa bảng chấm công tháng ${ts?.month}/${ts?.year}?`)) return;
+        try {
+            await timesheetsService.lock(id);
+            success("Đã khóa bảng chấm công");
+            await reloadDetailModal(id);
+            fetchTimesheets();
+        } catch (err) {
+            toastError(err?.response?.data?.message || "Lỗi khi khóa");
+        }
+    };
+
+    const handleDetailUnlock = async (id) => {
+        if (!window.confirm("Mở khóa bảng chấm công?")) return;
+        try {
+            await timesheetsService.unlock(id);
+            success("Đã mở khóa bảng chấm công");
+            await reloadDetailModal(id);
+            fetchTimesheets();
+        } catch (err) {
+            toastError(err?.response?.data?.message || "Lỗi khi mở khóa");
         }
     };
 
@@ -274,11 +318,18 @@ export default function TimesheetsPage() {
 
     // Lock / Unlock
     const handleLock = (timesheet) => {
-        setConfirmModal({ open: true, data: timesheet, action: "lock" });
+        const hasNoWork = timesheet.totalWorkingDays === 0;
+        setConfirmModal({ open: true, data: { ...timesheet, hasNoWork }, action: "lock" });
+    };
+
+    const handleBulkRecalculate = () => {
+        const count = timesheets.filter(t => !t.isLocked).length;
+        setConfirmModal({ open: true, data: { count }, action: "bulkRecalculate" });
     };
 
     const handleBulkLock = () => {
-        setConfirmModal({ open: true, data: null, action: "bulkLock" });
+        const incomplete = timesheets.filter(t => !t.isLocked && t.totalWorkingDays === 0);
+        setConfirmModal({ open: true, data: { incompleteCount: incomplete.length }, action: "bulkLock" });
     };
 
     const handleConfirmAction = async () => {
@@ -293,6 +344,14 @@ export default function TimesheetsPage() {
             } else if (action === "recalculate") {
                 await timesheetsService.recalculate(data.id);
                 success("Đã tính lại bảng chấm công");
+            } else if (action === "bulkRecalculate") {
+                const res = await timesheetsService.bulkRecalculate({
+                    month: filters.month,
+                    year: filters.year,
+                    departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                });
+                const { recalculated = 0, failed = 0 } = res?.data || {};
+                success(`Đã tính lại ${recalculated} bảng${failed > 0 ? `, ${failed} thất bại` : ''}`);
             } else if (action === "lock") {
                 await timesheetsService.lock(data.id);
                 success("Đã khóa bảng chấm công");
@@ -305,7 +364,7 @@ export default function TimesheetsPage() {
                 success(`Đã khóa ${res?.data?.locked || 0} bảng chấm công`);
             } else if (action === "delete") {
                 await timesheetsService.remove(data.id);
-                success("Đã xóa nhân viên khỏi bảng chấm công kỳ này");
+                success(`Đã xóa bảng chấm công Tháng ${data.month}/${data.year} của ${data.employee?.fullName || 'nhân viên'}`);
             }
             setConfirmModal({ open: false, data: null, action: null });
             fetchTimesheets();
@@ -371,15 +430,23 @@ export default function TimesheetsPage() {
 
     const confirmMessages = {
         regenerate: `Đã có dữ liệu chấm công cho Tháng ${filters.month}/${filters.year}. Bạn có chắc chắn muốn tạo lại? Dữ liệu cũ sẽ được cập nhật.`,
-        recalculate: "Bạn có chắc chắn muốn tính lại bảng chấm công này? Dữ liệu sẽ được cập nhật từ bảng chấm công gốc.",
-        lock: "Bạn có chắc chắn muốn khóa bảng chấm công này? Sau khi khóa sẽ không thể chỉnh sửa.",
-        bulkLock: `Bạn có chắc chắn muốn khóa TẤT CẢ bảng chấm công đang mở trong Tháng ${filters.month}/${filters.year}? Các bảng đã khóa sẽ không thể chỉnh sửa.`,
-        delete: "Bạn có chắc chắn muốn xóa nhân viên này khỏi bảng chấm công? Dữ liệu điểm danh của nhân viên trong tháng này sẽ bị xóa nếu không được lưu trước.",
+        recalculate: `Bạn có chắc chắn muốn tính lại bảng chấm công này? Dữ liệu sẽ được tính lại từ dữ liệu chấm công gốc.`,
+        bulkRecalculate: `Tính lại TẤT CẢ ${confirmModal.data?.count || 0} bảng chấm công chưa khóa trong Tháng ${filters.month}/${filters.year}? Quá trình có thể mất vài phút.`,
+        lock: confirmModal.data?.hasNoWork
+            ? `⚠️ Bảng này có 0 ngày công. Bạn có chắc muốn khóa? Sau khi khóa sẽ không thể chỉnh sửa.`
+            : `Bạn có chắc chắn muốn khóa bảng chấm công này? Sau khi khóa sẽ không thể chỉnh sửa.`,
+        bulkLock: confirmModal.data?.incompleteCount > 0
+            ? `Có ${confirmModal.data.incompleteCount} bảng chấm công chưa có ngày công (0 ngày). Bạn có chắc chắn muốn khóa TẤT CẢ trong Tháng ${filters.month}/${filters.year}? Sau khi khóa sẽ không thể chỉnh sửa.`
+            : `Bạn có chắc chắn muốn khóa TẤT CẢ bảng chấm công đang mở trong Tháng ${filters.month}/${filters.year}? Các bảng đã khóa sẽ không thể chỉnh sửa.`,
+        delete: confirmModal.data
+            ? `Bạn có chắc chắn muốn xóa bảng chấm công Tháng ${confirmModal.data.month}/${confirmModal.data.year} của ${confirmModal.data.employee?.fullName || 'nhân viên này'} (${confirmModal.data.employee?.department?.departmentName || 'N/A'})? Thao tác này ảnh hưởng đến tổng hợp chấm công và không thể hoàn tác.`
+            : 'Xác nhận xóa bảng chấm công?',
     };
 
     const confirmTitles = {
         regenerate: "Tạo lại bảng chấm công",
         recalculate: "Tính lại bảng chấm công",
+        bulkRecalculate: "Tính lại TẤT CẢ bảng chấm công",
         lock: "Khóa bảng chấm công",
         bulkLock: "Khóa TẤT CẢ bảng chấm công",
         delete: "Xóa nhân viên khỏi bảng chấm công",
@@ -421,6 +488,12 @@ export default function TimesheetsPage() {
                         <Button variant="outline" onClick={handleBulkLock} className="gap-2 text-rose-600 border-rose-200 hover:bg-rose-50 bg-white shadow-sm">
                             <Lock className="h-4 w-4" />
                             Khóa tất cả
+                        </Button>
+                    )}
+                    {authService.hasPermission("TIMESHEET_UPDATE") && !isEmployeeOnly && (
+                        <Button variant="outline" onClick={handleBulkRecalculate} className="gap-2 text-amber-600 border-amber-200 hover:bg-amber-50 bg-white shadow-sm">
+                            <CalendarDays className="h-4 w-4" />
+                            Tính lại tất cả
                         </Button>
                     )}
                     {!isEmployeeOnly && (
@@ -529,7 +602,6 @@ export default function TimesheetsPage() {
                     onPaginationChange={setPagination}
                     totalPages={totalPages}
                     onViewDetail={handleViewDetail}
-                    onEdit={handleOpenEdit}
                     onRecalculate={handleRecalculate}
                     onLock={handleLock}
                     onDelete={handleDelete}
@@ -580,22 +652,17 @@ export default function TimesheetsPage() {
                 </div>
             )}
 
-            {/* Attendance Detail Modal */}
+            {/* Attendance Detail Modal (edit + lock/unlock embedded) */}
             <AttendanceDetailModal
                 isOpen={detailModal.open}
                 onClose={() => setDetailModal({ open: false, data: null })}
                 data={detailModal.data}
+                onUpdate={handleDetailUpdate}
+                onLock={handleDetailLock}
+                onUnlock={handleDetailUnlock}
+                canEdit={!isEmployeeOnly}
             />
 
-            {/* Edit Modal */}
-            <TimesheetEditModal
-                isOpen={editModal.open}
-                onClose={() => setEditModal({ open: false, data: null })}
-                onSubmit={handleSubmitEdit}
-                formData={editModal.data}
-                onFormChange={(data) => setEditModal({ ...editModal, data })}
-                loading={editLoading}
-            />
 
             {/* Action Log Modal */}
             <TimesheetActionLogModal
