@@ -10,8 +10,9 @@ import { departmentsService } from "@/services/departments.service";
 import TimesheetTable from "./components/TimesheetTable";
 import AttendanceDetailModal from "./components/AttendanceDetailModal";
 import TimesheetEditModal from "./components/TimesheetEditModal";
-import AddEmployeeTimesheetModal from "./components/AddEmployeeTimesheetModal";
-import { CalendarDays, Plus, Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, Lock, UserPlus } from "lucide-react";
+import TimesheetActionLogModal from "./components/TimesheetActionLogModal";
+import GenerateTimesheetModal from "./components/GenerateTimesheetModal";
+import { CalendarDays, Plus, Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, Lock, History, FilterX } from "lucide-react";
 import { authService } from "@/services/auth.service";
 import { employeesService } from "@/services/employees.service";
 import CalendarView from "./components/CalendarView";
@@ -33,6 +34,46 @@ export default function TimesheetsPage() {
     });
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [totalPages, setTotalPages] = useState(0);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    // Persist filters & search
+    useEffect(() => {
+        try {
+            const savedSearch = sessionStorage.getItem("timesheet_search");
+            const savedFilters = sessionStorage.getItem("timesheet_filters");
+            if (savedSearch !== null) setSearch(savedSearch);
+            if (savedFilters) {
+                const parsed = JSON.parse(savedFilters);
+                setFilters(prev => ({ ...prev, ...parsed }));
+            }
+        } catch (e) {
+            console.error(e);
+        }
+        setIsInitialized(true);
+    }, []);
+
+    useEffect(() => {
+        if (isInitialized) {
+            sessionStorage.setItem("timesheet_search", search);
+        }
+    }, [search, isInitialized]);
+
+    useEffect(() => {
+        if (isInitialized) {
+            sessionStorage.setItem("timesheet_filters", JSON.stringify(filters));
+        }
+    }, [filters, isInitialized]);
+
+    const handleClearFilters = () => {
+        setSearch("");
+        setFilters({
+            month: currentDate.getMonth() + 1,
+            year: currentDate.getFullYear(),
+            departmentId: "",
+            status: "",
+        });
+        setPagination({ pageIndex: 0, pageSize: 10 });
+    };
     const [viewMode, setViewMode] = useState("table"); // 'table' or 'calendar'
     const [calendarEmployeeId, setCalendarEmployeeId] = useState("");
     const [calendarData, setCalendarData] = useState(null);
@@ -42,9 +83,9 @@ export default function TimesheetsPage() {
     const [detailModal, setDetailModal] = useState({ open: false, data: null });
     const [editModal, setEditModal] = useState({ open: false, data: null });
     const [confirmModal, setConfirmModal] = useState({ open: false, data: null, action: null });
-    const [addEmployeeModal, setAddEmployeeModal] = useState(false);
+    const [actionLogModal, setActionLogModal] = useState(false);
+    const [generateModalOpen, setGenerateModalOpen] = useState(false);
     const [employeeList, setEmployeeList] = useState([]);
-    const [addEmployeeLoading, setAddEmployeeLoading] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
 
@@ -70,6 +111,7 @@ export default function TimesheetsPage() {
 
     // Fetch timesheets
     const fetchTimesheets = useCallback(async () => {
+        if (!isInitialized) return;
         setLoading(true);
         try {
             const params = {
@@ -91,7 +133,7 @@ export default function TimesheetsPage() {
         } finally {
             setLoading(false);
         }
-    }, [pagination, search, filters]);
+    }, [pagination, search, filters, isInitialized]);
 
     useEffect(() => {
         fetchTimesheets();
@@ -148,27 +190,20 @@ export default function TimesheetsPage() {
 
     // Generate
     const handleGenerateClick = () => {
-        if (timesheets.length > 0) {
-            setConfirmModal({
-                open: true,
-                data: null,
-                action: "regenerate",
-            });
-        } else {
-            doGenerate();
-        }
+        setGenerateModalOpen(true);
     };
 
-    const doGenerate = async () => {
+    const handleGenerateSubmit = async (employeeIds) => {
         setGenerating(true);
         try {
             const res = await timesheetsService.generate({
                 month: filters.month,
                 year: filters.year,
-                departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                employeeIds,
             });
             success(`Đã tạo bảng chấm công cho ${res?.data?.generated || 0} nhân viên`);
             fetchTimesheets();
+            setGenerateModalOpen(false);
         } catch (err) {
             console.error("Error generating:", err);
             toastError("Lỗi khi tạo bảng chấm công");
@@ -242,10 +277,6 @@ export default function TimesheetsPage() {
         setConfirmModal({ open: true, data: timesheet, action: "lock" });
     };
 
-    const handleUnlock = (timesheet) => {
-        setConfirmModal({ open: true, data: timesheet, action: "unlock" });
-    };
-
     const handleBulkLock = () => {
         setConfirmModal({ open: true, data: null, action: "bulkLock" });
     };
@@ -265,9 +296,6 @@ export default function TimesheetsPage() {
             } else if (action === "lock") {
                 await timesheetsService.lock(data.id);
                 success("Đã khóa bảng chấm công");
-            } else if (action === "unlock") {
-                await timesheetsService.unlock(data.id);
-                success("Đã mở khóa bảng chấm công");
             } else if (action === "bulkLock") {
                 const res = await timesheetsService.bulkLock({
                     month: filters.month,
@@ -286,21 +314,6 @@ export default function TimesheetsPage() {
             toastError(err?.response?.data?.message || `Lỗi khi thực hiện`);
         } finally {
             setConfirmLoading(false);
-        }
-    };
-
-    const handleAddEmployeeSubmit = async (data) => {
-        setAddEmployeeLoading(true);
-        try {
-            await timesheetsService.addEmployee(data);
-            success("Đã thêm nhân viên vào bảng chấm công");
-            setAddEmployeeModal(false);
-            fetchTimesheets();
-        } catch (err) {
-            console.error("Error adding employee:", err);
-            toastError(err?.response?.data?.message || "Lỗi khi thêm nhân viên");
-        } finally {
-            setAddEmployeeLoading(false);
         }
     };
 
@@ -360,7 +373,6 @@ export default function TimesheetsPage() {
         regenerate: `Đã có dữ liệu chấm công cho Tháng ${filters.month}/${filters.year}. Bạn có chắc chắn muốn tạo lại? Dữ liệu cũ sẽ được cập nhật.`,
         recalculate: "Bạn có chắc chắn muốn tính lại bảng chấm công này? Dữ liệu sẽ được cập nhật từ bảng chấm công gốc.",
         lock: "Bạn có chắc chắn muốn khóa bảng chấm công này? Sau khi khóa sẽ không thể chỉnh sửa.",
-        unlock: "Bạn có chắc chắn muốn mở khóa bảng chấm công này?",
         bulkLock: `Bạn có chắc chắn muốn khóa TẤT CẢ bảng chấm công đang mở trong Tháng ${filters.month}/${filters.year}? Các bảng đã khóa sẽ không thể chỉnh sửa.`,
         delete: "Bạn có chắc chắn muốn xóa nhân viên này khỏi bảng chấm công? Dữ liệu điểm danh của nhân viên trong tháng này sẽ bị xóa nếu không được lưu trước.",
     };
@@ -369,10 +381,12 @@ export default function TimesheetsPage() {
         regenerate: "Tạo lại bảng chấm công",
         recalculate: "Tính lại bảng chấm công",
         lock: "Khóa bảng chấm công",
-        unlock: "Mở khóa bảng chấm công",
         bulkLock: "Khóa TẤT CẢ bảng chấm công",
         delete: "Xóa nhân viên khỏi bảng chấm công",
     };
+
+    const currentUser = authService.getCurrentUser();
+    const isEmployeeOnly = currentUser?.roles?.includes('EMPLOYEE') && !currentUser?.roles?.some(r => ['ADMIN', 'HR'].includes(r));
 
     return (
         <div className="space-y-6">
@@ -393,9 +407,9 @@ export default function TimesheetsPage() {
                 <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full sm:w-auto mt-4 sm:mt-0">
                     {authService.hasPermission("TIMESHEET_CREATE") && (
                         <>
-                            <Button variant="outline" onClick={() => setAddEmployeeModal(true)} className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 bg-white shadow-sm">
-                                <UserPlus className="h-4 w-4" />
-                                Thêm nhân viên
+                            <Button variant="outline" onClick={() => setActionLogModal(true)} className="gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 bg-white shadow-sm">
+                                <History className="h-4 w-4" />
+                                Lịch sử thao tác
                             </Button>
                             <Button onClick={handleGenerateClick} loading={generating} className="gap-2 shadow-sm">
                                 <Plus className="h-4 w-4" />
@@ -409,14 +423,18 @@ export default function TimesheetsPage() {
                             Khóa tất cả
                         </Button>
                     )}
-                    <Button variant="outline" onClick={handleExportSummary} className="gap-2 bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm">
-                        <FileSpreadsheet className="h-4 w-4" />
-                        Xuất tổng hợp
-                    </Button>
-                    <Button variant="outline" onClick={handleExportDetailed} className="gap-2 bg-white hover:bg-slate-50 text-indigo-700 border-indigo-200 shadow-sm">
-                        <Download className="h-4 w-4" />
-                        Xuất chi tiết
-                    </Button>
+                    {!isEmployeeOnly && (
+                        <>
+                            <Button variant="outline" onClick={handleExportSummary} className="gap-2 bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm">
+                                <FileSpreadsheet className="h-4 w-4" />
+                                Xuất tổng hợp
+                            </Button>
+                            <Button variant="outline" onClick={handleExportDetailed} className="gap-2 bg-white hover:bg-slate-50 text-indigo-700 border-indigo-200 shadow-sm">
+                                <Download className="h-4 w-4" />
+                                Xuất chi tiết
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -441,27 +459,36 @@ export default function TimesheetsPage() {
                             placeholder="-- Chọn năm --"
                         />
                     </div>
-                    <div className="space-y-1.5 w-full sm:w-auto sm:min-w-[160px] flex-1">
-                        <Select
-                            label="Phòng ban"
-                            placeholder="-- Tất cả phòng ban --"
-                            value={filters.departmentId}
-                            onChange={(e) => setFilters({ ...filters, departmentId: e.target.value })}
-                            options={(departments || []).map(d => ({ value: d.id, label: d.departmentName }))}
-                        />
-                    </div>
-                    <div className="space-y-1.5 w-full sm:w-auto sm:min-w-[160px] flex-1">
-                        <Select
-                            label="Trạng thái"
-                            placeholder="-- Tất cả --"
-                            value={filters.status}
-                            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                            options={[
-                                { value: "unlocked", label: "Đang mở" },
-                                { value: "locked", label: "Đã khóa" },
-                            ]}
-                        />
-                    </div>
+                    {viewMode !== 'calendar' && !isEmployeeOnly && (
+                        <>
+                            <div className="space-y-1.5 w-full sm:w-auto sm:min-w-[160px] flex-1">
+                                <Select
+                                    label="Phòng ban"
+                                    placeholder="-- Tất cả phòng ban --"
+                                    value={filters.departmentId}
+                                    onChange={(e) => setFilters({ ...filters, departmentId: e.target.value })}
+                                    options={(departments || []).map(d => ({ value: d.id, label: d.departmentName }))}
+                                />
+                            </div>
+                            <div className="space-y-1.5 w-full sm:w-auto sm:min-w-[160px] flex-1">
+                                <Select
+                                    label="Trạng thái"
+                                    placeholder="-- Tất cả --"
+                                    value={filters.status}
+                                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                    options={[
+                                        { value: "unlocked", label: "Đang mở" },
+                                        { value: "locked", label: "Đã khóa" },
+                                    ]}
+                                />
+                            </div>
+                        </>
+                    )}
+                    {!isEmployeeOnly && (
+                        <Button variant="ghost" onClick={handleClearFilters} className="text-slate-500 hover:text-rose-600 mb-[2px]" title="Xóa bộ lọc">
+                            <FilterX className="h-5 w-5" />
+                        </Button>
+                    )}
                 </div>
 
                 {/* View Toggle */}
@@ -505,28 +532,29 @@ export default function TimesheetsPage() {
                     onEdit={handleOpenEdit}
                     onRecalculate={handleRecalculate}
                     onLock={handleLock}
-                    onUnlock={handleUnlock}
                     onDelete={handleDelete}
                 />
             ) : (
                 <div className="space-y-4">
                     {/* Employee Selector for Calendar View */}
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
-                        <label className="text-sm font-medium text-slate-700 whitespace-nowrap">
-                            Đang xem lịch của nhân viên:
-                        </label>
-                        <div className="w-full sm:w-80">
-                            <Select
-                                value={calendarEmployeeId}
-                                onChange={(e) => setCalendarEmployeeId(e.target.value)}
-                                options={(employeeList || []).map(e => ({
-                                    value: e.id,
-                                    label: e.employeeCode ? `${e.employeeCode} - ${e.fullName}` : e.fullName
-                                }))}
-                                placeholder="-- Chọn nhân viên --"
-                            />
+                    {!isEmployeeOnly && (
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
+                            <label className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                                Đang xem lịch của nhân viên:
+                            </label>
+                            <div className="w-full sm:w-80">
+                                <Select
+                                    value={calendarEmployeeId}
+                                    onChange={(e) => setCalendarEmployeeId(e.target.value)}
+                                    options={(employeeList || []).map(e => ({
+                                        value: e.id,
+                                        label: e.employeeCode ? `${e.employeeCode} - ${e.fullName}` : e.fullName
+                                    }))}
+                                    placeholder="-- Chọn nhân viên --"
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {calendarLoading ? (
                         <div className="flex justify-center items-center py-20 bg-white rounded-xl border border-slate-200">
@@ -569,15 +597,10 @@ export default function TimesheetsPage() {
                 loading={editLoading}
             />
 
-            {/* Add Employee Modal */}
-            <AddEmployeeTimesheetModal
-                isOpen={addEmployeeModal}
-                onClose={() => setAddEmployeeModal(false)}
-                onSubmit={handleAddEmployeeSubmit}
-                employees={employeeList}
-                loading={addEmployeeLoading}
-                month={filters.month}
-                year={filters.year}
+            {/* Action Log Modal */}
+            <TimesheetActionLogModal
+                isOpen={actionLogModal}
+                onClose={() => setActionLogModal(false)}
             />
 
             {/* Confirm Modal */}
@@ -591,6 +614,17 @@ export default function TimesheetsPage() {
                 cancelText="Hủy"
                 variant={["lock", "bulkLock", "delete"].includes(confirmModal.action) ? "destructive" : "default"}
                 loading={confirmLoading}
+            />
+
+            {/* Generate Timesheet Modal */}
+            <GenerateTimesheetModal
+                isOpen={generateModalOpen}
+                onClose={() => setGenerateModalOpen(false)}
+                onSubmit={handleGenerateSubmit}
+                departments={departments}
+                employees={employeeList}
+                existingTimesheets={timesheets}
+                loading={generating}
             />
         </div>
     );
