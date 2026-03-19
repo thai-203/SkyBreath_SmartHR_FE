@@ -11,7 +11,6 @@ import TimesheetTable from "./components/TimesheetTable";
 import AttendanceDetailModal from "./components/AttendanceDetailModal";
 import TimesheetActionLogModal from "./components/TimesheetActionLogModal";
 import GenerateTimesheetModal from "./components/GenerateTimesheetModal";
-import AddEmployeeModal from "./components/AddEmployeeModal";
 import { CalendarDays, Plus, UserPlus, Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, Lock, History, FilterX } from "lucide-react";
 import { authService } from "@/services/auth.service";
 import { employeesService } from "@/services/employees.service";
