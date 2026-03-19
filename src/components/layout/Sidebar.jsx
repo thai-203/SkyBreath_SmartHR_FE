@@ -61,7 +61,7 @@ const menuItems = [
     title: "Bảng chấm công",
     icon: Clock,
     href: "/timesheets",
-    roles: ["ADMIN", "HR", "MANAGER"],
+    roles: ["ADMIN", "HR", "EMPLOYEE"],
   },
   {
     title: "Bảng lương",
