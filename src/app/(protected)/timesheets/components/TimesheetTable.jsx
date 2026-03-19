@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/common/Ca
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Search, Eye, Edit2, RefreshCw, Lock, Trash2 } from "lucide-react";
+import { Search, Eye, RefreshCw, Lock, Trash2 } from "lucide-react";
 import { authService } from "@/services/auth.service";
 
 export default function TimesheetTable({
@@ -24,7 +24,6 @@ export default function TimesheetTable({
     onPaginationChange,
     totalPages,
     onViewDetail,
-    onEdit,
     onRecalculate,
     onLock,
     onDelete,
@@ -122,14 +121,9 @@ export default function TimesheetTable({
                         {!row.original.isLocked && (
                             <>
                                 {authService.hasPermission("TIMESHEET_UPDATE") && (
-                                    <>
-                                        <Button variant="ghost" size="icon" onClick={() => onEdit(row.original)} title="Chỉnh sửa">
-                                            <Edit2 className="h-4 w-4 text-blue-500" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => onRecalculate(row.original)} title="Tính lại">
-                                            <RefreshCw className="h-4 w-4 text-amber-500" />
-                                        </Button>
-                                    </>
+                                    <Button variant="ghost" size="icon" onClick={() => onRecalculate(row.original)} title="Tính lại">
+                                        <RefreshCw className="h-4 w-4 text-amber-500" />
+                                    </Button>
                                 )}
                                 {authService.hasPermission("TIMESHEET_CREATE") && (
                                     <Button variant="ghost" size="icon" onClick={() => onDelete(row.original)} title="Xóa nhân viên">
@@ -153,7 +147,7 @@ export default function TimesheetTable({
                 ),
             },
         ],
-        [onViewDetail, onEdit, onRecalculate, onLock, onDelete, pagination]
+        [onViewDetail, onRecalculate, onLock, onDelete, pagination]
     );
 
     const table = useReactTable({
