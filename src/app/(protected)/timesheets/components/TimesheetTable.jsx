@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/common/Ca
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Search, Eye, Edit2, RefreshCw, Lock, Unlock } from "lucide-react";
+import { Search, Eye, Edit2, RefreshCw, Lock, Trash2 } from "lucide-react";
 import { authService } from "@/services/auth.service";
 
 export default function TimesheetTable({
@@ -27,7 +27,7 @@ export default function TimesheetTable({
     onEdit,
     onRecalculate,
     onLock,
-    onUnlock,
+    onDelete,
 }) {
     const columns = useMemo(
         () => [
@@ -102,8 +102,8 @@ export default function TimesheetTable({
                     const locked = row.original.isLocked;
                     return (
                         <span className={`px-2 py-1 rounded-full text-xs font-medium border ${locked
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
                             }`}>
                             {locked ? "Đã khóa" : "Mở"}
                         </span>
@@ -131,14 +131,17 @@ export default function TimesheetTable({
                                         </Button>
                                     </>
                                 )}
+                                {authService.hasPermission("TIMESHEET_CREATE") && (
+                                    <Button variant="ghost" size="icon" onClick={() => onDelete(row.original)} title="Xóa nhân viên">
+                                        <Trash2 className="h-4 w-4 text-rose-500" />
+                                    </Button>
+                                )}
                             </>
                         )}
                         {authService.hasPermission("TIMESHEET_LOCK") && (
                             <>
                                 {row.original.isLocked ? (
-                                    <Button variant="ghost" size="icon" onClick={() => onUnlock(row.original)} title="Mở khóa">
-                                        <Unlock className="h-4 w-4 text-emerald-500" />
-                                    </Button>
+                                    <span className="text-xs text-slate-400 italic px-2">Đã khóa</span>
                                 ) : (
                                     <Button variant="ghost" size="icon" onClick={() => onLock(row.original)} title="Khóa">
                                         <Lock className="h-4 w-4 text-rose-500" />
@@ -150,7 +153,7 @@ export default function TimesheetTable({
                 ),
             },
         ],
-        [onViewDetail, onEdit, onRecalculate, onLock, onUnlock, pagination]
+        [onViewDetail, onEdit, onRecalculate, onLock, onDelete, pagination]
     );
 
     const table = useReactTable({

@@ -139,7 +139,13 @@ export default function CalendarView({ data, month, year, onMonthChange }) {
                                     {detail.status === 'PRESENT' && (
                                         <>
                                             <div className="text-center">
-                                                <span className="text-lg font-bold text-emerald-600">1</span>
+                                                <span className={`text-lg font-bold ${
+                                                    (detail.workingDayValue || detail.working_day_value) === 0 ? 'text-rose-600' :
+                                                    (detail.workingDayValue || detail.working_day_value) === 0.5 ? 'text-amber-500' :
+                                                    'text-emerald-600'
+                                                }`}>
+                                                    {detail.workingDayValue !== undefined ? detail.workingDayValue : (detail.working_day_value !== undefined ? detail.working_day_value : 1)}
+                                                </span>
                                             </div>
                                             <div className="text-[10px] text-center text-slate-500 font-medium">
                                                 {detail.checkIn} - {detail.checkOut || '--:--'}
@@ -165,7 +171,7 @@ export default function CalendarView({ data, month, year, onMonthChange }) {
                                     )}
 
                                     {detail.status === 'ABSENT' && !detail.checkIn && (
-                                        <div className="text-center py-2 text-slate-300">
+                                        <div className="text-center py-2 text-rose-500">
                                             <div className="text-lg font-bold">0</div>
                                         </div>
                                     )}

@@ -7,6 +7,8 @@ const dayStatusColors = {
     ABSENT: "bg-rose-50 text-rose-700",
     WEEKEND: "bg-slate-100 text-slate-500",
     HOLIDAY: "bg-blue-50 text-blue-700",
+    LEAVE: "bg-purple-50 text-purple-700",
+    UNPAID_LEAVE: "bg-orange-50 text-orange-700",
 };
 
 const dayStatusLabels = {
@@ -14,6 +16,22 @@ const dayStatusLabels = {
     ABSENT: "Vắng",
     WEEKEND: "Cuối tuần",
     HOLIDAY: "Nghỉ lễ",
+    LEAVE: "Nghỉ phép có lương",
+    UNPAID_LEAVE: "Nghỉ không lương",
+};
+
+const attendanceStatusColors = {
+    ON_TIME: "bg-emerald-50 text-emerald-700",
+    LATE: "bg-amber-50 text-amber-500",
+    EARLY_LEAVE: "bg-orange-50 text-orange-500",
+    LATE_AND_EARLY_LEAVE: "bg-rose-50 text-rose-500",
+};
+
+const attendanceStatusLabels = {
+    ON_TIME: "Đúng giờ",
+    LATE: "Đi trễ",
+    EARLY_LEAVE: "Về sớm",
+    LATE_AND_EARLY_LEAVE: "Trễ & Về sớm",
 };
 
 export default function AttendanceDetailModal({ isOpen, onClose, data }) {
@@ -52,9 +70,10 @@ export default function AttendanceDetailModal({ isOpen, onClose, data }) {
                             <th className="px-3 py-2 text-left font-medium text-slate-600">Thứ</th>
                             <th className="px-3 py-2 text-left font-medium text-slate-600">Vào</th>
                             <th className="px-3 py-2 text-left font-medium text-slate-600">Ra</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Ngày công</th>
                             <th className="px-3 py-2 text-left font-medium text-slate-600">Giờ</th>
-                            <th className="px-3 py-2 text-left font-medium text-slate-600">Trễ (phút)</th>
-                            <th className="px-3 py-2 text-left font-medium text-slate-600">Sớm (phút)</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Trễ (p)</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Sớm (p)</th>
                             <th className="px-3 py-2 text-left font-medium text-slate-600">OT</th>
                             <th className="px-3 py-2 text-left font-medium text-slate-600">Trạng thái</th>
                         </tr>
@@ -64,34 +83,42 @@ export default function AttendanceDetailModal({ isOpen, onClose, data }) {
                             <tr
                                 key={idx}
                                 className={`border-b border-slate-100 ${day.status === "WEEKEND" || day.status === "HOLIDAY"
-                                        ? "bg-slate-50/50"
-                                        : ""
+                                    ? "bg-slate-50/50"
+                                    : ""
                                     }`}
                             >
                                 <td className="px-3 py-2 text-slate-700">{day.date}</td>
                                 <td className="px-3 py-2 text-slate-500">{day.dayOfWeek}</td>
-                                <td className="px-3 py-2">{day.checkIn || day.check_in || "-"}</td>
-                                <td className="px-3 py-2">{day.checkOut || day.check_out || "-"}</td>
-                                <td className="px-3 py-2 font-medium">{day.workingHours || day.working_hours || "-"}</td>
-                                <td className="px-3 py-2">
+                                <td className="px-3 py-2 text-slate-700">{day.checkIn || day.check_in || "-"}</td>
+                                <td className="px-3 py-2 text-slate-700">{day.checkOut || day.check_out || "-"}</td>
+                                <td className="px-3 py-2 font-medium text-slate-700">{day.workingDayValue || day.working_day_value || "-"}</td>
+                                <td className="px-3 py-2 font-medium text-slate-600">{day.workingHours || day.working_hours || "-"}</td>
+                                <td className="px-3 py-2 text-slate-700">
                                     {day.lateMinutes > 0 ? (
                                         <span className="text-amber-600 font-medium">{day.lateMinutes}</span>
                                     ) : "-"}
                                 </td>
-                                <td className="px-3 py-2">
+                                <td className="px-3 py-2 text-slate-700">
                                     {day.earlyLeaveMinutes > 0 ? (
                                         <span className="text-orange-600 font-medium">{day.earlyLeaveMinutes}</span>
                                     ) : "-"}
                                 </td>
-                                <td className="px-3 py-2">
+                                <td className="px-3 py-2 text-slate-700">
                                     {day.overtimeHours > 0 ? (
                                         <span className="text-blue-600 font-medium">{day.overtimeHours}</span>
                                     ) : "-"}
                                 </td>
                                 <td className="px-3 py-2">
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${dayStatusColors[day.status] || ""}`}>
-                                        {dayStatusLabels[day.status] || day.status}
-                                    </span>
+                                    <div className="flex flex-col gap-1 items-start">
+                                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium leading-none ${dayStatusColors[day.status] || ""}`}>
+                                            {dayStatusLabels[day.status] || day.status}
+                                        </span>
+                                        {day.attendanceStatus && (
+                                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium leading-none ${attendanceStatusColors[day.attendanceStatus] || "bg-slate-100 text-slate-700"}`}>
+                                                {attendanceStatusLabels[day.attendanceStatus] || day.attendanceStatus}
+                                            </span>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
