@@ -16,6 +16,7 @@ export default function GenerateTimesheetModal({
 }) {
     const [selectedEmployees, setSelectedEmployees] = useState(new Set());
     const [expandedDepts, setExpandedDepts] = useState(new Set());
+    const [regenerateMode, setRegenerateMode] = useState(false);
 
     const existingEmployeeIds = useMemo(() => {
         return new Set(existingTimesheets.map(t => t.employeeId || t.employee?.id));
@@ -25,7 +26,7 @@ export default function GenerateTimesheetModal({
     useEffect(() => {
         if (isOpen) {
             setSelectedEmployees(new Set());
-            // Auto expand all departments by default
+            setRegenerateMode(false);
             setExpandedDepts(new Set(departments.map(d => d.id)));
         }
     }, [isOpen, departments]);
@@ -51,35 +52,34 @@ export default function GenerateTimesheetModal({
     };
 
     const isDeptFullySelected = (dept) => {
-        const available = dept.employees.filter(emp => !existingEmployeeIds.has(emp.id));
+        const available = dept.employees.filter(emp => regenerateMode || !existingEmployeeIds.has(emp.id));
         if (!available.length) return false;
         return available.every(emp => selectedEmployees.has(emp.id));
     };
 
     const isDeptPartiallySelected = (dept) => {
-        const available = dept.employees.filter(emp => !existingEmployeeIds.has(emp.id));
+        const available = dept.employees.filter(emp => regenerateMode || !existingEmployeeIds.has(emp.id));
         if (!available.length) return false;
         const selectedCount = available.filter(emp => selectedEmployees.has(emp.id)).length;
         return selectedCount > 0 && selectedCount < available.length;
     };
 
     const handleDeptToggle = (dept) => {
-        const available = dept.employees.filter(emp => !existingEmployeeIds.has(emp.id));
+        const available = dept.employees.filter(emp => regenerateMode || !existingEmployeeIds.has(emp.id));
         if (!available.length) return;
 
         const newSelected = new Set(selectedEmployees);
         if (isDeptFullySelected(dept)) {
-            // Deselect all
             available.forEach(emp => newSelected.delete(emp.id));
         } else {
-            // Select all
             available.forEach(emp => newSelected.add(emp.id));
         }
         setSelectedEmployees(newSelected);
     };
 
     const handleEmployeeToggle = (empId) => {
-        if (existingEmployeeIds.has(empId)) return;
+        const isExisting = existingEmployeeIds.has(empId);
+        if (isExisting && !regenerateMode) return;
         const newSelected = new Set(selectedEmployees);
         if (newSelected.has(empId)) {
             newSelected.delete(empId);
@@ -90,13 +90,38 @@ export default function GenerateTimesheetModal({
     };
 
     const handleSubmit = () => {
-        onSubmit(Array.from(selectedEmployees));
+        onSubmit(Array.from(selectedEmployees), regenerateMode);
     };
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Tạo bảng chấm công" size="2xl">
             <div className="mb-4 text-sm text-slate-500">
                 Vui lòng chọn các phòng ban hoặc nhân viên cụ thể để tạo bảng chấm công.
+            </div>
+
+            {/* Regenerate mode toggle */}
+            <div className="mb-4 flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setRegenerateMode(v => !v);
+                        setSelectedEmployees(new Set());
+                    }}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                        regenerateMode ? 'bg-amber-500' : 'bg-slate-300'
+                    }`}
+                >
+                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${
+                        regenerateMode ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                </button>
+                <div>
+                    <p className="text-sm font-medium text-amber-800">Chế độ tạo lại (Regenerate)</p>
+                    <p className="text-xs text-amber-600">{regenerateMode
+                        ? 'Đang bật: có thể chọn nhân viên đã có bảng công để ghi đè'
+                        : 'Tắt: chỉ tạo mới cho nhân viên chưa có bảng'
+                    }</p>
+                </div>
             </div>
 
             <div className="border border-slate-200 rounded-lg max-h-[400px] overflow-y-auto mb-6 bg-slate-50 p-2">
@@ -143,26 +168,39 @@ export default function GenerateTimesheetModal({
                                 <div className="border-t border-slate-100 p-2 grid gap-1 grid-cols-1 sm:grid-cols-2">
                                     {dept.employees.map(emp => {
                                         const isExisting = existingEmployeeIds.has(emp.id);
+                                        const isSelectable = !isExisting || regenerateMode;
                                         return (
-                                            <div 
-                                                key={emp.id} 
-                                                className={`flex items-center p-1.5 rounded ${isExisting ? 'cursor-not-allowed opacity-70 bg-slate-50' : 'hover:bg-slate-50 cursor-pointer'}`}
+                                            <div
+                                                key={emp.id}
+                                                className={`flex items-center p-1.5 rounded ${
+                                                    !isSelectable ? 'cursor-not-allowed opacity-60 bg-slate-50' :
+                                                    isExisting ? 'hover:bg-amber-50 cursor-pointer' :
+                                                    'hover:bg-slate-50 cursor-pointer'
+                                                }`}
                                                 onClick={() => handleEmployeeToggle(emp.id)}
-                                                title={isExisting ? "Đã có bảng công tháng này" : ""}
+                                                title={isExisting && !regenerateMode ? 'Đã có bảng công tháng này' : isExisting ? 'Sẽ ghi đè bảng công cũ' : ''}
                                             >
                                                 <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center mr-3 ${
-                                                    isExisting ? "bg-rose-50 border-rose-300" :
-                                                    selectedEmployees.has(emp.id) ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                                                    isExisting && !regenerateMode ? 'bg-rose-50 border-rose-300' :
+                                                    selectedEmployees.has(emp.id) ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300'
                                                 }`}>
-                                                    {!isExisting && selectedEmployees.has(emp.id) && <Check className="h-3 w-3 text-white" />}
-                                                    {isExisting && <div className="h-1.5 w-1.5 rounded-sm bg-rose-400" />}
+                                                    {isSelectable && selectedEmployees.has(emp.id) && <Check className="h-3 w-3 text-white" />}
+                                                    {isExisting && !regenerateMode && <div className="h-1.5 w-1.5 rounded-sm bg-rose-400" />}
                                                 </div>
-                                                <span className={`text-sm truncate flex-1 ${isExisting ? 'text-rose-600 line-through' : 'text-slate-600'}`}>
+                                                <span className={`text-sm truncate flex-1 ${
+                                                    isExisting && !regenerateMode ? 'text-rose-600 line-through' :
+                                                    isExisting ? 'text-amber-700' : 'text-slate-600'
+                                                }`}>
                                                     {emp.employeeCode ? `${emp.employeeCode} - ` : ''}{emp.fullName}
                                                 </span>
-                                                {isExisting && (
+                                                {isExisting && !regenerateMode && (
                                                     <span className="text-[10px] text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded ml-2 whitespace-nowrap border border-rose-100 italic">
                                                         Đã có
+                                                    </span>
+                                                )}
+                                                {isExisting && regenerateMode && (
+                                                    <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded ml-2 whitespace-nowrap border border-amber-200 italic">
+                                                        Ghi đè
                                                     </span>
                                                 )}
                                             </div>

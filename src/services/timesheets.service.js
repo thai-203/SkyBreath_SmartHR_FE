@@ -56,6 +56,11 @@ export const timesheetsService = {
         return response.data;
     },
 
+    bulkRecalculate: async (data) => {
+        const response = await api.post("/timesheets/bulk-recalculate", data);
+        return response.data;
+    },
+
     exportSummary: async (params = {}) => {
         const response = await api.get("/timesheets/export/summary", {
             params,

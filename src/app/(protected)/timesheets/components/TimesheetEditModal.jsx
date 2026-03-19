@@ -59,6 +59,20 @@ export default function TimesheetEditModal({
                         onChange={(e) => handleChange("overtimeHours", parseFloat(e.target.value) || 0)}
                     />
                 </div>
+
+                {/* Fix #11: Reason for manual edit (UC-07 BR-02) */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Lý do chỉnh sửa <span className="text-slate-400 font-normal">(tùy chọn)</span>
+                    </label>
+                    <textarea
+                        rows={2}
+                        placeholder="Ví dụ: điều chỉnh do máy chấm công lỗi ngày 15..."
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                        value={formData.editReason ?? ""}
+                        onChange={(e) => handleChange("editReason", e.target.value)}
+                    />
+                </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-slate-100">
