@@ -18,3 +18,4 @@ export * from "./working-shifts.service";
 export * from "./shift-assignments.service";
 export * from "./requests.service";
 export * from "./holiday.service";
+export * from "./holiday-configs.service";

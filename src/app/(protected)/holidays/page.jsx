@@ -1,30 +1,28 @@
 "use client";
 
-import { HolidayModal } from "@/app/(protected)/holidays/components/HolidayModal";
-import { HolidayTable } from "@/app/(protected)/holidays/components/HolidayTable";
-import { InheritModal } from "@/app/(protected)/holidays/components/InheritModal";
-import { PageTitle } from "@/components/common/PageTitle";
-import { useToast } from "@/components/common/Toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { holidayService } from "@/services/holiday.service";
-import { Calendar, Download, History, Plus, Search, Bell } from "lucide-react";
+import { holidayService, holidayConfigService } from "@/services";
+import { Calendar, Download, History, Plus, Search, Bell, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { HolidayGroupTable } from "./components/HolidayGroupTable";
+import { HolidayGroupModal } from "./components/HolidayGroupModal";
+import { InheritModal } from "./components/InheritModal";
+import Link from "next/link";
+import { useToast } from "@/components/common/Toast";
+import { PageTitle } from "@/components/common/PageTitle";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function HolidaysPage() {
     const router = useRouter();
     const { success: toastSuccess, error: toastError } = useToast();
-    const [holidays, setHolidays] = useState([]);
+    const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedHoliday, setSelectedHoliday] = useState(null);
-
-    // Inheritance state
+    const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
     const [isInheritModalOpen, setIsInheritModalOpen] = useState(false);
-    const [inheritPreviewData, setInheritPreviewData] = useState([]);
-    const [isInheritLoading, setIsInheritLoading] = useState(false);
+    const [selectedGroup, setSelectedGroup] = useState(null);
+
 
     const handleOpenNotification = (holiday = null) => {
         if (holiday) {
@@ -34,13 +32,13 @@ export default function HolidaysPage() {
         }
     };
 
-    const fetchHolidays = useCallback(async () => {
+    const fetchGroups = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await holidayService.findAll({ search });
-            setHolidays(response.data || []);
+            const response = await holidayConfigService.getGroups({ search });
+            setGroups(response.data || []);
         } catch (error) {
-            toastError("Không thể tải danh sách ngày lễ");
+            toastError("Không thể tải danh sách danh mục ngày lễ");
             console.error(error);
         } finally {
             setLoading(false);
@@ -48,45 +46,60 @@ export default function HolidaysPage() {
     }, [search]);
 
     useEffect(() => {
-        fetchHolidays();
-    }, [fetchHolidays]);
+        fetchGroups();
+    }, [fetchGroups]);
 
-    const handleCreate = () => {
-        setSelectedHoliday(null);
-        setIsModalOpen(true);
+    const handleCreateGroup = () => {
+        setSelectedGroup(null);
+        setIsGroupModalOpen(true);
     };
 
-    const handleEdit = (holiday) => {
-        setSelectedHoliday(holiday);
-        setIsModalOpen(true);
+    const handleEditGroup = (group) => {
+        setSelectedGroup(group);
+        setIsGroupModalOpen(true);
     };
 
-    const handleDelete = async (id) => {
-        if (confirm("Bạn có chắc chắn muốn xóa ngày lễ này?")) {
+    const handleDeleteGroup = async (id) => {
+        if (confirm("Bạn có chắc chắn muốn xóa danh mục này?")) {
             try {
-                await holidayService.delete(id);
-                toastSuccess("Xóa ngày lễ thành công");
-                fetchHolidays();
+                await holidayConfigService.deleteGroup(id);
+                toastSuccess("Xóa danh mục thành công");
+                fetchGroups();
             } catch (error) {
-                toastError("Xóa ngày lễ thất bại");
+                toastError(error.response?.data?.message || "Xóa danh mục thất bại");
             }
         }
     };
 
-    const handleSubmit = async (data) => {
+    const handleInheritGroup = (group) => {
+        setSelectedGroup(group);
+        setIsInheritModalOpen(true);
+    };
+
+    const handleInheritConfirm = async (targetYear) => {
         try {
-            if (selectedHoliday) {
-                await holidayService.update(selectedHoliday.id, data);
-                toastSuccess("Cập nhật ngày lễ thành công");
+            await holidayConfigService.inheritGroup(selectedGroup.id, targetYear);
+            toastSuccess("Kế thừa danh mục thành công");
+            fetchGroups();
+        } catch (error) {
+            toastError(error.response?.data?.message || "Kế thừa danh mục thất bại");
+            throw error;
+        }
+    };
+
+    const handleGroupSubmit = async (data) => {
+        try {
+            if (selectedGroup) {
+                await holidayConfigService.updateGroup(selectedGroup.id, data);
+                toastSuccess("Cập nhật danh mục thành công");
             } else {
-                await holidayService.create(data);
-                toastSuccess("Thêm mới ngày lễ thành công");
+                await holidayConfigService.createGroup(data);
+                toastSuccess("Thêm mới danh mục thành công");
             }
-            setIsModalOpen(false);
-            fetchHolidays();
+            setIsGroupModalOpen(false);
+            fetchGroups();
         } catch (error) {
             toastError(error.response?.data?.message || "Thao tác thất bại");
-            throw error; // Re-throw to prevent form reset in modal
         }
     };
 
@@ -109,43 +122,30 @@ export default function HolidaysPage() {
         router.push(`/holidays/${holiday.id}`);
     };
 
-    const handleInherit = async () => {
-        const currentYear = new Date().getFullYear();
-        setIsInheritLoading(true);
-        try {
-            const response = await holidayService.getInheritPreview(currentYear);
-            if (response.data.length === 0) {
-                toastError(`Không tìm thấy ngày lễ nào trong năm ${currentYear} để kế thừa`);
-                return;
-            }
-            setInheritPreviewData(response.data);
-            setIsInheritModalOpen(true);
-        } catch (error) {
-            toastError("Không thể lấy dữ liệu kế thừa");
-        } finally {
-            setIsInheritLoading(false);
-        }
-    };
-
-    const handleInheritConfirm = async (data) => {
-        await holidayService.bulkCreate(data);
-        fetchHolidays();
-    };
 
     return (
         <div className="container mx-auto py-8 space-y-6 max-w-7xl">
             <div className="flex justify-between items-center bg-gray-50/50 p-4 rounded-xl border border-gray-100 shadow-sm">
                 <div>
-                    <PageTitle title="Holiday List | SmartHR" />
+                    <PageTitle title="Holiday Management | SmartHR" />
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
                         <Calendar className="h-6 w-6 text-blue-600" />
-                        Holiday List
+                        Holiday Management
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Quản lý các ngày nghỉ lễ chính thức trong năm.
+                        Quản lý các danh mục ngày nghỉ lễ chính thức theo năm.
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Link href="/holidays/configuration">
+                        <Button
+                            variant="ghost"
+                            className="text-slate-600 border-slate-100 hover:bg-slate-50 font-semibold"
+                        >
+                            <Settings className="mr-2 h-4 w-4" />
+                            Cấu hình
+                        </Button>
+                    </Link>
                     <Button
                         variant="ghost"
                         onClick={() => handleOpenNotification()}
@@ -154,20 +154,11 @@ export default function HolidaysPage() {
                         <Bell className="mr-2 h-4 w-4" />
                         Gửi thông báo
                     </Button>
-                    <Button
-                        variant="ghost"
-                        onClick={handleInherit}
-                        disabled={isInheritLoading}
-                        className="text-blue-600 border-blue-100 hover:bg-blue-50"
-                    >
-                        <History className="mr-2 h-4 w-4" />
-                        {isInheritLoading ? "Đang tải..." : "Kế thừa cho năm sau"}
-                    </Button>
                     <Button variant="outline" onClick={handleExport} className="border-gray-200 hover:bg-gray-100">
                         <Download className="mr-2 h-4 w-4" /> Xuất Excel
                     </Button>
-                    <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]">
-                        <Plus className="mr-2 h-4 w-4" /> Thêm mới
+                    <Button onClick={handleCreateGroup} className="bg-blue-600 hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]">
+                        <Plus className="mr-2 h-4 w-4" /> Thêm danh mục
                     </Button>
                 </div>
             </div>
@@ -176,7 +167,7 @@ export default function HolidaysPage() {
                 <div className="relative w-full">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Tìm kiếm ngày lễ..."
+                        placeholder="Tìm kiếm danh mục..."
                         className="pl-8"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -190,28 +181,27 @@ export default function HolidaysPage() {
                         <p className="text-muted-foreground">Đang tải dữ liệu...</p>
                     </div>
                 ) : (
-                    <HolidayTable
-                        holidays={holidays}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onView={handleView}
-                        onOpenNotification={handleOpenNotification}
+                    <HolidayGroupTable
+                        groups={groups}
+                        onEdit={handleEditGroup}
+                        onDelete={handleDeleteGroup}
+                        onInherit={handleInheritGroup}
                     />
                 )
             }
 
-            <HolidayModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSubmit={handleSubmit}
-                holiday={selectedHoliday}
+            <HolidayGroupModal
+                isOpen={isGroupModalOpen}
+                onClose={() => setIsGroupModalOpen(false)}
+                onSubmit={handleGroupSubmit}
+                group={selectedGroup}
             />
 
             <InheritModal
                 isOpen={isInheritModalOpen}
                 onClose={() => setIsInheritModalOpen(false)}
-                previewData={inheritPreviewData}
                 onConfirm={handleInheritConfirm}
+                group={selectedGroup}
             />
         </div >
     );
