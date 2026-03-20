@@ -99,6 +99,18 @@ export default function AttendanceDetailModal({
         }
     };
 
+    const handleLockSubmit = async () => {
+        if (!onLock) return;
+        setLocking(true);
+        try {
+            await onLock(timesheet.id);
+        } catch (err) {
+            // parent handles it
+        } finally {
+            setLocking(false);
+        }
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Chi tiết chấm công" size="3xl">
             {/* Summary Cards */}
@@ -164,19 +176,18 @@ export default function AttendanceDetailModal({
                                 Hủy
                             </Button>
                         )}
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            loading={locking}
-                            onClick={handleLockToggle}
-                            className={`gap-1.5 ${isLocked
-                                ? "text-amber-600 border-amber-200 hover:bg-amber-50"
-                                : "text-rose-600 border-rose-200 hover:bg-rose-50"
-                            }`}
-                        >
-                            {isLocked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-                            {isLocked ? "Mở khóa" : "Khóa"}
-                        </Button>
+                        {!isLocked && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                loading={locking}
+                                onClick={handleLockSubmit}
+                                className="gap-1.5 text-rose-600 border-rose-200 hover:bg-rose-50"
+                            >
+                                <Lock className="h-3.5 w-3.5" />
+                                Khóa
+                            </Button>
+                        )}
                     </div>
                 )}
             </div>

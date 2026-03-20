@@ -98,10 +98,10 @@ export default function TimesheetsPage() {
             try {
                 const [deptRes, empRes] = await Promise.all([
                     departmentsService.getAll(),
-                    employeesService.getList()
+                    employeesService.getAll({ limit: 1000 })
                 ]);
                 setDepartments(deptRes?.data || []);
-                setEmployeeList(empRes?.data || []);
+                setEmployeeList(empRes?.data?.items || []);
             } catch (err) {
                 console.error("Error fetching dependencies:", err);
             }
@@ -286,17 +286,7 @@ export default function TimesheetsPage() {
         }
     };
 
-    const handleDetailUnlock = async (id) => {
-        if (!window.confirm("Mở khóa bảng chấm công?")) return;
-        try {
-            await timesheetsService.unlock(id);
-            success("Đã mở khóa bảng chấm công");
-            await reloadDetailModal(id);
-            fetchTimesheets();
-        } catch (err) {
-            toastError(err?.response?.data?.message || "Lỗi khi mở khóa");
-        }
-    };
+
 
     // Recalculate & Delete
     const handleRecalculate = (timesheet) => {
@@ -658,7 +648,6 @@ export default function TimesheetsPage() {
                 data={detailModal.data}
                 onUpdate={handleDetailUpdate}
                 onLock={handleDetailLock}
-                onUnlock={handleDetailUnlock}
                 canEdit={!isEmployeeOnly}
             />
 
