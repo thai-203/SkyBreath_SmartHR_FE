@@ -11,6 +11,7 @@ import TimesheetTable from "./components/TimesheetTable";
 import AttendanceDetailModal from "./components/AttendanceDetailModal";
 import TimesheetActionLogModal from "./components/TimesheetActionLogModal";
 import GenerateTimesheetModal from "./components/GenerateTimesheetModal";
+import ExcuseRequestModal from "./components/ExcuseRequestModal";
 import { CalendarDays, Plus, UserPlus, Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, Lock, History, FilterX } from "lucide-react";
 import { authService } from "@/services/auth.service";
 import { employeesService } from "@/services/employees.service";
@@ -85,6 +86,7 @@ export default function TimesheetsPage() {
     const [actionLogModal, setActionLogModal] = useState(false);
     const [generateModalOpen, setGenerateModalOpen] = useState(false);
     const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
+    const [excuseModal, setExcuseModal] = useState({ open: false, mode: 'view', date: '', employeeId: null, data: null });
     const [employeeList, setEmployeeList] = useState([]);
     const [editLoading, setEditLoading] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
@@ -286,7 +288,25 @@ export default function TimesheetsPage() {
         }
     };
 
+    const handleViewExcuse = (excuseData, date) => {
+        setExcuseModal({
+            open: true,
+            mode: 'view',
+            data: excuseData,
+            date,
+            employeeId: detailModal.data?.timesheet?.employeeId
+        });
+    };
 
+    const handleCreateExcuse = (date) => {
+        setExcuseModal({
+            open: true,
+            mode: 'create',
+            date,
+            employeeId: detailModal.data?.timesheet?.employeeId,
+            data: null
+        });
+    };
 
     // Recalculate & Delete
     const handleRecalculate = (timesheet) => {
@@ -648,9 +668,25 @@ export default function TimesheetsPage() {
                 data={detailModal.data}
                 onUpdate={handleDetailUpdate}
                 onLock={handleDetailLock}
+                onViewExcuse={handleViewExcuse}
+                onCreateExcuse={handleCreateExcuse}
                 canEdit={!isEmployeeOnly}
             />
 
+            <ExcuseRequestModal
+                isOpen={excuseModal.open}
+                onClose={() => setExcuseModal(prev => ({ ...prev, open: false }))}
+                mode={excuseModal.mode}
+                date={excuseModal.date}
+                employeeId={excuseModal.employeeId}
+                data={excuseModal.data}
+                onSuccess={() => {
+                    if (detailModal.data?.timesheet?.id) {
+                        reloadDetailModal(detailModal.data.timesheet.id);
+                        fetchTimesheets();
+                    }
+                }}
+            />
 
             {/* Action Log Modal */}
             <TimesheetActionLogModal
