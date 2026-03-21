@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
-import { Lock, Unlock, Pencil, X, Check } from "lucide-react";
+import { Lock, Unlock, Pencil, X, Check, FileText, PlusCircle } from "lucide-react";
 
 const dayStatusColors = {
     PRESENT: "bg-emerald-50 text-emerald-700",
@@ -44,6 +44,8 @@ export default function AttendanceDetailModal({
     onUpdate,   // async (id, { totalWorkingDays, totalWorkingHours, overtimeHours, editReason }) => void
     onLock,     // async (timesheetId) => void
     onUnlock,   // async (timesheetId) => void
+    onViewExcuse, // (excuseRequest, date) => void
+    onCreateExcuse, // (date) => void
     canEdit = false, // HR/Admin only
 }) {
     const [editMode, setEditMode] = useState(false);
@@ -334,6 +336,27 @@ export default function AttendanceDetailModal({
                                                 {attendanceStatusLabels[day.attendanceStatus] || day.attendanceStatus}
                                             </span>
                                         )}
+                                        {day.excuseRequest ? (
+                                            <button 
+                                              onClick={() => onViewExcuse?.(day.excuseRequest, day.date)}
+                                              className="flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-800 font-medium mt-0.5"
+                                              title="Xem đơn giải trình"
+                                            >
+                                                <FileText className="h-3 w-3" />
+                                                <span className="underline">
+                                                    Đơn {day.excuseRequest.status === 'APPROVED' ? '(Đã duyệt)' : day.excuseRequest.status === 'REJECTED' ? '(Từ chối)' : '(Chờ duyệt)'}
+                                                </span>
+                                            </button>
+                                        ) : (!canEdit && (day.lateMinutes > 0 || day.earlyLeaveMinutes > 0)) ? (
+                                            <button 
+                                              onClick={() => onCreateExcuse?.(day.date)}
+                                              className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-600 font-medium mt-0.5"
+                                              title="Gửi đơn giải trình (xin miễn đi muộn/về sớm)"
+                                            >
+                                                <PlusCircle className="h-3 w-3" />
+                                                <span className="underline">Gửi giải trình</span>
+                                            </button>
+                                        ) : null}
                                     </div>
                                 </td>
                             </tr>
