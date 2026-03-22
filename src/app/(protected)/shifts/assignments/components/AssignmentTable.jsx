@@ -16,7 +16,7 @@ import {
 } from "@/components/common/Card";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Eye, Trash2 } from "lucide-react";
 
 export default function AssignmentTable({
   data,
@@ -24,6 +24,7 @@ export default function AssignmentTable({
   pagination,
   onPaginationChange,
   totalPages,
+  onView,
   onEdit,
   onDelete,
 }) {
@@ -39,16 +40,54 @@ export default function AssignmentTable({
           </span>
         ),
       },
-      { accessorKey: "employee.fullName", header: "Nhân viên" },
-      { accessorKey: "shift.shiftName", header: "Ca" },
-      { accessorKey: "effectiveFrom", header: "Từ ngày" },
-      { accessorKey: "effectiveTo", header: "Đến ngày" },
+      {
+        accessorKey: "assignmentName",
+        header: "Tên bảng phân ca",
+        cell: ({ row }) => (
+          <div className="whitespace-nowrap transform origin-left">
+            {row.original.assignmentName || "-"}
+          </div>
+        ),
+        size: 220,
+      },
+      {
+        accessorKey: "appliedShifts",
+        header: "Ca làm việc",
+        cell: ({ row }) => row.original.appliedShifts || "-",
+      },
+      {
+        id: "effectiveRange",
+        header: "Thời gian áp dụng",
+        cell: ({ row }) => {
+          const from = row.original.effectiveFrom || "-";
+          const to = row.original.effectiveTo || "-";
+          return `${from} - ${to}`;
+        },
+      },
+      {
+        accessorKey: "appliedDepartments",
+        header: "Phòng ban áp dụng",
+        cell: ({ row }) => row.original.appliedDepartments || "-",
+      },
+      {
+        accessorKey: "appliedTargets",
+        header: "Đối tượng áp dụng",
+        cell: ({ row }) => row.original.appliedTargets || "-",
+      },
       {
         id: "actions",
-        header: "Thao tác",
-        size: 120,
+        header: "Chi tiết / Thao tác",
+        size: 170,
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onView(row.original)}
+              title="Xem chi tiết"
+            >
+              <Eye className="h-4 w-4 text-slate-600" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -69,7 +108,7 @@ export default function AssignmentTable({
         ),
       },
     ],
-    [onEdit, onDelete, pagination],
+    [onView, onEdit, onDelete, pagination],
   );
 
   const table = useReactTable({

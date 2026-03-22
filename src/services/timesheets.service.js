@@ -11,6 +11,16 @@ export const timesheetsService = {
         return response.data;
     },
 
+    addEmployee: async (data) => {
+        const response = await api.post("/timesheets/add-employee", data);
+        return response.data;
+    },
+
+    remove: async (id) => {
+        const response = await api.delete(`/timesheets/${id}`);
+        return response.data;
+    },
+
     getById: async (id) => {
         const response = await api.get(`/timesheets/${id}`);
         return response.data;
@@ -36,8 +46,13 @@ export const timesheetsService = {
         return response.data;
     },
 
-    unlock: async (id) => {
-        const response = await api.post(`/timesheets/${id}/unlock`);
+    bulkLock: async (data) => {
+        const response = await api.post("/timesheets/bulk-lock", data);
+        return response.data;
+    },
+
+    bulkRecalculate: async (data) => {
+        const response = await api.post("/timesheets/bulk-recalculate", data);
         return response.data;
     },
 

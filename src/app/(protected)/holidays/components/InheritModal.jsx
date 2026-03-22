@@ -1,128 +1,86 @@
 "use client";
 
-import { useToast } from "@/components/common/Toast";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
+    DialogHeader,
     DialogTitle,
+    DialogFooter,
 } from "@/components/ui/dialog";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { formatDate } from "@/lib/utils";
-import { AlertCircle, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Copy, Calendar, AlertCircle } from "lucide-react";
+import { useState } from "react";
 
-export function InheritModal({ isOpen, onClose, previewData, onConfirm }) {
-    const { success: toastSuccess, error: toastError } = useToast();
-    const [data, setData] = useState(previewData || []);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Sync state when new preview data arrives or modal opens
-    useEffect(() => {
-        if (isOpen) {
-            setData(previewData || []);
-        }
-    }, [previewData, isOpen]);
-
-    const handleRemove = (index) => {
-        setData(data.filter((_, i) => i !== index));
-    };
+export function InheritModal({ isOpen, onClose, onConfirm, group }) {
+    const [targetYear, setTargetYear] = useState(group ? group.year + 1 : new Date().getFullYear() + 1);
+    const [loading, setLoading] = useState(false);
 
     const handleConfirm = async () => {
-        if (data.length === 0) {
-            toastError("Không có ngày lễ nào để kế thừa");
-            return;
-        }
-
-        setIsSubmitting(true);
+        setLoading(true);
         try {
-            await onConfirm(data);
-            toastSuccess("Kế thừa ngày lễ thành công");
+            await onConfirm(targetYear);
             onClose();
         } catch (error) {
-            toastError("Kế thừa ngày lễ thất bại");
+            console.error("Inheritance failed:", error);
         } finally {
-            setIsSubmitting(false);
+            setLoading(false);
         }
     };
+
+    if (!group) return null;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent hideClose className="max-w-5xl bg-white p-0 gap-0 overflow-hidden border-none shadow-2xl">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b">
-                    <div className="flex items-center gap-4">
-                        <button type="button" onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                            <X className="h-5 w-5 text-gray-500" />
-                        </button>
-                        <DialogTitle className="text-lg font-bold text-[#1e293b]">
-                            Xác nhận kế thừa ngày nghỉ cho năm sau
-                        </DialogTitle>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Button type="button" variant="outline" onClick={onClose} className="h-9 px-6 border-gray-300 text-gray-600 hover:bg-gray-50 rounded">
-                            Hủy
-                        </Button>
-                        <Button
-                            onClick={handleConfirm}
-                            disabled={isSubmitting}
-                            className="h-9 px-6 bg-[#003399] hover:bg-[#002266] text-white rounded shadow-sm"
-                        >
-                            {isSubmitting ? "Đang xử lý..." : "Xác nhận & Lưu"}
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                    <div className="mb-4 flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
-                        <AlertCircle className="h-4 w-4" />
-                        Dưới đây là danh sách ngày nghỉ được tự động chuyển sang năm sau (+1 năm). Bạn có thể xóa bớt trước khi lưu.
+            <DialogContent className="sm:max-w-md bg-white border-none shadow-2xl p-0 overflow-hidden">
+                <DialogHeader className="px-6 py-4 border-b">
+                    <DialogTitle className="flex items-center gap-2 text-blue-700">
+                        <Copy className="h-5 w-5" />
+                        Kế thừa danh mục ngày lễ
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="p-6 space-y-6">
+                    <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 flex items-start gap-3">
+                        <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
+                        <div className="text-sm">
+                            <p className="font-semibold text-blue-900">Nguồn: {group.groupName}</p>
+                            <p className="text-blue-700">Năm hiện tại: <span className="font-bold">{group.year}</span></p>
+                        </div>
                     </div>
 
-                    <div className="rounded-xl border border-gray-100 bg-white overflow-hidden max-h-[60vh] overflow-y-auto">
-                        <Table>
-                            <TableHeader className="bg-gray-50/50 sticky top-0 z-10">
-                                <TableRow>
-                                    <TableHead className="w-[60px]">STT</TableHead>
-                                    <TableHead>Tên ngày lễ</TableHead>
-                                    <TableHead>Ngày bắt đầu (DL)</TableHead>
-                                    <TableHead>Ngày kết thúc (DL)</TableHead>
-                                    <TableHead>Loại ngày</TableHead>
-                                    <TableHead className="text-center">Hành động</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {data.map((item, index) => (
-                                    <TableRow key={index} className="hover:bg-gray-50/50">
-                                        <TableCell>{index + 1}</TableCell>
-                                        <TableCell className="font-medium">{item.holidayName}</TableCell>
-                                        <TableCell>{formatDate(item.startDate)}</TableCell>
-                                        <TableCell>{formatDate(item.endDate)}</TableCell>
-                                        <TableCell>{item.holidayType}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
-                                                onClick={() => handleRemove(index)}
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Chọn năm kế thừa:</label>
+                            <Input
+                                type="number"
+                                value={targetYear}
+                                onChange={(e) => setTargetYear(parseInt(e.target.value))}
+                                min={group.year + 1}
+                                className="h-10 border-gray-200 focus:border-blue-500 rounded"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2 text-[12px] text-amber-600 bg-amber-50/50 p-3 rounded border border-amber-100 italic">
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                            <span>
+                                Hệ thống sẽ sao chép toàn bộ ngày nghỉ và đối tượng áp dụng sang năm {targetYear}. 
+                                Các ngày nghỉ sẽ được tự động điều chỉnh ngày tương ứng.
+                            </span>
+                        </div>
                     </div>
                 </div>
+                <DialogFooter className="px-6 py-4 bg-gray-50 border-t gap-2">
+                    <Button variant="ghost" onClick={onClose} disabled={loading} className="text-gray-500 hover:bg-gray-100">
+                        Hủy
+                    </Button>
+                    <Button 
+                        onClick={handleConfirm} 
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200"
+                    >
+                        {loading ? "Đang xử lý..." : "Xác nhận kế thừa"}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

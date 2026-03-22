@@ -26,9 +26,29 @@ export const shiftAssignmentsService = {
     return response.data;
   },
 
-  getEmployeeSchedule: async (employeeId, month, year) => {
+  preview: async (data) => {
+    const response = await api.post("/shifts/assignments/preview", data);
+    return response.data;
+  },
+
+  getSchedules: async (params = {}) => {
+    const response = await api.get("/shifts/schedules", { params });
+    return response.data;
+  },
+
+  getEmployeeSchedule: async (employeeId, startDate, endDate) => {
+    const isDateRange =
+      typeof startDate === "string" &&
+      startDate.includes("-") &&
+      typeof endDate === "string" &&
+      endDate.includes("-");
+
+    const params = isDateRange
+      ? { startDate, endDate }
+      : { month: startDate, year: endDate };
+
     const response = await api.get(`/shifts/schedule/employee/${employeeId}`, {
-      params: { month, year },
+      params,
     });
     return response.data;
   },

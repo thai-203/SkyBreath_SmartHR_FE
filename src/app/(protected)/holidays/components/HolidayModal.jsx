@@ -28,6 +28,7 @@ import { X, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { holidayConfigService } from "@/services/holiday-configs.service";
 
 const holidaySchema = z.object({
     holidayName: z.string().min(1, "Tên ngày lễ là bắt buộc"),
@@ -36,6 +37,7 @@ const holidaySchema = z.object({
     holidayType: z.string().min(1, "Loại ngày nghỉ là bắt buộc"),
     isPaid: z.boolean().default(true),
     description: z.string().optional(),
+    holidayGroupId: z.number().min(1, "Danh mục ngày lễ là bắt buộc"),
     employeeIds: z.array(z.number()).default([]),
 }).refine((data) => {
     const start = new Date(data.startDate);
@@ -50,6 +52,8 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
     const { error: toastError } = useToast();
     const [treeData, setTreeData] = useState([]);
     const [loadingTree, setLoadingTree] = useState(false);
+    const [groups, setGroups] = useState([]);
+    const [loadingGroups, setLoadingGroups] = useState(false);
     
     const form = useForm({
         resolver: zodResolver(holidaySchema),
@@ -61,6 +65,7 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
             holidayType: "Nghỉ lễ, tết",
             isPaid: true,
             description: "",
+            holidayGroupId: undefined,
             employeeIds: [],
         },
     });
@@ -68,8 +73,23 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
     useEffect(() => {
         if (isOpen) {
             fetchTreeData();
+            fetchGroups();
         }
     }, [isOpen]);
+
+    const fetchGroups = async () => {
+        setLoadingGroups(true);
+        try {
+            const res = await holidayConfigService.getGroups();
+            if (res.success) {
+                setGroups(res.data || []);
+            }
+        } catch (err) {
+            console.error("Failed to fetch groups:", err);
+        } finally {
+            setLoadingGroups(false);
+        }
+    };
 
     const fetchTreeData = async () => {
         setLoadingTree(true);
@@ -144,6 +164,7 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                 holidayType: holiday.holidayType || "Nghỉ lễ, tết",
                 isPaid: holiday.isPaid ?? true,
                 description: holiday.description || "",
+                holidayGroupId: holiday.holidayGroupId || undefined,
                 employeeIds: holiday.employees?.map(e => e.id) || [],
             });
         } else {
@@ -154,6 +175,7 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                 holidayType: "Nghỉ lễ, tết",
                 isPaid: true,
                 description: "",
+                holidayGroupId: undefined,
                 employeeIds: [],
             });
         }
@@ -226,6 +248,29 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
+                                <FormField
+                                    control={form.control}
+                                    name="holidayGroupId"
+                                    render={({ field }) => (
+                                        <FormItem className="col-span-1 sm:col-span-2">
+                                            <FormLabel className="text-[13px] font-medium text-gray-700">
+                                                <span className="text-red-500 mr-1">*</span>Danh mục Ngày lễ (Năm)
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Select
+                                                        options={groups.map(g => ({ value: g.id, label: `${g.groupName} (${g.year})` }))}
+                                                        placeholder={loadingGroups ? "Đang tải danh mục..." : "Chọn danh mục ngày lễ"}
+                                                        className="h-10 border-gray-200 focus:border-blue-500 focus:ring-0 rounded text-[14px]"
+                                                        {...field}
+                                                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                                        disabled={loadingGroups}
+                                                    />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
                                 <FormField
                                     control={form.control}
                                     name="startDate"

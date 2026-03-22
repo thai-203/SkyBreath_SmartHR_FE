@@ -33,7 +33,9 @@ export const onboardingsService = {
   },
 
   getPlansByDepartment: async (departmentId) => {
-    const response = await api.get(`/onboarding/plans/department/${departmentId}`);
+    const response = await api.get(
+      `/onboarding/plans/department/${departmentId}`,
+    );
     return response.data;
   },
 
@@ -44,6 +46,14 @@ export const onboardingsService = {
 
   duplicatePlan: async (id) => {
     const response = await api.post(`/onboarding/plans/${id}/duplicate`);
+    return response.data;
+  },
+
+  // Export progress to Excel
+  exportProgress: async () => {
+    const response = await api.get("/onboarding/progress/export", {
+      responseType: "blob",
+    });
     return response.data;
   },
 
@@ -89,12 +99,16 @@ export const onboardingsService = {
   },
 
   getProgressByEmployee: async (employeeId) => {
-    const response = await api.get(`/onboarding/progress/employee/${employeeId}`);
+    const response = await api.get(
+      `/onboarding/progress/employee/${employeeId}`,
+    );
     return response.data;
   },
 
   getProgressByDepartment: async (departmentId) => {
-    const response = await api.get(`/onboarding/progress/department/${departmentId}`);
+    const response = await api.get(
+      `/onboarding/progress/department/${departmentId}`,
+    );
     return response.data;
   },
 
@@ -135,7 +149,10 @@ export const onboardingsService = {
   },
 
   reassignAssignment: async (id, data) => {
-    const response = await api.put(`/onboarding/assignments/${id}/reassign`, data);
+    const response = await api.put(
+      `/onboarding/assignments/${id}/reassign`,
+      data,
+    );
     return response.data;
   },
 
@@ -145,12 +162,16 @@ export const onboardingsService = {
   },
 
   getAssignmentsByProgress: async (progressId) => {
-    const response = await api.get(`/onboarding/assignments/progress/${progressId}`);
+    const response = await api.get(
+      `/onboarding/assignments/progress/${progressId}`,
+    );
     return response.data;
   },
 
   getAssignmentsByEmployee: async (employeeId) => {
-    const response = await api.get(`/onboarding/assignments/employee/${employeeId}`);
+    const response = await api.get(
+      `/onboarding/assignments/employee/${employeeId}`,
+    );
     return response.data;
   },
 

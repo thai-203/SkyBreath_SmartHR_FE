@@ -48,8 +48,7 @@ const menuItems = [
     href: "/employees",
     roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
-      { title: "Danh sách", href: "/employees", roles: ["ADMIN", "HR", "MANAGER"] },
-      { title: "Lịch nghỉ", href: "/employees/leave-calendar", roles: ["ADMIN", "MANAGER", "EMPLOYEE"] }
+      { title: "Danh sách", href: "/employees", roles: ["ADMIN", "HR", "MANAGER"] }
     ],
   },
   {
@@ -62,7 +61,7 @@ const menuItems = [
     title: "Bảng chấm công",
     icon: Clock,
     href: "/timesheets",
-    roles: ["ADMIN", "HR", "MANAGER"],
+    roles: ["ADMIN", "HR", "EMPLOYEE"],
   },
   {
     title: "Bảng lương",
@@ -87,6 +86,12 @@ const menuItems = [
     ],
   },
   {
+    title: "Lịch cá nhân",
+    icon: Calendar,
+    href: "/shifts/personal",
+    roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
+  },
+  {
     title: "Ngày nghỉ lễ",
     icon: Calendar,
     href: "/holidays",
@@ -94,6 +99,7 @@ const menuItems = [
     children: [
       { title: "Danh sách", href: "/holidays" },
       { title: "Gửi nhắc nhở", href: "/holidays/notifications" },
+      { title: "Cấu hình", href: "/holidays/configuration" },
     ],
   },
   {
@@ -254,7 +260,7 @@ export function Sidebar({ className, onMobileClose }) {
   };
 
   useEffect(() => {
-    const activeItem = menuItems.find(item => isMenuActive(item));
+    const activeItem = menuItems.find((item) => isMenuActive(item));
     if (activeItem && activeItem.children) {
       setOpenMenuHref(activeItem.href);
     }

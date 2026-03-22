@@ -53,6 +53,9 @@ export default function OnboardingPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  // pagination state handled inside table; server will return full list
 
   /* ===================== FETCH DATA ===================== */
 
@@ -61,13 +64,7 @@ export default function OnboardingPage() {
       try {
         setLoading(true);
 
-        const [
-          progsRes,
-          statsRes,
-          empRes,
-          depRes,
-          tmpRes,
-        ] = await Promise.all([
+        const [progsRes, statsRes, empRes, depRes, tmpRes] = await Promise.all([
           onboardingsService.getProgress(),
           onboardingsService.getProgressStats(),
           employeesService.getEmployeeNoPlanId(),
@@ -76,6 +73,7 @@ export default function OnboardingPage() {
         ]);
 
         setProgress(normalizeList(progsRes?.data));
+        // meta no longer used
         setEmployees(normalizeList(empRes?.data));
         setDepartments(normalizeList(depRes?.data));
         setTemplates(normalizeList(tmpRes?.data));
@@ -112,8 +110,29 @@ export default function OnboardingPage() {
 
   const safeProgress = useMemo(
     () => (Array.isArray(progress) ? progress : []),
-    [progress]
+    [progress],
   );
+
+  /* ===================== EXPORT HANDLER ===================== */
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      const blob = await onboardingsService.exportProgress();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `onboarding_progress_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất file thành công");
+    } catch (err) {
+      toast.error("Xuất file thất bại");
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   /* ===================== FILTER TABS ===================== */
 
@@ -123,26 +142,23 @@ export default function OnboardingPage() {
       {
         id: "NOT_STARTED",
         label: "Chưa bắt đầu",
-        count: safeProgress.filter(
-          (p) => p.overallStatus === "NOT_STARTED"
-        ).length,
+        count: safeProgress.filter((p) => p.overallStatus === "NOT_STARTED")
+          .length,
       },
       {
         id: "IN_PROGRESS",
         label: "Đang thực hiện",
-        count: safeProgress.filter(
-          (p) => p.overallStatus === "IN_PROGRESS"
-        ).length,
+        count: safeProgress.filter((p) => p.overallStatus === "IN_PROGRESS")
+          .length,
       },
       {
         id: "COMPLETED",
         label: "Đã hoàn thành",
-        count: safeProgress.filter(
-          (p) => p.overallStatus === "COMPLETED"
-        ).length,
+        count: safeProgress.filter((p) => p.overallStatus === "COMPLETED")
+          .length,
       },
     ],
-    [safeProgress]
+    [safeProgress],
   );
 
   /* ===================== FILTER LOGIC ===================== */
@@ -151,15 +167,13 @@ export default function OnboardingPage() {
     let result = safeProgress;
 
     if (activeFilter !== "all") {
-      result = result.filter(
-        (p) => p.overallStatus === activeFilter
-      );
+      result = result.filter((p) => p.overallStatus === activeFilter);
     }
 
     if (searchTerm.trim()) {
       const keyword = searchTerm.toLowerCase();
       result = result.filter((p) =>
-        p.employee?.fullName?.toLowerCase().includes(keyword)
+        p.employee?.fullName?.toLowerCase().includes(keyword),
       );
     }
 
@@ -171,7 +185,6 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900">
       <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
-        
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -184,9 +197,13 @@ export default function OnboardingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm">
+            <button
+              onClick={handleExport}
+              disabled={exportLoading}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+            >
               <FileDown className="w-4 h-4" />
-              Xuất File
+              {exportLoading ? "Đang xuất..." : "Xuất File"}
             </button>
 
             <button
@@ -225,7 +242,6 @@ export default function OnboardingPage() {
         {/* TABLE */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="flex flex-col lg:flex-row items-center justify-between p-4 gap-4 bg-slate-50/50 border-b border-slate-100">
-
             {/* Tabs */}
             <div className="flex p-1 bg-slate-200/50 rounded-xl w-full lg:w-auto overflow-x-auto">
               {filterTabs.map((tab) => (
@@ -278,9 +294,9 @@ export default function OnboardingPage() {
       )}
 
       {selectedPlan && (
-        <OnboardingDetailView 
-          onboardingPlan={selectedPlan} 
-          onClose={() => setSelectedPlan(null)} 
+        <OnboardingDetailView
+          onboardingPlan={selectedPlan}
+          onClose={() => setSelectedPlan(null)}
           onSuccess={handlePlanUpdate}
         />
       )}

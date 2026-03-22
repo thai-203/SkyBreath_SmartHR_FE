@@ -8,11 +8,7 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { Button } from "@/components/common/Button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/components/common/Card";
+import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
@@ -60,7 +56,8 @@ export default function ContractTable({
   filterStatus,
   onStatusChange,
   onReset,
-  pagination,
+  // pagination prop comes from parent; default to first page of 10 items
+  pagination = { pageIndex: 0, pageSize: 10 },
   onPaginationChange,
   totalPages,
   onView,
@@ -68,6 +65,20 @@ export default function ContractTable({
   onDelete,
   onTerminate,
 }) {
+  // ensure pageSize always 10 regardless of parent
+  const fixedPageSize = 10;
+  if (pagination.pageSize !== fixedPageSize) {
+    pagination = { ...pagination, pageSize: fixedPageSize };
+  }
+  /**
+   * Logic: Khi thay đổi bất kỳ bộ lọc nào (Search, Type, Status),
+   * ta sẽ đưa pageIndex về 0 để tránh lỗi hiển thị trang trống.
+   */
+  const handleFilterUpdate = (updateFn, value) => {
+    updateFn(value);
+    onPaginationChange({ ...pagination, pageIndex: 0 });
+  };
+
   const columns = useMemo(
     () => [
       {
@@ -136,11 +147,33 @@ export default function ContractTable({
             label: row.original.contractStatus,
             class: "bg-gray-100 text-gray-600 border-gray-200",
           };
-          
+
           return (
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${status.class}`}>
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${status.class}`}
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5" />
               {status.label}
+            </span>
+          );
+        },
+      },
+      {
+        header: "Ngày chấm dứt",
+        cell: ({ row }) => {
+          const dateStr = row.original.terminationDate;
+          if (!dateStr) return "-";
+          const date = new Date(dateStr);
+          const formatted = date.toLocaleDateString("vi-VN");
+          const isFuture = date > new Date();
+          return (
+            <span
+              className={
+                isFuture ? "text-yellow-600 font-medium" : "text-slate-500"
+              }
+            >
+              {formatted}
+              {isFuture ? " (sắp)" : ""}
             </span>
           );
         },
@@ -149,7 +182,8 @@ export default function ContractTable({
         id: "actions",
         header: () => <div className="text-right mr-4">Thao tác</div>,
         cell: ({ row }) => {
-          const isActive = row.original.contractStatus?.toLowerCase() === "active";
+          const isActive =
+            row.original.contractStatus?.toLowerCase() === "active";
           return (
             <div className="flex items-center justify-end gap-1">
               <Button
@@ -192,13 +226,18 @@ export default function ContractTable({
         },
       },
     ],
-    [onView, onEdit, onDelete, onTerminate]
+    [onView, onEdit, onDelete, onTerminate],
   );
 
   const table = useReactTable({
     data,
     columns,
-    state: { pagination },
+    state: {
+      pagination: {
+        ...pagination,
+        pageSize: 1, // Ép hiển thị mỗi trang 1 dòng
+      },
+    },
     pageCount: totalPages,
     manualPagination: true,
     onPaginationChange,
@@ -212,41 +251,51 @@ export default function ContractTable({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
           {/* Tìm kiếm */}
           <div className="lg:col-span-3 space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">Tìm kiếm</label>
+            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">
+              Tìm kiếm
+            </label>
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
               <Input
                 className="pl-9 w-full bg-slate-50 border-slate-200 focus:bg-white transition-all rounded-lg h-10"
                 placeholder="Mã HĐ, tên nhân viên..."
                 value={search}
-                onChange={(e) => onSearchChange(e.target.value)}
+                onChange={(e) =>
+                  handleFilterUpdate(onSearchChange, e.target.value)
+                }
               />
             </div>
           </div>
 
           {/* Loại hợp đồng */}
           <div className="lg:col-span-3 space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">Loại hợp đồng</label>
+            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">
+              Loại hợp đồng
+            </label>
             <select
               className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
               value={filterType}
-              onChange={(e) => onTypeChange(e.target.value)}
+              onChange={(e) => handleFilterUpdate(onTypeChange, e.target.value)}
             >
               <option value="">Tất cả loại hình</option>
               {Object.entries(contractTypeLabels).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
+                <option key={key} value={key}>
+                  {label}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Trạng thái */}
           <div className="lg:col-span-4 space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">Trạng thái</label>
+            <label className="text-[11px] font-bold text-slate-400 uppercase ml-1">
+              Trạng thái
+            </label>
             <div className="flex flex-wrap gap-2">
               {Object.entries(contractStatusConfig).map(([key, config]) => (
                 <button
                   key={key}
-                  onClick={() => onStatusChange(key)}
+                  onClick={() => handleFilterUpdate(onStatusChange, key)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                     filterStatus === key
                       ? `${config.class} border-current ring-2 ring-offset-1 ring-current/10`
@@ -264,7 +313,10 @@ export default function ContractTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={onReset}
+              onClick={() => {
+                onReset();
+                onPaginationChange({ ...pagination, pageIndex: 0 });
+              }}
               className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-rose-600 border-slate-200 hover:border-rose-200 rounded-lg h-10 transition-colors"
             >
               <RotateCcw className="h-3.5 w-3.5" />
@@ -285,7 +337,10 @@ export default function ContractTable({
                       key={header.id}
                       className="px-6 py-3.5 text-left text-[11px] uppercase tracking-wider font-bold text-slate-500 border-b border-slate-100"
                     >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
                     </th>
                   ))}
                 </tr>
@@ -294,7 +349,7 @@ export default function ContractTable({
 
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
+                Array.from({ length: 1 }).map((_, i) => (
                   <tr key={i}>
                     {columns.map((_, j) => (
                       <td key={j} className="px-6 py-4">
@@ -308,16 +363,27 @@ export default function ContractTable({
                   <td colSpan={columns.length} className="text-center py-12">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <FileText className="h-10 w-10 mb-2 opacity-20" />
-                      <p className="text-sm font-medium">Không tìm thấy hợp đồng nào</p>
+                      <p className="text-sm font-medium">
+                        Không tìm thấy hợp đồng nào
+                      </p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="group hover:bg-indigo-50/30 transition-colors">
+                  <tr
+                    key={row.id}
+                    className="group hover:bg-indigo-50/30 transition-colors"
+                  >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-6 py-4 text-sm leading-tight">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <td
+                        key={cell.id}
+                        className="px-6 py-4 text-sm leading-tight"
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -327,14 +393,19 @@ export default function ContractTable({
           </table>
         </div>
 
+        {/* Footer Phân trang */}
         <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-4 bg-white border-t border-slate-50 gap-4">
           <span className="text-xs font-medium text-slate-500">
-            Hiển thị trang <span className="text-slate-900">{pagination.pageIndex + 1}</span> trên <span className="text-slate-900">{totalPages}</span>
+            Hợp đồng số{" "}
+            <span className="text-slate-900">{pagination.pageIndex + 1}</span> /
+            tổng <span className="text-slate-900">{totalPages}</span>
           </span>
           <Pagination
             currentPage={pagination.pageIndex + 1}
             totalPages={totalPages}
-            onPageChange={(p) => onPaginationChange({ ...pagination, pageIndex: p - 1 })}
+            onPageChange={(p) =>
+              onPaginationChange({ ...pagination, pageIndex: p - 1 })
+            }
           />
         </div>
       </CardContent>
