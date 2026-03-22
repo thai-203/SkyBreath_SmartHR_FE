@@ -14,6 +14,7 @@ import {
   DollarSign,
   FileText,
   LayoutDashboard,
+  ScrollText,
   Settings,
   ShieldAlert,
   User,
@@ -119,6 +120,16 @@ const menuItems = [
     children: [
       { title: "Làm thêm giờ", href: "/regulations/overtime" },
       { title: "Hình phạt", href: "/regulations/penalties" },
+    ],
+  },
+  {
+    title: "Chính sách & Quy định",
+    icon: ScrollText,
+    href: "/policy/overtime",
+    roles: ["EMPLOYEE"],
+    children: [
+      { title: "Quy định Overtime", href: "/policy/overtime" },
+      { title: "Quy định Vi phạm (Penalty)", href: "/policy/penalties" },
     ],
   },
   {
