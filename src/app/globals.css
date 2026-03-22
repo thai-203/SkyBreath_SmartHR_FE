@@ -154,10 +154,10 @@ a {
 
 /* Custom Organization Chart Layouts */
 .org-tree-ngang {
-  display: flex;
-  justify-content: center;
+  display: block;
+  width: max-content;
+  margin: 0 auto;
   padding: 20px;
-  overflow-x: auto;
 }
 
 .org-tree-ngang ul {
@@ -166,6 +166,8 @@ a {
   transition: all 0.5s;
   display: flex;
   justify-content: center;
+  width: max-content;
+  margin: 0 auto;
 }
 
 .org-tree-ngang li {
