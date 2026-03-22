@@ -9,20 +9,27 @@ import OvertimeTable from "./components/OvertimeTable";
 import OvertimeFormModal from "./components/OvertimeFormModal";
 import { overtimeRulesService } from "@/services";
 import { departmentsService } from "@/services";
+import { overtimeTypesService } from "@/services";
+import { authService } from "@/services";
 
 const PAGE_SIZE = 5;
 
 const emptyForm = {
     name: "",
+    overtimeTypeId: "",
     salaryMultiplier: "",
     maxHoursPerDay: "",
     maxHoursPerMonth: "",
+    effectiveFrom: "",
+    effectiveTo: "",
+    note: "",
+    versionStatus: "DRAFT",
     departmentIds: [],
-    status: "ACTIVE",
 };
 
 const emptyFilters = {
-    status: "",
+    versionStatus: "",
+    overtimeTypeId: "",
     departmentId: "",
     minMultiplier: "",
     maxMultiplier: "",
@@ -36,6 +43,7 @@ export default function OvertimeRulesPage() {
     // ============ STATE ============
     const [rules, setRules] = useState([]);
     const [departments, setDepartments] = useState([]);
+    const [overtimeTypes, setOvertimeTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState(emptyFilters);
@@ -48,6 +56,7 @@ export default function OvertimeRulesPage() {
     const [formData, setFormData] = useState(emptyForm);
     const [formErrors, setFormErrors] = useState({});
     const [deleteModal, setDeleteModal] = useState({ open: false, data: null });
+    const [activateModal, setActivateModal] = useState({ open: false, data: null });
     const [submitting, setSubmitting] = useState(false);
 
     const { success, error: showError } = useToast();
@@ -62,7 +71,8 @@ export default function OvertimeRulesPage() {
             const params = { page, limit: PAGE_SIZE };
 
             if (searchValue?.trim()) params.search = searchValue.trim();
-            if (filtersValue.status) params.status = filtersValue.status;
+            if (filtersValue.versionStatus) params.versionStatus = filtersValue.versionStatus;
+            if (filtersValue.overtimeTypeId) params.overtimeTypeId = filtersValue.overtimeTypeId;
             if (filtersValue.departmentId) params.departmentId = filtersValue.departmentId;
             if (filtersValue.minMultiplier) params.minMultiplier = filtersValue.minMultiplier;
             if (filtersValue.maxMultiplier) params.maxMultiplier = filtersValue.maxMultiplier;
@@ -91,10 +101,20 @@ export default function OvertimeRulesPage() {
         }
     }, []);
 
+    const fetchOvertimeTypes = useCallback(async () => {
+        try {
+            const res = await overtimeTypesService.getAll();
+            setOvertimeTypes(res.data || []);
+        } catch (err) {
+            console.error("Lỗi khi tải danh sách loại OT:", err);
+        }
+    }, []);
+
     // Initial load
     useEffect(() => {
         fetchRules(search, filters, currentPage);
         fetchDepartments();
+        fetchOvertimeTypes();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -124,6 +144,7 @@ export default function OvertimeRulesPage() {
     const validateForm = () => {
         const errors = {};
         if (!formData.name.trim()) errors.name = "Tên quy định là bắt buộc";
+        if (formData.note && formData.note.length > 500) errors.note = "Ghi chú không được vượt quá 500 ký tự";
 
         const multiplier = Number(formData.salaryMultiplier);
         if (!formData.salaryMultiplier || multiplier <= 0)
@@ -158,11 +179,15 @@ export default function OvertimeRulesPage() {
     const handleOpenEdit = (rule) => {
         setFormData({
             name: rule.name,
+            overtimeTypeId: rule.overtimeTypeId || "",
             salaryMultiplier: String(rule.salaryMultiplier),
             maxHoursPerDay: String(rule.maxHoursPerDay),
             maxHoursPerMonth: String(rule.maxHoursPerMonth),
+            effectiveFrom: rule.effectiveFrom || "",
+            effectiveTo: rule.effectiveTo || "",
+            note: rule.note || "",
+            versionStatus: rule.versionStatus || "DRAFT",
             departmentIds: rule.departments?.map((d) => d.id) || [],
-            status: rule.status,
         });
         setFormErrors({});
         setFormModal({ open: true, mode: "edit", data: rule });
@@ -177,11 +202,15 @@ export default function OvertimeRulesPage() {
 
         const ruleData = {
             name: formData.name.trim(),
+            overtimeTypeId: formData.overtimeTypeId ? parseInt(formData.overtimeTypeId) : undefined,
             salaryMultiplier: parseFloat(formData.salaryMultiplier),
             maxHoursPerDay: parseInt(formData.maxHoursPerDay),
             maxHoursPerMonth: parseInt(formData.maxHoursPerMonth),
+            effectiveFrom: formData.effectiveFrom || undefined,
+            effectiveTo: formData.effectiveTo || undefined,
+            note: formData.note.trim() || undefined,
+            versionStatus: formData.versionStatus || "DRAFT",
             departmentIds: formData.departmentIds,
-            status: formData.status,
         };
 
         try {
@@ -237,6 +266,22 @@ export default function OvertimeRulesPage() {
         }
     };
 
+    const handleActivate = (rule) => {
+        setActivateModal({ open: true, data: rule });
+    };
+
+    const handleConfirmActivate = async () => {
+        if (!activateModal.data) return;
+        try {
+            await overtimeRulesService.activate(activateModal.data.id);
+            success(`Đã kích hoạt quy định "${activateModal.data.name}" thành công`);
+            setActivateModal({ open: false, data: null });
+            fetchRules(search, filters, currentPage);
+        } catch (err) {
+            showError(err.response?.data?.message || "Không thể kích hoạt quy định này");
+        }
+    };
+
     // ============ RENDER ============
     return (
         <div className="space-y-6">
@@ -255,10 +300,12 @@ export default function OvertimeRulesPage() {
                         </p>
                     </div>
                 </div>
-                <Button onClick={handleOpenAdd} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Thêm quy định
-                </Button>
+                {authService.hasPermission("OVERTIME_RULE_CREATE") && (
+                    <Button onClick={handleOpenAdd} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Thêm quy định
+                    </Button>
+                )}
             </div>
 
             {/* Table */}
@@ -277,6 +324,8 @@ export default function OvertimeRulesPage() {
                 totalItems={totalItems}
                 onEdit={handleOpenEdit}
                 onDelete={handleOpenDelete}
+                onActivate={handleActivate}
+                overtimeTypes={overtimeTypes}
             />
 
             {/* Add/Edit Modal */}
@@ -289,7 +338,9 @@ export default function OvertimeRulesPage() {
                 errors={formErrors}
                 mode={formModal.mode}
                 departments={departments}
+                overtimeTypes={overtimeTypes}
                 submitting={submitting}
+                originalRule={formModal.data}
             />
 
             {/* Delete Confirm Modal */}
@@ -302,6 +353,18 @@ export default function OvertimeRulesPage() {
                 confirmText="Xóa"
                 cancelText="Hủy"
                 variant="destructive"
+            />
+
+            {/* Activate Confirm Modal */}
+            <ConfirmModal
+                isOpen={activateModal.open}
+                onClose={() => setActivateModal({ open: false, data: null })}
+                onConfirm={handleConfirmActivate}
+                title="Kích hoạt quy định OT"
+                description={`Bạn có chắc chắn muốn kích hoạt quy định "${activateModal.data?.name}"? Sau khi kích hoạt sẽ không thể chuyển về bản nháp hay xóa được nữa.`}
+                confirmText="Kích hoạt"
+                cancelText="Hủy"
+                variant="default"
             />
         </div>
     );

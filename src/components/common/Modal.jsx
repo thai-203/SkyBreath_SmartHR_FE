@@ -55,12 +55,12 @@ export function Modal({
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ duration: 0.2 }}
                         className={cn(
-                            "relative z-50 w-full rounded-xl bg-white p-6 shadow-2xl mx-4",
+                            "relative z-50 w-full rounded-xl bg-white p-6 shadow-2xl mx-4 flex flex-col max-h-[90vh]",
                             sizes[size],
                             className
                         )}
                     >
-                        <div className="flex items-start justify-between mb-4">
+                        <div className="flex shrink-0 items-start justify-between mb-4">
                             <div>
                                 {title && (
                                     <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
@@ -78,7 +78,9 @@ export function Modal({
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
-                        {children}
+                        <div className="overflow-y-auto pr-1 -mr-1">
+                            {children}
+                        </div>
                     </motion.div>
                 </div>
             )}

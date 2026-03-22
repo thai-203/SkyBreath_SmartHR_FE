@@ -8,6 +8,7 @@ import { ShieldAlert, Plus } from "lucide-react";
 import PenaltyTable from "./components/PenaltyTable";
 import PenaltyFormModal from "./components/PenaltyFormModal";
 import { penaltiesService } from "@/services";
+import { authService } from "@/services";
 
 const PAGE_SIZE = 10;
 
@@ -234,10 +235,12 @@ export default function PenaltiesPage() {
                         </p>
                     </div>
                 </div>
-                <Button onClick={handleOpenAdd} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Thêm quy định
-                </Button>
+                {authService.hasPermission("PENALTY_CREATE") && (
+                    <Button onClick={handleOpenAdd} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Thêm quy định
+                    </Button>
+                )}
             </div>
 
             {/* Table */}
