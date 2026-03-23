@@ -5,11 +5,30 @@ import { Button } from "./Button";
 import { cn } from "@/lib/utils";
 
 export function Pagination({
-    currentPage,
-    totalPages,
+    table,
+    currentPage: controlledCurrentPage,
+    totalPages: controlledTotalPages,
     onPageChange,
     siblingCount = 1,
 }) {
+    const tablePagination = table?.getState?.()?.pagination;
+    const currentPage = tablePagination
+        ? tablePagination.pageIndex + 1
+        : (controlledCurrentPage ?? 1);
+    const totalPages = table
+        ? Math.max(table.getPageCount?.() || 1, 1)
+        : Math.max(controlledTotalPages || 1, 1);
+
+    const handlePageChange = (page) => {
+        const nextPage = Math.min(Math.max(page, 1), totalPages);
+
+        if (table) {
+            table.setPageIndex(nextPage - 1);
+        }
+
+        onPageChange?.(nextPage);
+    };
+
     const generatePagination = () => {
         const pages = [];
 
@@ -54,7 +73,7 @@ export function Pagination({
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onPageChange(currentPage - 1)}
+                onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage <= 1}
                 className="gap-1 px-2.5"
             >
@@ -80,7 +99,7 @@ export function Pagination({
                             key={page}
                             variant={currentPage === page ? "default" : "outline"}
                             size="sm"
-                            onClick={() => onPageChange(page)}
+                            onClick={() => handlePageChange(page)}
                             className={cn(
                                 "h-8 w-8 p-0",
                                 currentPage === page && "pointer-events-none"
@@ -95,7 +114,7 @@ export function Pagination({
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onPageChange(currentPage + 1)}
+                onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
                 className="gap-1 px-2.5"
             >
