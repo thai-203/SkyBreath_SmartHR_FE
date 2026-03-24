@@ -680,6 +680,7 @@ export default function TimesheetsPage() {
                 date={excuseModal.date}
                 employeeId={excuseModal.employeeId}
                 data={excuseModal.data}
+                canEdit={!isEmployeeOnly}
                 onSuccess={() => {
                     if (detailModal.data?.timesheet?.id) {
                         reloadDetailModal(detailModal.data.timesheet.id);
