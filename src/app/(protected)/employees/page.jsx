@@ -152,18 +152,38 @@ export default function EmployeesPage() {
                 uniqueField(validationData, "companyEmail", selectedEmployee?.id, "Email công ty đã tồn tại"),
             ],
             personalEmail: [
+                required("Email cá nhân là bắt buộc"),
                 email("Email không hợp lệ"),
                 uniqueField(validationData, "personalEmail", selectedEmployee?.id, "Email cá nhân đã tồn tại"),
             ],
             phoneNumber: [
+                required("Số điện thoại là bắt buộc"),
                 uniqueField(validationData, "phoneNumber", selectedEmployee?.id, "Số điện thoại đã tồn tại"),
             ],
             nationalId: [
+                required("Số CCCD là bắt buộc"),
                 uniqueField(validationData, "nationalId", selectedEmployee?.id, "Số CCCD đã tồn tại"),
             ],
             departmentId: [required("Phòng ban là bắt buộc")],
             positionId: [required("Vị trí là bắt buộc")],
             jobGradeId: [required("Cấp bậc là bắt buộc")],
+            dateOfBirth: [required("Ngày sinh là bắt buộc")],
+            gender: [required("Giới tính là bắt buộc")],
+            nationality: [required("Quốc tịch là bắt buộc")],
+            maritalStatus: [required("Tình trạng hôn nhân là bắt buộc")],
+            nationalIdIssuedDate: [required("Ngày cấp CCCD là bắt buộc")],
+            nationalIdIssuedPlace: [required("Nơi cấp CCCD là bắt buộc")],
+            taxCode: [required("Mã số thuế là bắt buộc")],
+            permanentAddress: [required("Địa chỉ thường trú là bắt buộc")],
+            currentAddress: [required("Địa chỉ tạm trú là bắt buộc")],
+            employmentStatus: [required("Trạng thái nhân sự là bắt buộc")],
+            educationLevel: [required("Trình độ học vấn là bắt buộc")],
+            joinDate: [required("Ngày gia nhập là bắt buộc")],
+            officialStartDate: [required("Ngày chính thức là bắt buộc")],
+            directManagerId: [required("Quản lý trực tiếp là bắt buộc")],
+            hrMentorId: [required("HR Mentor là bắt buộc")],
+            frontIdCard: modalMode === "create" ? [required("Ảnh CCCD mặt trước là bắt buộc")] : [],
+            backIdCard: modalMode === "create" ? [required("Ảnh CCCD mặt sau là bắt buộc")] : [],
         };
 
         const validationErrors = validate(formData, rules);

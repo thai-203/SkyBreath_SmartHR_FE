@@ -21,8 +21,14 @@ export const overtimeRulesService = {
         return response.data;
     },
 
+    activate: async (id) => {
+        const response = await api.patch(`/overtime-rules/${id}/activate`);
+        return response.data;
+    },
+
     delete: async (id) => {
         const response = await api.delete(`/overtime-rules/${id}`);
         return response.data;
     },
 };
+

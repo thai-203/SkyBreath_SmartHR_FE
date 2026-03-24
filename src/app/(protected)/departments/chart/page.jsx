@@ -7,9 +7,11 @@ import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { departmentsService } from "@/services";
 import { useToast } from "@/components/common/Toast";
-import { ChevronDown, ChevronRight, Building2, User } from "lucide-react";
+import { ChevronDown, ChevronRight, Building2, User, FileText, Download } from "lucide-react";
 import Link from "next/link";
 import { Select } from "@/components/common/Select";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 // Mảng màu viền cho các cấp bậc
 const LEVEL_COLORS = ["border-t-blue-500", "border-t-red-500", "border-t-yellow-500", "border-t-green-500", "border-t-purple-500"];
@@ -163,9 +165,10 @@ const flattenDepartments = (nodes) => {
 };
 
 export default function DepartmentsChartPage() {
-    const { error } = useToast();
+    const { success, error } = useToast();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
 
     const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
     const [viewType, setViewType] = useState(""); // "", ngang, doc
@@ -204,6 +207,62 @@ export default function DepartmentsChartPage() {
         return allDepartmentsFlat;
     }, [allDepartmentsFlat]);
 
+    const exportToPDF = async () => {
+        const input = document.getElementById("org-chart-container");
+        if (!input) return;
+
+        setIsExporting(true);
+        try {
+            // Lưu lại overflow cũ để tránh bị cắt chữ nếu đang scroll
+            const originalOverflow = input.style.overflow;
+            const originalWidth = input.style.width;
+            const originalMinWidth = input.style.minWidth;
+            
+            // Ép thẻ bao bọc (CardContent) giãn ra hết chiều ngang thực tế của nội dung
+            input.style.overflow = "visible";
+            input.style.width = "max-content";
+            input.style.minWidth = "100%"; // Ít nhất là 100% màn hình để không bị lọt thỏm
+
+            const canvas = await html2canvas(input, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: "#f8fafc", // slate-50
+                width: input.scrollWidth,
+                height: input.scrollHeight,
+                windowWidth: input.scrollWidth,
+                windowHeight: input.scrollHeight,
+            });
+            
+            input.style.overflow = originalOverflow;
+            input.style.width = originalWidth;
+            input.style.minWidth = originalMinWidth;
+
+            const imgData = canvas.toDataURL("image/png");
+            
+            // Tính toán kích thước PDF (Tự điều chỉnh trang theo chiều dài ảnh chụp để không bị cắt)
+            const pdfWidth = canvas.width * 0.264583; // Chuyển pixel sang mm (~96dpi)
+            const pdfHeight = canvas.height * 0.264583;
+            
+            // Tạo PDF với kích thước custom vừa khít thẻ div
+            const pdf = new jsPDF({
+                orientation: pdfWidth > pdfHeight ? "l" : "p",
+                unit: "mm",
+                format: [pdfWidth, pdfHeight]
+            });
+            
+            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+            pdf.save("so-do-to-chuc.pdf");
+            
+            success("Xuất Sơ đồ tổ chức thành file PDF thành công!");
+        } catch (err) {
+            console.error("PDF Export Error:", err);
+            error("Đã xảy ra lỗi khi xuất file PDF");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <PageTitle title="Sơ đồ tổ chức" />
@@ -239,19 +298,29 @@ export default function DepartmentsChartPage() {
                     />
                 </div>
                 
-                {/* <div className="ml-auto flex items-center gap-2 mt-6">
-                    <Button variant="outline" size="sm" className="h-[42px] px-3 border-slate-200 text-slate-600">
-                        <span className="text-lg">−</span>
+                <div className="ml-auto flex items-center gap-2 mt-6">
+                    <Button 
+                        onClick={exportToPDF} 
+                        disabled={loading || data.length === 0 || isExporting}
+                        className="gap-2 shrink-0 bg-rose-600 hover:bg-rose-700 text-white"
+                    >
+                        {isExporting ? (
+                            <div className="flex items-center gap-2">
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                Đang xuất...
+                            </div>
+                        ) : (
+                            <>
+                                <Download className="h-4 w-4" />
+                                Xuất PDF
+                            </>
+                        )}
                     </Button>
-                    <span className="text-slate-300">|</span>
-                    <Button variant="outline" size="sm" className="h-[42px] px-3 border-slate-200 text-slate-600">
-                        <span className="text-lg">+</span>
-                    </Button>
-                </div> */}
+                </div>
             </div>
 
             <Card>
-                <CardContent className="p-6 overflow-x-auto bg-slate-50 min-h-[600px] border border-slate-200 shadow-inner rounded-xl">
+                <CardContent id="org-chart-container" className="p-6 overflow-x-auto bg-slate-50 min-h-[600px] border border-slate-200 shadow-inner rounded-xl">
                     {loading ? (
                         <div className="space-y-4">
                             {Array.from({ length: 4 }).map((_, i) => (

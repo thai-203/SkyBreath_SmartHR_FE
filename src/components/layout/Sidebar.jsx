@@ -14,6 +14,7 @@ import {
   DollarSign,
   FileText,
   LayoutDashboard,
+  ScrollText,
   Settings,
   ShieldAlert,
   User,
@@ -47,8 +48,7 @@ const menuItems = [
     href: "/employees",
     roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
-      { title: "Danh sách", href: "/employees", roles: ["ADMIN", "HR", "MANAGER"] },
-      { title: "Lịch nghỉ", href: "/employees/leave-calendar", roles: ["ADMIN", "MANAGER", "EMPLOYEE"] }
+      { title: "Danh sách", href: "/employees", roles: ["ADMIN", "HR", "MANAGER"] }
     ],
   },
   {
@@ -99,6 +99,7 @@ const menuItems = [
     children: [
       { title: "Danh sách", href: "/holidays" },
       { title: "Gửi nhắc nhở", href: "/holidays/notifications" },
+      { title: "Cấu hình", href: "/holidays/configuration" },
     ],
   },
   {
@@ -125,6 +126,16 @@ const menuItems = [
     children: [
       { title: "Làm thêm giờ", href: "/regulations/overtime" },
       { title: "Hình phạt", href: "/regulations/penalties" },
+    ],
+  },
+  {
+    title: "Chính sách & Quy định",
+    icon: ScrollText,
+    href: "/policy/overtime",
+    roles: ["EMPLOYEE"],
+    children: [
+      { title: "Quy định Overtime", href: "/policy/overtime" },
+      { title: "Quy định Vi phạm (Penalty)", href: "/policy/penalties" },
     ],
   },
   {

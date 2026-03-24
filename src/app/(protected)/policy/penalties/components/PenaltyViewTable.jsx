@@ -4,8 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/common/Button";
 import { Pagination } from "@/components/common/Pagination";
 import { Skeleton } from "@/components/common/Skeleton";
-import { Pencil, Trash2, Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
-import { authService } from "@/services";
+import { Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
 
 const penaltyTypeLabels = {
     WARNING: "Cảnh cáo",
@@ -35,7 +34,7 @@ const severityColors = {
     CRITICAL: "bg-red-50 text-red-700",
 };
 
-export default function PenaltyTable({
+export default function PenaltyViewTable({
     data = [],
     loading = false,
     search,
@@ -47,18 +46,20 @@ export default function PenaltyTable({
     onPageChange,
     pageSize,
     totalItems = 0,
-    onEdit,
-    onDelete,
 }) {
-    const columnCount = 8;
+    const columnCount = 7;
     const [showFilters, setShowFilters] = useState(false);
 
     const handleFilterChange = (field, value) => {
         onFilterChange({ ...filters, [field]: value });
     };
 
-    const hasActiveFilters = filters.penaltyType || filters.severityLevel ||
-        filters.status || filters.minDeductionAmount || filters.maxDeductionAmount;
+    const hasActiveFilters =
+        filters.penaltyType ||
+        filters.severityLevel ||
+        filters.status ||
+        filters.minDeductionAmount ||
+        filters.maxDeductionAmount;
 
     const handleClearFilters = () => {
         onFilterChange({
@@ -85,7 +86,7 @@ export default function PenaltyTable({
             {/* Search & Filter Toggle */}
             <div className="flex items-center justify-between border-b border-slate-200 p-4">
                 <h2 className="text-base font-semibold text-slate-900">
-                    Danh sách quy định hình phạt
+                    Danh sách quy định vi phạm (Penalty)
                 </h2>
                 <div className="flex items-center gap-2">
                     <div className="relative w-64">
@@ -219,7 +220,7 @@ export default function PenaltyTable({
                                 STT
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Tên hình phạt
+                                Tên vi phạm
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Loại
@@ -236,11 +237,6 @@ export default function PenaltyTable({
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Trạng thái
                             </th>
-                            {(authService.hasPermission("PENALTY_UPDATE") || authService.hasPermission("PENALTY_DELETE")) && (
-                                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                    Thao tác
-                                </th>
-                            )}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -310,32 +306,6 @@ export default function PenaltyTable({
                                                 : "Ngừng hoạt động"}
                                         </span>
                                     </td>
-                                    {(authService.hasPermission("PENALTY_UPDATE") || authService.hasPermission("PENALTY_DELETE")) && (
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-1">
-                                                {authService.hasPermission("PENALTY_UPDATE") && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
-                                                        onClick={() => onEdit(penalty)}
-                                                    >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                                {authService.hasPermission("PENALTY_DELETE") && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                        onClick={() => onDelete(penalty)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    )}
                                 </tr>
                             ))
                         ) : (
