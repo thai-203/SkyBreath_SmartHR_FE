@@ -112,7 +112,7 @@ function OrgNode({ department, level = 0, viewType = "rut-gon" }) {
     // Kiểu dọc
     return (
         <div className="flex items-start mb-4 relative org-tree-doc-node">
-            <div className={`node-content bg-white w-[250px] rounded-lg shadow-sm border border-slate-200 border-l-4 ${borderLeftColorClass} relative z-10 transition-all hover:shadow-md`}>
+            <div className={`node-content bg-white w-[250px] shrink-0 rounded-lg shadow-sm border border-slate-200 border-l-4 ${borderLeftColorClass} relative z-10 transition-all hover:shadow-md`}>
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between">
                     <h4 className="font-semibold text-slate-800 text-sm whitespace-nowrap truncate" title={department.departmentName}>{department.departmentName}</h4>
                 </div>
@@ -213,47 +213,65 @@ export default function DepartmentsChartPage() {
 
         setIsExporting(true);
         try {
-            // Lưu lại overflow cũ để tránh bị cắt chữ nếu đang scroll
-            const originalOverflow = input.style.overflow;
-            const originalWidth = input.style.width;
-            const originalMinWidth = input.style.minWidth;
-            
-            // Ép thẻ bao bọc (CardContent) giãn ra hết chiều ngang thực tế của nội dung
+            // ── 1. Lưu style gốc ──
+            const savedOverflow = input.style.overflow;
+            const savedWidth = input.style.width;
+            const savedMinWidth = input.style.minWidth;
+            const savedHeight = input.style.height;
+
+            // ── 2. Reset scroll của container ──
+            input.scrollLeft = 0;
+            input.scrollTop = 0;
+
+            // ── 3. Bỏ clip overflow TRƯỚC, để layout tự mở rộng tự do ──
             input.style.overflow = "visible";
             input.style.width = "max-content";
-            input.style.minWidth = "100%"; // Ít nhất là 100% màn hình để không bị lọt thỏm
+            input.style.minWidth = "max-content";
+
+            // ── 4. Đợi browser reflow xong (quan trọng: đo SAU khi overflow đã được gỡ) ──
+            await new Promise((r) => setTimeout(r, 120));
+
+            // ── 5. Đo kích thước thực của toàn bộ nội dung (sau khi layout đã mở rộng) ──
+            const fullW = Math.max(input.scrollWidth, input.offsetWidth);
+            const fullH = Math.max(input.scrollHeight, input.offsetHeight);
+
+            // Cố định kích thước để html2canvas có reference chuẩn
+            input.style.width = `${fullW}px`;
+            await new Promise((r) => setTimeout(r, 40));
+
+            // ── 6. Scroll trang về góc trên cùng tránh lệch toạ độ ──
+            window.scrollTo(0, 0);
 
             const canvas = await html2canvas(input, {
                 scale: 2,
                 useCORS: true,
                 logging: false,
-                backgroundColor: "#f8fafc", // slate-50
-                width: input.scrollWidth,
-                height: input.scrollHeight,
-                windowWidth: input.scrollWidth,
-                windowHeight: input.scrollHeight,
+                backgroundColor: "#f8fafc",
+                windowWidth: fullW + 100,
+                windowHeight: fullH + 100,
             });
-            
-            input.style.overflow = originalOverflow;
-            input.style.width = originalWidth;
-            input.style.minWidth = originalMinWidth;
 
+            // ── 7. Khôi phục style ──
+            input.style.overflow = savedOverflow;
+            input.style.width = savedWidth;
+            input.style.minWidth = savedMinWidth;
+            input.style.height = savedHeight;
+
+            // ── 8. Tạo PDF custom size vừa khít nội dung ──
             const imgData = canvas.toDataURL("image/png");
-            
-            // Tính toán kích thước PDF (Tự điều chỉnh trang theo chiều dài ảnh chụp để không bị cắt)
-            const pdfWidth = canvas.width * 0.264583; // Chuyển pixel sang mm (~96dpi)
-            const pdfHeight = canvas.height * 0.264583;
-            
-            // Tạo PDF với kích thước custom vừa khít thẻ div
+            // canvas.width = fullW * scale(2), nên chia 2 để về px gốc
+            const chartWmm = (canvas.width / 2) * 0.264583;
+            const chartHmm = (canvas.height / 2) * 0.264583;
+            const margin = 10; // mm
+
             const pdf = new jsPDF({
-                orientation: pdfWidth > pdfHeight ? "l" : "p",
+                orientation: chartWmm > chartHmm ? "l" : "p",
                 unit: "mm",
-                format: [pdfWidth, pdfHeight]
+                format: [chartWmm + margin * 2, chartHmm + margin * 2],
             });
-            
-            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+            pdf.addImage(imgData, "PNG", margin, margin, chartWmm, chartHmm);
             pdf.save("so-do-to-chuc.pdf");
-            
+
             success("Xuất Sơ đồ tổ chức thành file PDF thành công!");
         } catch (err) {
             console.error("PDF Export Error:", err);

@@ -109,7 +109,7 @@ export default function EmployeeOvertimePolicyPage() {
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">
-                        Quy định Overtime
+                        Làm thêm giờ
                     </h1>
                     <p className="text-sm text-slate-500">
                         Xem các quy định làm thêm giờ áp dụng trong công ty

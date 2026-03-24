@@ -1,5 +1,5 @@
 export const metadata = {
-    title: "Quy định Overtime",
+    title: "Làm thêm giờ",
 };
 
 export default function PolicyOvertimeLayout({ children }) {

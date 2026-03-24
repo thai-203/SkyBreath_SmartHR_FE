@@ -129,13 +129,13 @@ const menuItems = [
     ],
   },
   {
-    title: "Chính sách & Quy định",
+    title: "Quy định",
     icon: ScrollText,
     href: "/policy/overtime",
     roles: ["EMPLOYEE"],
     children: [
-      { title: "Quy định Overtime", href: "/policy/overtime" },
-      { title: "Quy định Vi phạm (Penalty)", href: "/policy/penalties" },
+      { title: "Làm thêm giờ", href: "/policy/overtime" },
+      { title: "Hình phạt", href: "/policy/penalties" },
     ],
   },
   {
