@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { Modal } from "@/components/common/Modal";
-import { X, FileText, Clock, Users } from "lucide-react";
+import { X, FileText, Clock, Users, Search } from "lucide-react";
 
 export default function OvertimeFormModal({
     isOpen,
@@ -20,6 +21,7 @@ export default function OvertimeFormModal({
 }) {
     const isLockedByRequests = mode === "edit" && originalRule?.hasRequests;
     const isLockedByPayroll = mode === "edit" && originalRule?.hasPayroll;
+    const [deptSearch, setDeptSearch] = useState("");
 
     const handleChange = (field, value) => {
         onFormChange({ ...formData, [field]: value });
@@ -284,38 +286,57 @@ export default function OvertimeFormModal({
                             <p className="text-xs font-medium text-red-500">{errors.departmentIds}</p>
                         )}
 
+                        {/* Search phòng ban */}
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Tìm phòng ban..."
+                                value={deptSearch}
+                                onChange={(e) => setDeptSearch(e.target.value)}
+                                className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 bg-white"
+                            />
+                        </div>
+
                         {/* List selection */}
-                        <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-sm p-1.5 space-y-0.5">
-                            {departments.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1">
-                                    {departments.map((dept) => {
-                                        const isSelected = formData.departmentIds?.includes(dept.id);
-                                        return (
-                                            <label
-                                                key={dept.id}
-                                                className={`flex flex-row items-center gap-2.5 rounded-md px-2.5 py-2 text-sm cursor-pointer transition-all border ${
-                                                    isSelected 
-                                                        ? "bg-indigo-50/50 border-indigo-200 text-indigo-900 font-medium" 
-                                                        : "bg-transparent border-transparent text-slate-700 hover:bg-slate-50 hover:border-slate-200"
-                                                }`}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected || false}
-                                                    onChange={() => handleToggleDepartment(dept.id)}
-                                                    disabled={isLockedByPayroll}
-                                                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-colors disabled:opacity-50"
-                                                />
-                                                <span className="truncate">{dept.departmentName}</span>
-                                            </label>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="px-4 py-6 text-center text-sm text-slate-400">
-                                    Không có dữ liệu phòng ban
-                                </div>
-                            )}
+                        <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-sm p-1.5">
+                            {(() => {
+                                const filtered = departments.filter((d) =>
+                                    d.departmentName.toLowerCase().includes(deptSearch.toLowerCase())
+                                );
+                                if (departments.length === 0) return (
+                                    <div className="px-4 py-6 text-center text-sm text-slate-400">Không có dữ liệu phòng ban</div>
+                                );
+                                if (filtered.length === 0) return (
+                                    <div className="px-4 py-6 text-center text-sm text-slate-400">Không tìm thấy phòng ban nào</div>
+                                );
+                                return (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1">
+                                        {filtered.map((dept) => {
+                                            const isSelected = formData.departmentIds?.includes(dept.id);
+                                            return (
+                                                <label
+                                                    key={dept.id}
+                                                    className={`flex flex-row items-center gap-2.5 rounded-md px-2.5 py-2 text-sm cursor-pointer transition-all border ${
+                                                        isSelected
+                                                            ? "bg-indigo-50/50 border-indigo-200 text-indigo-900 font-medium"
+                                                            : "bg-transparent border-transparent text-slate-700 hover:bg-slate-50 hover:border-slate-200"
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected || false}
+                                                        onChange={() => handleToggleDepartment(dept.id)}
+                                                        disabled={isLockedByPayroll}
+                                                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-colors disabled:opacity-50"
+                                                    />
+                                                    <span className="truncate">{dept.departmentName}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </section>

@@ -110,7 +110,7 @@ export default function EmployeeTreeSelector({
     }
 
     return (
-        <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-4 shadow-inner">
+        <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
             <ScrollArea className={`h-auto max-h-[${maxHeight}]`}>
                 <div className="space-y-1">
                     {treeData.map(dept => (

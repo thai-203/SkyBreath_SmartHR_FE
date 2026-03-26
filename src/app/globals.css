@@ -74,13 +74,16 @@ a {
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #e2e8f0;
   border-radius: 10px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1;
 }
@@ -113,6 +116,7 @@ a {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -147,6 +151,7 @@ a {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -156,8 +161,9 @@ a {
 .org-tree-ngang {
   display: block;
   width: max-content;
+  min-width: 100%;
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 20px 30px 20px;
 }
 
 .org-tree-ngang ul {
@@ -180,38 +186,57 @@ a {
 }
 
 /* Connectors */
-.org-tree-ngang li::before, .org-tree-ngang li::after {
+.org-tree-ngang li::before,
+.org-tree-ngang li::after {
   content: '';
   position: absolute;
-  top: 0; right: 50%;
+  top: 0;
+  right: 50%;
   border-top: 2px solid #cbd5e1;
-  width: 50%; height: 20px;
+  width: 50%;
+  height: 20px;
 }
+
 .org-tree-ngang li::after {
-  right: auto; left: 50%;
+  right: auto;
+  left: 50%;
   border-left: 2px solid #cbd5e1;
 }
-.org-tree-ngang li:only-child::after, .org-tree-ngang li:only-child::before {
+
+.org-tree-ngang li:only-child::after,
+.org-tree-ngang li:only-child::before {
   display: none;
 }
-.org-tree-ngang li:only-child { padding-top: 0;}
-.org-tree-ngang li:first-child::before, .org-tree-ngang li:last-child::after {
+
+.org-tree-ngang li:only-child {
+  padding-top: 0;
+}
+
+.org-tree-ngang li:first-child::before,
+.org-tree-ngang li:last-child::after {
   border: 0 none;
 }
+
 .org-tree-ngang li:last-child::before {
   border-right: 2px solid #cbd5e1;
   border-radius: 0 5px 0 0;
 }
+
 .org-tree-ngang li:first-child::after {
   border-radius: 5px 0 0 0;
 }
+
 .org-tree-ngang ul::before {
   content: '';
-  position: absolute; top: 0; left: 50%;
+  position: absolute;
+  top: 0;
+  left: 50%;
   border-left: 2px solid #cbd5e1;
-  width: 0; height: 20px;
+  width: 0;
+  height: 20px;
   transform: translateX(-50%);
 }
+
 .org-tree-ngang .node-content {
   margin: 0 auto;
 }
@@ -227,23 +252,24 @@ a {
   position: absolute;
   top: -10px;
   bottom: 50%;
-  left: -16px; 
+  left: -16px;
   border-left: 2px solid #cbd5e1;
 }
 
-.org-tree-doc-node:last-child > .org-tree-doc-children::before {
+.org-tree-doc-node:last-child>.org-tree-doc-children::before {
   bottom: 0;
 }
 
 .org-tree-doc-node::before {
   content: '';
   position: absolute;
-  top: 25px; /* Adjust to hit the middle of the card header height */
+  top: 25px;
+  /* Adjust to hit the middle of the card header height */
   left: -16px;
   border-top: 2px solid #cbd5e1;
   width: 16px;
 }
 
-.org-tree-doc > .org-tree-doc-node::before {
+.org-tree-doc>.org-tree-doc-node::before {
   display: none;
 }

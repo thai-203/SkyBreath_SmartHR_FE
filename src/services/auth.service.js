@@ -95,6 +95,14 @@ export const authService = {
     const user = JSON.parse(localStorage.getItem("user"));
     const userId = user?.id;
     const response = await api.get(`/employees/user/${userId}`);
-    return response.data;
+    return response.data.data;
+  },
+
+  getProfile: async () => {
+    const response = await api.get("/auth/profile");
+    if (response.data && response.data.success) {
+      localStorage.setItem("user", JSON.stringify(response.data.data));
+    }
+    return response.data.data;
   },
 };

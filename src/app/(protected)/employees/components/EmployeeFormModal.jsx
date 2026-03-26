@@ -57,31 +57,31 @@ export default function EmployeeFormModal({
             fields: [
                 { id: "employeeCode", label: "Mã nhân viên *", type: "text", placeholder: "Ví dụ: NV-001", disabled: isEdit },
                 { id: "fullName", label: "Họ và tên *", type: "text", placeholder: "Nhập họ và tên" },
-                { id: "dateOfBirth", label: "Ngày sinh", type: "date" },
-                { id: "gender", label: "Giới tính", type: "select", options: metadata.genderOptions },
-                { id: "nationality", label: "Quốc tịch", type: "text", placeholder: "Ví dụ: Việt Nam" },
-                { id: "maritalStatus", label: "Tình trạng hôn nhân", type: "select", options: metadata.maritalStatusOptions },
+                { id: "dateOfBirth", label: "Ngày sinh *", type: "date" },
+                { id: "gender", label: "Giới tính *", type: "select", options: metadata.genderOptions },
+                { id: "nationality", label: "Quốc tịch *", type: "text", placeholder: "Ví dụ: Việt Nam" },
+                { id: "maritalStatus", label: "Tình trạng hôn nhân *", type: "select", options: metadata.maritalStatusOptions },
             ]
         },
         {
             title: "Giấy tờ định danh & Thuế",
             fields: [
-                { id: "nationalId", label: "Số CCCD/CMND", type: "text", placeholder: "Số định danh" },
-                { id: "nationalIdIssuedDate", label: "Ngày cấp", type: "date" },
-                { id: "nationalIdIssuedPlace", label: "Nơi cấp", type: "text", placeholder: "Nơi cấp" },
-                { id: "taxCode", label: "Mã số thuế", type: "text", placeholder: "Mã số thuế cá nhân" },
-                { id: "frontIdCard", label: "Ảnh CCCD mặt trước", type: "file", placeholder: "Chọn ảnh mặt trước" },
-                { id: "backIdCard", label: "Ảnh CCCD mặt sau", type: "file", placeholder: "Chọn ảnh mặt sau" },
+                { id: "nationalId", label: "Số CCCD/CMND *", type: "text", placeholder: "Số định danh" },
+                { id: "nationalIdIssuedDate", label: "Ngày cấp *", type: "date" },
+                { id: "nationalIdIssuedPlace", label: "Nơi cấp *", type: "text", placeholder: "Nơi cấp" },
+                { id: "taxCode", label: "Mã số thuế *", type: "text", placeholder: "Mã số thuế cá nhân" },
+                { id: "frontIdCard", label: "Ảnh CCCD mặt trước *", type: "file", placeholder: "Chọn ảnh mặt trước" },
+                { id: "backIdCard", label: "Ảnh CCCD mặt sau *", type: "file", placeholder: "Chọn ảnh mặt sau" },
             ]
         },
         {
             title: "Liên hệ & Địa chỉ",
             fields: [
-                { id: "phoneNumber", label: "Số điện thoại", type: "text", placeholder: "Số điện thoại liên hệ" },
-                { id: "personalEmail", label: "Email cá nhân", type: "email", placeholder: "example@gmail.com", disabled: isEdit },
-                { id: "companyEmail", label: "Email công ty", type: "email", placeholder: "name@company.com", disabled: isEdit },
-                { id: "permanentAddress", label: "Địa chỉ thường trú", type: "text", placeholder: "Địa chỉ trên hộ khẩu" },
-                { id: "currentAddress", label: "Địa chỉ tạm trú", type: "text", placeholder: "Địa chỉ hiện tại" },
+                { id: "phoneNumber", label: "Số điện thoại *", type: "text", placeholder: "Số điện thoại liên hệ" },
+                { id: "personalEmail", label: "Email cá nhân *", type: "email", placeholder: "example@gmail.com", disabled: isEdit },
+                { id: "companyEmail", label: "Email công ty *", type: "email", placeholder: "name@company.com", disabled: isEdit },
+                { id: "permanentAddress", label: "Địa chỉ thường trú *", type: "text", placeholder: "Địa chỉ trên hộ khẩu" },
+                { id: "currentAddress", label: "Địa chỉ tạm trú *", type: "text", placeholder: "Địa chỉ hiện tại" },
             ]
         },
         {
@@ -89,35 +89,35 @@ export default function EmployeeFormModal({
             fields: [
                 {
                     id: "departmentId",
-                    label: "Phòng ban",
+                    label: "Phòng ban *",
                     type: "select",
                     options: metadata.departments?.map(d => ({ value: d.id, label: d.departmentName }))
                 },
                 {
                     id: "positionId",
-                    label: "Chức vụ",
+                    label: "Chức vụ *",
                     type: "select",
                     options: metadata.positions?.map(p => ({ value: p.id, label: p.positionName }))
                 },
                 {
                     id: "jobGradeId",
-                    label: "Cấp bậc",
+                    label: "Cấp bậc *",
                     type: "select",
                     options: metadata.jobGrades?.map(j => ({ value: j.id, label: j.gradeName }))
                 },
-                { id: "employmentStatus", label: "Trạng thái nhân sự", type: "select", options: metadata.employmentStatusOptions },
-                { id: "educationLevel", label: "Trình độ học vấn", type: "text", placeholder: "Ví dụ: Đại học" },
-                { id: "joinDate", label: "Ngày gia nhập", type: "date" },
-                { id: "officialStartDate", label: "Ngày chính thức", type: "date" },
+                { id: "employmentStatus", label: "Trạng thái nhân sự *", type: "select", options: metadata.employmentStatusOptions },
+                { id: "educationLevel", label: "Trình độ học vấn *", type: "text", placeholder: "Ví dụ: Đại học" },
+                { id: "joinDate", label: "Ngày gia nhập *", type: "date" },
+                { id: "officialStartDate", label: "Ngày chính thức *", type: "date" },
                 {
                     id: "directManagerId",
-                    label: "Quản lý trực tiếp",
+                    label: "Quản lý trực tiếp *",
                     type: "select",
                     options: metadata.managers?.map(m => ({ value: m.id, label: m.fullName }))
                 },
                 {
                     id: "hrMentorId",
-                    label: "HR Mentor",
+                    label: "HR Mentor *",
                     type: "select",
                     options: metadata.hrMentors?.map(m => ({ value: m.id, label: m.fullName }))
                 },
