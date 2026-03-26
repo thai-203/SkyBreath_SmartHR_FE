@@ -374,7 +374,7 @@ export default function ContractFormModal({
         </div>
 
         {/* Form Content */}
-        <div className="flex-1 min-h-[480px] max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="flex-1 min-h-[480px] pr-2">
           {activeTab === "general" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
               <div
