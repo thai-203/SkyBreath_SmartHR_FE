@@ -75,7 +75,23 @@ api.interceptors.response.use(
         try {
           const { authService } = await import("@/services/auth.service");
           const res = await authService.refreshToken();
-          const newAccessToken = res.data;
+          
+          // Bulletproof extraction: check all possible locations for the token string
+          let newAccessToken = null;
+          if (typeof res === 'string') {
+            newAccessToken = res;
+          } else if (res && typeof res.data === 'string') {
+            newAccessToken = res.data;
+          } else if (res && res.data && typeof res.data.accessToken === 'string') {
+            newAccessToken = res.data.accessToken;
+          } else if (res && typeof res.accessToken === 'string') {
+            newAccessToken = res.accessToken;
+          }
+
+          if (!newAccessToken) {
+            throw new Error("Không thể lấy mã truy cập mới");
+          }
+
           localStorage.setItem("token", newAccessToken);
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           processQueue(null, newAccessToken);

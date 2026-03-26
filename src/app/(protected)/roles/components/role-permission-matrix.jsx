@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { PermissionService, RoleService } from '@/services/roles.service';
+import { authService } from '@/services/auth.service';
 import { CheckCircle2, Loader2, Pencil, Search, Shield, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -57,7 +58,7 @@ export default function RolePermissionMatrix({ onEditRole }) {
                 handleSelectRole(fetchedRoles[0]);
             }
         } catch (error) {
-            toast.error('Failed to load initial data');
+            toast.error('Không thể tải dữ liệu ban đầu');
             console.error(error);
         } finally {
             setIsLoadingRoles(false);
@@ -71,7 +72,7 @@ export default function RolePermissionMatrix({ onEditRole }) {
             const rolePerms = await RoleService.getPermissions(role.id);
             setSelectedPermissions((rolePerms.data || []).map(p => p.id));
         } catch (error) {
-            toast.error('Failed to load role permissions');
+            toast.error('Không thể tải quyền của vai trò');
             console.error(error);
         } finally {
             setIsLoadingPermissions(false);
@@ -79,11 +80,38 @@ export default function RolePermissionMatrix({ onEditRole }) {
     };
 
     const togglePermission = (id) => {
-        setSelectedPermissions(prev =>
-            prev.includes(id)
-                ? prev.filter(pid => pid !== id)
-                : [...prev, id]
-        );
+        const perm = allPermissions.find(p => p.id === id);
+        if (!perm) return;
+
+        const getAction = (code) => {
+            if (code.includes(':')) return code.split(':').pop().toUpperCase();
+            if (code.includes('_')) return code.split('_').pop().toUpperCase();
+            return 'OTHER';
+        };
+
+        const module = perm.module;
+        const action = getAction(perm.permissionCode);
+        const isChecking = !selectedPermissions.includes(id);
+
+        setSelectedPermissions(prev => {
+            let next = isChecking ? [...prev, id] : prev.filter(pid => pid !== id);
+
+            if (!isChecking && action === 'VIEW') {
+                // If unchecking VIEW, uncheck ALL others in the same module
+                const modulePermIds = allPermissions
+                    .filter(p => p.module === module)
+                    .map(p => p.id);
+                next = next.filter(pid => !modulePermIds.includes(pid));
+            } else if (isChecking && action !== 'VIEW') {
+                // If checking any CRUD, automatically check VIEW in the same module
+                const viewPerm = allPermissions.find(p => p.module === module && getAction(p.permissionCode) === 'VIEW');
+                if (viewPerm && !next.includes(viewPerm.id)) {
+                    next.push(viewPerm.id);
+                }
+            }
+
+            return next;
+        });
     };
 
     const toggleModulePermissions = (module, permissions, isChecked) => {
@@ -100,13 +128,23 @@ export default function RolePermissionMatrix({ onEditRole }) {
         setIsSaving(true);
         try {
             await RoleService.assignPermissions(selectedRole.id, selectedPermissions);
-            toast.success('Permissions updated successfully');
+            
+            // Refresh current user's session in case they are editing their own role
+            await authService.getProfile();
+            
+            toast.success('Cập nhật quyền thành công. Vui lòng đăng nhập lại để áp dụng thay đổi.');
+            
+            // Logout and redirect to login to force session refresh
+            setTimeout(async () => {
+                await authService.logout();
+                window.location.href = '/login';
+            }, 2000);
 
             // Refresh local roles data to update counts if needed
             const rolesData = await RoleService.getRoles();
             setRoles(rolesData.data || []);
         } catch (error) {
-            toast.error('Failed to update permissions');
+            toast.error('Cập nhật quyền thất bại');
         } finally {
             setIsSaving(false);
         }
@@ -117,7 +155,7 @@ export default function RolePermissionMatrix({ onEditRole }) {
 
         try {
             await RoleService.deleteRole(id);
-            toast.success('Role deleted successfully');
+            toast.success('Xóa vai trò thành công');
 
             // Refresh list
             const rolesData = await RoleService.getRoles();
@@ -134,7 +172,7 @@ export default function RolePermissionMatrix({ onEditRole }) {
                 }
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to delete role');
+            toast.error(error.response?.data?.message || 'Xóa vai trò thất bại');
         }
     };
 
@@ -183,7 +221,7 @@ export default function RolePermissionMatrix({ onEditRole }) {
         return (
             <div className="flex h-[400px] items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2">Loading roles...</span>
+                <span className="ml-2">Đang tải danh sách vai trò...</span>
             </div>
         );
     }
@@ -414,7 +452,7 @@ export default function RolePermissionMatrix({ onEditRole }) {
 
                                     {allPermissions.length === 0 && (
                                         <div className="text-center py-20 text-muted-foreground">
-                                            No permissions found. Ensure the database is seeded.
+                                            Không tìm thấy quyền nào. Hãy đảm bảo database đã được tạo dữ liệu mẫu (seed).
                                         </div>
                                     )}
                                 </div>

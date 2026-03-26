@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PermissionService, RoleService } from '@/services/roles.service';
+import { authService } from '@/services/auth.service';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -45,7 +46,7 @@ export default function PermissionAssignmentDialog({ role, open, onOpenChange })
             setSelectedPermissions(rolePermissionIds);
         } catch (error) {
             console.error('Error loading permissions:', error);
-            const message = error.response?.data?.message || error.message || 'Failed to load permissions';
+            const message = error.response?.data?.message || error.message || 'Không thể tải danh sách quyền';
             toast.error(message);
         } finally {
             setIsLoading(false);
@@ -56,21 +57,58 @@ export default function PermissionAssignmentDialog({ role, open, onOpenChange })
         setIsSaving(true);
         try {
             await RoleService.assignPermissions(role.id, selectedPermissions);
-            toast.success('Permissions assigned successfully');
+            
+            // Refresh current user's session
+            await authService.getProfile();
+            
+            toast.success('Cập nhật quyền thành công. Vui lòng đăng nhập lại để áp dụng thay đổi.');
             onOpenChange(false);
+            
+            // Logout and redirect to login
+            setTimeout(async () => {
+                await authService.logout();
+                window.location.href = '/login';
+            }, 2000);
         } catch (error) {
-            toast.error('Failed to assign permissions');
+            toast.error('Giao quyền thất bại');
         } finally {
             setIsSaving(false);
         }
     };
 
     const togglePermission = (id) => {
-        setSelectedPermissions(prev =>
-            prev.includes(id)
-                ? prev.filter(pid => pid !== id)
-                : [...prev, id]
-        );
+        const perm = permissions.find(p => p.id === id);
+        if (!perm) return;
+
+        const getAction = (code) => {
+            if (code.includes(':')) return code.split(':').pop().toUpperCase();
+            if (code.includes('_')) return code.split('_').pop().toUpperCase();
+            return 'OTHER';
+        };
+
+        const module = perm.module || 'General';
+        const action = getAction(perm.permissionCode);
+        const isChecking = !selectedPermissions.includes(id);
+
+        setSelectedPermissions(prev => {
+            let next = isChecking ? [...prev, id] : prev.filter(pid => pid !== id);
+
+            if (!isChecking && action === 'VIEW') {
+                // If unchecking VIEW, uncheck ALL others in the same module
+                const modulePermIds = permissions
+                    .filter(p => (p.module || 'General') === module)
+                    .map(p => p.id);
+                next = next.filter(pid => !modulePermIds.includes(pid));
+            } else if (isChecking && action !== 'VIEW') {
+                // If checking any CRUD, automatically check VIEW in the same module
+                const viewPerm = permissions.find(p => (p.module || 'General') === module && getAction(p.permissionCode) === 'VIEW');
+                if (viewPerm && !next.includes(viewPerm.id)) {
+                    next.push(viewPerm.id);
+                }
+            }
+
+            return next;
+        });
     };
 
     // Group permissions by module
@@ -85,9 +123,9 @@ export default function PermissionAssignmentDialog({ role, open, onOpenChange })
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] h-[80vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Manage Permissions - {role?.roleName}</DialogTitle>
+                    <DialogTitle>Quản lý quyền - {role?.roleName}</DialogTitle>
                     <DialogDescription>
-                        Assign permissions to this role.
+                        Giao quyền cho vai trò này.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -132,10 +170,10 @@ export default function PermissionAssignmentDialog({ role, open, onOpenChange })
                 </div>
 
                 <DialogFooter className="mt-4">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button>
                     <Button onClick={handleSave} disabled={isSaving || isLoading}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Permissions
+                        Lưu quyền
                     </Button>
                 </DialogFooter>
             </DialogContent>

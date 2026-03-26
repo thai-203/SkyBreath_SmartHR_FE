@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { holidayService } from "@/services/holiday.service";
-import { Calendar, ChevronLeft, CreditCard, FileText, User } from "lucide-react";
+import { Calendar, CalendarCheck, ChevronLeft, CreditCard, FileText, User } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -143,6 +143,91 @@ export default function HolidayEntryDetailPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* Compensatory Days */}
+            {Array.isArray(holiday.compensatoryDays) && holiday.compensatoryDays.length > 0 && (
+                <Card className="border-indigo-100 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-indigo-50/50 border-b border-indigo-100 py-4">
+                        <CardTitle className="flex items-center gap-2 text-indigo-700 text-sm font-bold">
+                            <CalendarCheck className="h-4 w-4" />
+                            Ngày làm bù ({holiday.compensatoryDays.length} ngày)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-indigo-50">
+                            {holiday.compensatoryDays.map((cd, i) => {
+                                const d = cd.date ? new Date(cd.date) : null;
+                                const day   = d ? d.getDate() : null;
+                                const month = d ? d.getMonth() + 1 : null;
+                                const year  = d ? d.getFullYear() : null;
+                                const weekday = d ? d.toLocaleDateString("vi-VN", { weekday: "long" }) : "";
+                                return (
+                                    <div key={i} className="flex items-center gap-5 px-5 py-4 hover:bg-indigo-50/30 transition-colors">
+                                        {/* Calendar tile */}
+                                        {d ? (
+                                            <div className="flex-shrink-0 w-16 rounded-xl overflow-hidden border border-indigo-200 shadow-sm text-center">
+                                                <div className="bg-indigo-600 text-white text-[10px] font-bold uppercase py-0.5 tracking-wider">
+                                                    Tháng {month}/{year}
+                                                </div>
+                                                <div className="bg-white py-1">
+                                                    <span className="text-3xl font-extrabold text-indigo-700 leading-none">{String(day).padStart(2, "0")}</span>
+                                                    <p className="text-[10px] text-indigo-400 capitalize mt-0.5">{weekday}</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
+                                                —
+                                            </div>
+                                        )}
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-indigo-800 text-sm">
+                                                Ngày làm bù thứ {i + 1}
+                                            </p>
+                                            {d && (
+                                                <p className="text-[13px] text-gray-500 mt-0.5">
+                                                    {weekday && <span className="capitalize">{weekday}</span>}, ngày {String(day).padStart(2,"0")}/{String(month).padStart(2,"0")}/{year}
+                                                </p>
+                                            )}
+                                            {cd.replacesDate && (() => {
+                                                const rd = new Date(cd.replacesDate);
+                                                const rdStr = rd.toLocaleDateString("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+                                                return (
+                                                    <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 bg-orange-50 border border-orange-200 rounded text-[11px] font-semibold text-orange-700">
+                                                        <span>Bù cho:</span>
+                                                        <span>{rdStr}</span>
+                                                    </div>
+                                                );
+                                            })()}
+                                            {cd.note && (
+                                                <p className="text-sm text-gray-600 mt-1 italic border-l-2 border-indigo-200 pl-2">
+                                                    {cd.note}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Show notice if no compensatory days */}
+            {(!Array.isArray(holiday.compensatoryDays) || holiday.compensatoryDays.length === 0) && (
+                <Card className="border-gray-100 shadow-sm">
+                    <CardHeader className="bg-gray-50/50 border-b border-gray-100 py-4">
+                        <CardTitle className="flex items-center gap-2 text-gray-500 text-sm font-bold">
+                            <CalendarCheck className="h-4 w-4" />
+                            Ngày làm bù
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 text-center text-sm text-gray-400 italic">
+                        Không có ngày làm bù cho kỳ nghỉ này.
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }
