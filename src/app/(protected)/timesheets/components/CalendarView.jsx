@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Star } from "lucide-react";
 
 const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
 
@@ -62,43 +62,13 @@ export default function CalendarView({ data, month, year, onMonthChange }) {
         return days;
     }, [month, year, dailyDetails]);
 
-    const handlePrevMonth = () => {
-        if (month === 1) {
-            onMonthChange(12, year - 1);
-        } else {
-            onMonthChange(month - 1, year);
-        }
-    };
-
-    const handleNextMonth = () => {
-        if (month === 12) {
-            onMonthChange(1, year + 1);
-        } else {
-            onMonthChange(month + 1, year);
-        }
-    };
-
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {/* Calendar Header */}
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
                 <h2 className="text-lg font-semibold text-slate-800">
-                    Tháng {month}/{year}
+                    Bảng công tháng {month}/{year}
                 </h2>
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={handlePrevMonth}
-                        className="p-2 hover:bg-slate-50 rounded-lg border border-slate-200 transition-colors"
-                    >
-                        <ChevronLeft className="h-4 w-4 text-slate-600" />
-                    </button>
-                    <button 
-                        onClick={handleNextMonth}
-                        className="p-2 hover:bg-slate-50 rounded-lg border border-slate-200 transition-colors"
-                    >
-                        <ChevronRight className="h-4 w-4 text-slate-600" />
-                    </button>
-                </div>
             </div>
 
             {/* Day Names */}
@@ -116,11 +86,17 @@ export default function CalendarView({ data, month, year, onMonthChange }) {
                     const { day, isCurrentMonth, detail } = dayObj;
                     const isToday = isCurrentMonth && day === new Date().getDate() && month === (new Date().getMonth() + 1) && year === new Date().getFullYear();
                     
+                    const hasViolation = detail && (detail.lateMinutes > 0 || detail.earlyLeaveMinutes > 0);
+                    const isExcused = detail?.excuseRequest?.status === 'APPROVED';
+                    
                     return (
                         <div 
                             key={index} 
                             className={`min-h-[120px] p-2 border-r border-b border-slate-100 transition-colors ${
-                                !isCurrentMonth ? 'bg-slate-50/50' : isToday ? 'bg-blue-50/30' : 'hover:bg-slate-50/30'
+                                !isCurrentMonth ? 'bg-slate-50/50' : 
+                                isToday ? 'bg-blue-50/30' : 
+                                hasViolation ? (isExcused ? 'bg-amber-50/40' : 'bg-rose-50/60') :
+                                'hover:bg-slate-50/30'
                             }`}
                         >
                             <div className="flex justify-between items-start mb-2">
@@ -129,9 +105,14 @@ export default function CalendarView({ data, month, year, onMonthChange }) {
                                 }`}>
                                     {String(day).padStart(2, '0')}
                                 </span>
-                                {detail?.overtimeHours > 0 && (
-                                    <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                                )}
+                                <div className="flex gap-1">
+                                    {hasViolation && (
+                                        <div className={`w-2 h-2 rounded-full ${isExcused ? 'bg-amber-400' : 'bg-rose-500 animate-pulse'}`} />
+                                    )}
+                                    {detail?.overtimeHours > 0 && (
+                                        <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                                    )}
+                                </div>
                             </div>
 
                             {detail && (
@@ -150,6 +131,20 @@ export default function CalendarView({ data, month, year, onMonthChange }) {
                                             <div className="text-[10px] text-center text-slate-500 font-medium">
                                                 {detail.checkIn} - {detail.checkOut || '--:--'}
                                             </div>
+                                            {(detail.lateMinutes > 0 || detail.earlyLeaveMinutes > 0) && (
+                                                <div className="flex flex-col gap-0 mt-0.5">
+                                                    {detail.lateMinutes > 0 && (
+                                                        <div className={`text-[9px] font-bold text-center ${isExcused ? 'text-amber-600' : 'text-rose-600'}`}>
+                                                            M: {detail.lateMinutes}p
+                                                        </div>
+                                                    )}
+                                                    {detail.earlyLeaveMinutes > 0 && (
+                                                        <div className={`text-[9px] font-bold text-center ${isExcused ? 'text-amber-600' : 'text-rose-600'}`}>
+                                                            S: {detail.earlyLeaveMinutes}p
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                             <div className="text-[10px] text-center text-slate-400 bg-slate-50 rounded py-0.5 border border-slate-100">
                                                 {detail.shiftName || 'CA_HC'}
                                             </div>
