@@ -37,10 +37,9 @@ const menuItems = [
     icon: Building2,
     href: "/departments",
     roles: ["ADMIN", "HR", "MANAGER"],
-    permission: "DEPT_READ",
     children: [
-      { title: "Danh sách", href: "/departments", permission: "DEPT_READ" },
-      { title: "Sơ đồ tổ chức", href: "/departments/chart", permission: "DEPT_READ" },
+      { title: "Danh sách", href: "/departments" },
+      { title: "Sơ đồ tổ chức", href: "/departments/chart" },
     ],
   },
   {
@@ -48,9 +47,8 @@ const menuItems = [
     icon: Users,
     href: "/employees",
     roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
-    permission: "EMPLOYEE_READ",
     children: [
-      { title: "Danh sách", href: "/employees", roles: ["ADMIN", "HR", "MANAGER"], permission: "EMPLOYEE_READ" }
+      { title: "Danh sách", href: "/employees", roles: ["ADMIN", "HR", "MANAGER"] }
     ],
   },
   {
@@ -58,24 +56,28 @@ const menuItems = [
     icon: FileText,
     href: "/contracts",
     roles: ["ADMIN", "HR", "MANAGER"],
-    permission: "CONTRACT_READ",
   },
   {
     title: "Bảng chấm công",
     icon: Clock,
-    href: "/timesheets",
+    href: "/timesheets/data",
     roles: ["ADMIN", "HR", "EMPLOYEE"],
-    permission: "TIMESHEET_READ",
+    children: [
+      { title: "Khởi tạo bảng công", href: "/timesheets/generation", roles: ["ADMIN", "HR"] },
+      { title: "Quản lý dữ liệu", href: "/timesheets/data", roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { title: "Chốt công", href: "/timesheets/locking", roles: ["ADMIN", "HR"] },
+      { title: "Đơn giải trình", href: "/timesheets/excuses", roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { title: "Lịch sử thao tác", href: "/timesheets/history", roles: ["ADMIN", "HR"] },
+    ],
   },
   {
     title: "Bảng lương",
     icon: DollarSign,
     href: "/payroll",
     roles: ["ADMIN", "HR"],
-    permission: "PAYROLL_READ",
     children: [
-      { title: "Bảng lương tháng", href: "/payroll", permission: "PAYROLL_READ" },
-      { title: "Loại bảng lương", href: "/payroll/types", permission: "PAYROLL_READ" },
+      { title: "Bảng lương tháng", href: "/payroll" },
+      { title: "Loại bảng lương", href: "/payroll/types" },
     ],
   },
   {
@@ -83,12 +85,11 @@ const menuItems = [
     icon: CalendarClock,
     href: "/shifts/groups",
     roles: ["ADMIN", "HR", "MANAGER"],
-    permission: "SHIFT_READ",
     children: [
-      { title: "Nhóm ca", href: "/shifts/groups", permission: "SHIFT_READ" },
-      { title: "Ca làm việc", href: "/shifts/working", permission: "SHIFT_READ" },
-      { title: "Phân ca", href: "/shifts/assignments", permission: "SHIFT_READ" },
-      { title: "Lịch ca", href: "/shifts/schedule", permission: "SHIFT_READ" },
+      { title: "Nhóm ca", href: "/shifts/groups" },
+      { title: "Ca làm việc", href: "/shifts/working" },
+      { title: "Phân ca", href: "/shifts/assignments" },
+      { title: "Lịch ca", href: "/shifts/schedule" },
     ],
   },
   {
@@ -102,11 +103,10 @@ const menuItems = [
     icon: Calendar,
     href: "/holidays",
     roles: ["ADMIN", "HR", "MANAGER"],
-    permission: "HOLIDAY_READ",
     children: [
-      { title: "Danh sách", href: "/holidays", permission: "HOLIDAY_READ" },
-      { title: "Danh mục", href: "/holidays/groups", permission: "HOLIDAY_READ" },
-      { title: "Cấu hình", href: "/holidays/configuration", permission: "HOLIDAY_READ" },
+      { title: "Danh sách", href: "/holidays" },
+      { title: "Gửi nhắc nhở", href: "/holidays/notifications" },
+      { title: "Cấu hình", href: "/holidays/configuration" },
     ],
   },
   {
@@ -120,10 +120,9 @@ const menuItems = [
     icon: UserPlus,
     href: "/onboardings/plans",
     roles: ["ADMIN", "HR"],
-    permission: "ONBOARDING_PLAN_READ",
     children: [
-      { title: "Danh sách", href: "/onboardings/plans", permission: "ONBOARDING_PLAN_READ" },
-      { title: "Mẫu", href: "/onboardings/template", permission: "ONBOARDING_PLAN_READ" },
+      { title: "Danh sách", href: "/onboardings/plans" },
+      { title: "Mẫu", href: "/onboardings/template" },
     ],
   },
   {
@@ -137,13 +136,13 @@ const menuItems = [
     ],
   },
   {
-    title: "Quy định",
+    title: "Chính sách & Quy định",
     icon: ScrollText,
     href: "/policy/overtime",
     roles: ["EMPLOYEE"],
     children: [
-      { title: "Làm thêm giờ", href: "/policy/overtime" },
-      { title: "Hình phạt", href: "/policy/penalties" },
+      { title: "Quy định Overtime", href: "/policy/overtime" },
+      { title: "Quy định Vi phạm (Penalty)", href: "/policy/penalties" },
     ],
   },
   {
@@ -151,10 +150,9 @@ const menuItems = [
     icon: User,
     href: "/users",
     roles: ["ADMIN"],
-    permission: "USER_READ",
     children: [
-      { title: "Danh sách", href: "/users", permission: "USER_READ" },
-      { title: "Lịch sử hoạt động", href: "/users/audit-log", permission: "USER_READ" },
+      { title: "Danh sách", href: "/users" },
+      { title: "Lịch sử hoạt động", href: "/users/audit-log" },
     ],
   },
   {
@@ -162,10 +160,9 @@ const menuItems = [
     icon: ShieldAlert,
     href: "/roles",
     roles: ["ADMIN"],
-    permission: "ROLE_READ",
     children: [
-      { title: "Vai trò", href: "/roles", permission: "ROLE_READ" },
-      { title: "Quyền hệ thống", href: "/permissions", permission: "ROLE_READ" },
+      { title: "Vai trò", href: "/roles" },
+      { title: "Quyền hệ thống", href: "/permissions" },
     ],
   },
   {
@@ -180,7 +177,7 @@ const menuItems = [
   },
 ];
 
-function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
+function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose, user }) {
   const hasChildren = item.children && item.children.length > 0;
   const pathname = usePathname();
 
@@ -232,25 +229,26 @@ function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
       {hasChildren && isOpen && (
         <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 pl-4">
           {item.children
-            .filter(child => {
-              if (child.permission) return authService.hasPermission(child.permission);
-              return !child.roles || authService.hasAnyRole(child.roles);
-            })
-            .map((child) => (
-              <Link
-                key={child.href}
-                href={child.href}
-                onClick={onMobileClose}
-                className={cn(
-                  "block rounded-lg px-3 py-2 text-sm transition-all duration-200",
-                  pathname === child.href
-                    ? "bg-slate-100 font-medium text-indigo-500"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
-                )}
-              >
-                {child.title}
-              </Link>
-            ))}
+            .filter(child => !child.roles || authService.hasAnyRole(child.roles))
+            .map((child) => {
+              const isEmployeeOnly = user?.roles?.includes('EMPLOYEE') && !user?.roles?.some(r => ['ADMIN', 'HR'].includes(r));
+              const displayTitle = (child.href === '/timesheets/data' && isEmployeeOnly) ? 'Bảng công cá nhân' : child.title;
+              return (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  onClick={onMobileClose}
+                  className={cn(
+                    "block rounded-lg px-3 py-2 text-sm transition-all duration-200",
+                    pathname === child.href
+                      ? "bg-slate-100 font-medium text-indigo-500"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  {displayTitle}
+                </Link>
+              );
+            })}
         </div>
       )}
     </div>
@@ -308,10 +306,7 @@ export function Sidebar({ className, onMobileClose }) {
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
         {menuItems
-          .filter((item) => {
-            if (item.permission) return authService.hasPermission(item.permission);
-            return !item.roles || authService.hasAnyRole(item.roles);
-          })
+          .filter((item) => !item.roles || authService.hasAnyRole(item.roles))
           .map((item) => (
             <MenuItem
               key={item.href}
@@ -320,6 +315,7 @@ export function Sidebar({ className, onMobileClose }) {
               isOpen={openMenuHref === item.href}
               onToggle={() => handleToggle(item.href)}
               onMobileClose={onMobileClose}
+              user={user}
             />
           ))}
       </nav>
