@@ -24,7 +24,7 @@ import { departmentsService } from "@/services/departments.service";
 import { employeesService } from "@/services/employees.service";
 import EmployeeTreeSelector from "./EmployeeTreeSelector";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, CheckCircle2 } from "lucide-react";
+import { X, CheckCircle2, CalendarDays, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -54,6 +54,10 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
     const [loadingTree, setLoadingTree] = useState(false);
     const [groups, setGroups] = useState([]);
     const [loadingGroups, setLoadingGroups] = useState(false);
+
+    // Compensatory days feature
+    const [compensatoryEnabled, setCompensatoryEnabled] = useState(false);
+    const [compensatoryDays, setCompensatoryDays] = useState([]);
     
     const form = useForm({
         resolver: zodResolver(holidaySchema),
@@ -74,8 +78,20 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
         if (isOpen) {
             fetchTreeData();
             fetchGroups();
+            fetchConfig();
         }
     }, [isOpen]);
+
+    const fetchConfig = async () => {
+        try {
+            const res = await holidayConfigService.getConfig();
+            if (res.success) {
+                setCompensatoryEnabled(res.data?.compensatoryWorkingDaysEnabled ?? false);
+            }
+        } catch (err) {
+            console.error("Failed to fetch config:", err);
+        }
+    };
 
     const fetchGroups = async () => {
         setLoadingGroups(true);
@@ -167,6 +183,10 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                 holidayGroupId: holiday.holidayGroupId || undefined,
                 employeeIds: holiday.employees?.map(e => e.id) || [],
             });
+            // Restore compensatory days when editing an existing holiday
+            setCompensatoryDays(
+                Array.isArray(holiday.compensatoryDays) ? holiday.compensatoryDays : []
+            );
         } else {
             form.reset({
                 holidayName: "",
@@ -178,13 +198,66 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                 holidayGroupId: undefined,
                 employeeIds: [],
             });
+            setCompensatoryDays([]);
         }
     }, [holiday, form, isOpen]);
 
+    // ── Compensatory days helpers ──────────────────────────────────────────
+    const addCompensatoryDay = () => {
+        const holidayName = form.getValues("holidayName");
+        setCompensatoryDays(prev => [
+            ...prev,
+            {
+                date: "",
+                replacesDate: "",
+                note: holidayName ? `Làm bù ngày nghỉ ${holidayName}` : ""
+            }
+        ]);
+    };
+
+    const removeCompensatoryDay = (index) => {
+        setCompensatoryDays(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const updateCompensatoryDay = (index, field, value) => {
+        setCompensatoryDays(prev =>
+            prev.map((item, i) => i === index ? { ...item, [field]: value } : item)
+        );
+    };
+    // ──────────────────────────────────────────────────────────────────────
+
     const onHandleSubmit = async (data) => {
         try {
-            await onSubmit(data);
+            if (compensatoryEnabled) {
+                const start = new Date(data.startDate + "T00:00:00");
+                const end = new Date(data.endDate + "T00:00:00");
+                
+                for (let i = 0; i < compensatoryDays.length; i++) {
+                    const cd = compensatoryDays[i];
+                    if (!cd.date) {
+                        toastError(`Vui lòng chọn ngày làm bù cho dòng thứ ${i + 1}`);
+                        return;
+                    }
+                    if (!cd.replacesDate) {
+                        toastError(`Vui lòng chọn ngày cần bù cho dòng thứ ${i + 1}`);
+                        return;
+                    }
+                    
+                    const rDate = new Date(cd.replacesDate + "T00:00:00");
+                    if (rDate < start || rDate > end) {
+                        toastError(`Tại ngày làm bù thứ ${i + 1}: Ngày được chọn làm bù không còn nằm trong danh sách ngày nghỉ (Từ ${data.startDate} đến ${data.endDate}). Vui lòng chọn lại.`);
+                        return;
+                    }
+                }
+            }
+
+            const payload = {
+                ...data,
+                compensatoryDays: compensatoryEnabled ? compensatoryDays : []
+            };
+            await onSubmit(payload);
             form.reset();
+            setCompensatoryDays([]);
         } catch (error) {
             console.error("Holiday submission failed:", error);
             // Form is NOT reset here so the user can fix the data
@@ -211,7 +284,12 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent hideClose className="w-[95vw] sm:max-w-4xl lg:max-w-5xl bg-white p-0 gap-0 overflow-hidden border-none shadow-2xl max-h-[90vh] flex flex-col">
+            <DialogContent 
+                hideClose 
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+                className="w-[95vw] sm:max-w-4xl lg:max-w-5xl bg-white p-0 gap-0 overflow-hidden border-none shadow-2xl max-h-[90vh] flex flex-col"
+            >
                 <Form {...form}>
                     <form 
                         onSubmit={form.handleSubmit(onHandleSubmit, onInvalid)}
@@ -240,12 +318,6 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                         {/* Content */}
                         <ScrollArea className="flex-1 overflow-y-auto">
                             <div className="p-4 sm:p-8 space-y-6">
-                            {/* Unit Badge */}
-                            <div className="flex justify-end mb-2">
-                                <div className="bg-[#fff7ed] border border-[#ffedd5] px-3 py-1.5 rounded text-[13px] text-[#9a3412]">
-                                    Thuộc đơn vị: DNPW - Dnp water
-                                </div>
-                            </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
                                 <FormField
@@ -445,6 +517,144 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                                         )}
                                     />
                                 </div>
+
+                                {/* ── Compensatory Days Section ─────────────────────────────── */}
+                                {compensatoryEnabled && (
+                                    <div className="col-span-1 sm:col-span-2 mt-2">
+                                        <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-5 space-y-4">
+                                            {/* Section header */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <CalendarDays className="h-4 w-4 text-indigo-600" />
+                                                    <span className="text-[13px] font-bold text-indigo-800 uppercase tracking-tight">
+                                                        Ngày làm bù
+                                                    </span>
+                                                    {compensatoryDays.length > 0 && (
+                                                        <span className="ml-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-semibold">
+                                                            {compensatoryDays.length} ngày
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={addCompensatoryDay}
+                                                    className="flex items-center gap-1.5 text-[12px] text-indigo-600 font-semibold hover:text-indigo-800 transition-colors px-3 py-1.5 rounded-lg hover:bg-indigo-100"
+                                                >
+                                                    <Plus className="h-3.5 w-3.5" />
+                                                    Thêm ngày làm bù
+                                                </button>
+                                            </div>
+
+                                            {/* Empty state */}
+                                            {compensatoryDays.length === 0 && (
+                                                <div className="text-center py-6 text-[13px] text-indigo-400 italic border-2 border-dashed border-indigo-200 rounded-lg">
+                                                    Chưa có ngày làm bù nào. Nhấn &quot;Thêm ngày làm bù&quot; để bắt đầu.
+                                                </div>
+                                            )}
+
+                                            {/* Rows */}
+                                            <div className="space-y-3">
+                                                {compensatoryDays.map((item, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="flex items-start gap-3 bg-white border border-indigo-100 rounded-lg px-4 py-3 shadow-sm"
+                                                    >
+                                                        {/* Index badge */}
+                                                        <div className="flex-shrink-0 w-6 h-6 mt-6 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center justify-center">
+                                                            {index + 1}
+                                                        </div>
+
+                                                        {/* Step 1: which holiday date needs compensating */}
+                                                        <div className="flex-shrink-0 space-y-1">
+                                                            <label className="flex items-center gap-1 text-[11px] font-semibold uppercase">
+                                                                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 text-orange-600 text-[9px] font-bold">1</span>
+                                                                <span className="text-orange-600">Ngày cần bù</span>
+                                                            </label>
+                                                            {(() => {
+                                                                const start = form.getValues("startDate");
+                                                                const end   = form.getValues("endDate");
+                                                                if (start && end) {
+                                                                    // Build list of dates in the holiday range
+                                                                    const dates = [];
+                                                                    const s = new Date(start);
+                                                                    const e = new Date(end);
+                                                                    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                                                                        dates.push(d.toISOString().split("T")[0]);
+                                                                    }
+                                                                    return (
+                                                                        <select
+                                                                            value={item.replacesDate || ""}
+                                                                            onChange={(e) => updateCompensatoryDay(index, "replacesDate", e.target.value)}
+                                                                            className="h-9 px-2 border border-gray-200 rounded text-[13px] focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 bg-white"
+                                                                        >
+                                                                            <option value="">-- Chọn ngày --</option>
+                                                                            {dates.map(dt => {
+                                                                                const d = new Date(dt);
+                                                                                const label = d.toLocaleDateString("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+                                                                                return <option key={dt} value={dt}>{label}</option>;
+                                                                            })}
+                                                                        </select>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <input
+                                                                        type="date"
+                                                                        value={item.replacesDate || ""}
+                                                                        onChange={(e) => updateCompensatoryDay(index, "replacesDate", e.target.value)}
+                                                                        className="h-9 px-3 border border-gray-200 rounded text-[13px] focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 bg-white"
+                                                                    />
+                                                                );
+                                                            })()}
+                                                        </div>
+
+                                                        {/* Step 2: the actual make-up workday */}
+                                                        <div className="flex-shrink-0 space-y-1">
+                                                            <label className="flex items-center gap-1 text-[11px] font-semibold uppercase">
+                                                                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 text-[9px] font-bold">2</span>
+                                                                <span className="text-indigo-600">Ngày làm bù</span>
+                                                            </label>
+                                                            <input
+                                                                type="date"
+                                                                value={item.date}
+                                                                onChange={(e) => updateCompensatoryDay(index, "date", e.target.value)}
+                                                                className="h-9 px-3 border border-gray-200 rounded text-[13px] focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 bg-white"
+                                                            />
+                                                        </div>
+
+                                                        {/* Note */}
+                                                        <div className="flex-1 space-y-1">
+                                                            <label className="text-[11px] text-gray-500 font-medium uppercase">
+                                                                Ghi chú
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={item.note}
+                                                                onChange={(e) => updateCompensatoryDay(index, "note", e.target.value)}
+                                                                placeholder={`Ví dụ: Làm bù ngày nghỉ ${form.getValues("holidayName") || "..."}`}
+                                                                className="w-full h-9 px-3 border border-gray-200 rounded text-[13px] focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 bg-white"
+                                                            />
+                                                        </div>
+
+                                                        {/* Delete */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeCompensatoryDay(index)}
+                                                            className="flex-shrink-0 mt-6 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Xóa dòng"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <p className="text-[11px] text-indigo-400 italic">
+                                                * Ghi chú rõ ngày làm bù này dành cho kỳ nghỉ lễ nào để tiện tra cứu và tính công.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* ─────────────────────────────────────────────────────────── */}
                             </div>
                         </div>
                     </ScrollArea>

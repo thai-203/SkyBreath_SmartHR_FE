@@ -60,8 +60,15 @@ const menuItems = [
   {
     title: "Bảng chấm công",
     icon: Clock,
-    href: "/timesheets",
+    href: "/timesheets/data",
     roles: ["ADMIN", "HR", "EMPLOYEE"],
+    children: [
+      { title: "Khởi tạo bảng công", href: "/timesheets/generation", roles: ["ADMIN", "HR"] },
+      { title: "Quản lý dữ liệu", href: "/timesheets/data", roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { title: "Chốt công", href: "/timesheets/locking", roles: ["ADMIN", "HR"] },
+      { title: "Đơn giải trình", href: "/timesheets/excuses", roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { title: "Lịch sử thao tác", href: "/timesheets/history", roles: ["ADMIN", "HR"] },
+    ],
   },
   {
     title: "Bảng lương",
@@ -170,7 +177,7 @@ const menuItems = [
   },
 ];
 
-function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
+function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose, user }) {
   const hasChildren = item.children && item.children.length > 0;
   const pathname = usePathname();
 
@@ -223,21 +230,25 @@ function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose }) {
         <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 pl-4">
           {item.children
             .filter(child => !child.roles || authService.hasAnyRole(child.roles))
-            .map((child) => (
-              <Link
-                key={child.href}
-                href={child.href}
-                onClick={onMobileClose}
-                className={cn(
-                  "block rounded-lg px-3 py-2 text-sm transition-all duration-200",
-                  pathname === child.href
-                    ? "bg-slate-100 font-medium text-indigo-500"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
-                )}
-              >
-                {child.title}
-              </Link>
-            ))}
+            .map((child) => {
+              const isEmployeeOnly = user?.roles?.includes('EMPLOYEE') && !user?.roles?.some(r => ['ADMIN', 'HR'].includes(r));
+              const displayTitle = (child.href === '/timesheets/data' && isEmployeeOnly) ? 'Bảng công cá nhân' : child.title;
+              return (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  onClick={onMobileClose}
+                  className={cn(
+                    "block rounded-lg px-3 py-2 text-sm transition-all duration-200",
+                    pathname === child.href
+                      ? "bg-slate-100 font-medium text-indigo-500"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  {displayTitle}
+                </Link>
+              );
+            })}
         </div>
       )}
     </div>
@@ -304,6 +315,7 @@ export function Sidebar({ className, onMobileClose }) {
               isOpen={openMenuHref === item.href}
               onToggle={() => handleToggle(item.href)}
               onMobileClose={onMobileClose}
+              user={user}
             />
           ))}
       </nav>

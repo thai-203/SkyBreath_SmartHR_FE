@@ -3,15 +3,12 @@
 import { useState, useEffect } from "react";
 import { 
   Settings, 
-  Plus, 
-  Trash2, 
-  Edit, 
   Save, 
-  Calendar,
-  ShieldCheck,
   Bell,
-  Check,
-  Send
+  Send,
+  Users,
+  Building2,
+  Calendar,
 } from "lucide-react";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Button } from "@/components/common/Button";
@@ -20,14 +17,20 @@ import { Input } from "@/components/common/Input";
 import { Switch } from "@/components/common/Switch";
 import { Checkbox } from "@/components/common/Checkbox";
 import { useToast } from "@/components/common/Toast";
-import { holidayConfigService, holidayService } from "@/services";
-import { Modal } from "@/components/common/Modal";
-import { HolidayGroupModal } from "../components/HolidayGroupModal";
+import { holidayConfigService, departmentsService, employeesService } from "@/services";
+import EmployeeTreeSelector from "../components/EmployeeTreeSelector";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from "@/components/ui/dialog";
 
 export default function HolidayConfigurationPage() {
-  const { success, error: toastError } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   
-  // State
+  // ── Config state ───────────────────────────────────────
   const [config, setConfig] = useState({
     isPaidByDefault: false,
     compensatoryWorkingDaysEnabled: false,
@@ -39,32 +42,30 @@ export default function HolidayConfigurationPage() {
     reminderRecipients: [],
     reminderHolidayTypes: []
   });
-  const [groups, setGroups] = useState([]);
+  const [recipientMode, setRecipientMode] = useState('ALL'); // ALL, PARTIAL
+  const [treeData, setTreeData] = useState([]);
+  const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
+  const [loadingChart, setLoadingChart] = useState(false);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [triggering, setTriggering] = useState(false);
   
-  // Group Modal State
-  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState(null);
-  const [groupFormData, setGroupFormData] = useState({ 
-    groupName: "", 
-    groupCode: "",
-    year: new Date().getFullYear(),
-    applicableScope: "GLOBAL",
-    status: "ACTIVE",
-    description: "" 
-  });
-
+  // ── Fetch configuration ────────────────────────────────
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [configRes, groupsRes] = await Promise.all([
-        holidayConfigService.getConfig(),
-        holidayConfigService.getGroups()
-      ]);
-      if (configRes.success) setConfig(configRes.data);
-      if (groupsRes.success) setGroups(groupsRes.data);
+      const configRes = await holidayConfigService.getConfig();
+      if (configRes.success) {
+        const fetchedConfig = configRes.data;
+        setConfig(fetchedConfig);
+        // Set mode based on content
+        if (fetchedConfig.reminderRecipients?.includes('ALL_EMPLOYEES')) {
+          setRecipientMode('ALL');
+        } else {
+          setRecipientMode('PARTIAL');
+        }
+      }
     } catch (err) {
       toastError("Không thể tải dữ liệu cấu hình");
     } finally {
@@ -72,17 +73,75 @@ export default function HolidayConfigurationPage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
+  const fetchChartData = async () => {
+    setLoadingChart(true);
+    try {
+      const [deptRes, empRes] = await Promise.all([
+        departmentsService.getChart(),
+        employeesService.getAll({ limit: 1000 })
+      ]);
+      const departments = deptRes.data || [];
+      const employees = empRes.data?.items || empRes.data || [];
+      
+      const buildTree = (depts) => {
+        return depts.map(dept => {
+          const deptEmployees = employees.filter(emp => emp.departmentId === dept.id);
+          return {
+            ...dept,
+            employees: deptEmployees,
+            children: dept.children ? buildTree(dept.children) : []
+          };
+        });
+      };
+      setTreeData(buildTree(departments));
+    } catch {
+      toastError("Không thể tải sơ đồ nhân sự");
+    } finally {
+      setLoadingChart(false);
+    }
+  };
+
+  useEffect(() => { 
+    fetchData(); 
+    fetchChartData();
   }, []);
 
+  // ── Recipient Handlers ─────────────────────────────────
+  const handleRecipientModeChange = (mode) => {
+    setRecipientMode(mode);
+    if (mode === 'ALL') {
+      setConfig(prev => ({ ...prev, reminderRecipients: ['ALL_EMPLOYEES'] }));
+    } else {
+      const currentRecipients = config.reminderRecipients || [];
+      const newRecs = currentRecipients.includes('ALL_EMPLOYEES') ? [] : currentRecipients;
+      setConfig(prev => ({ ...prev, reminderRecipients: newRecs }));
+    }
+  };
+
+  const handleTreeSelect = (item, checked) => {
+    const isEmployee = !!item.fullName;
+    let idsToToggle = [];
+    if (isEmployee) {
+      idsToToggle = [String(item.id)];
+    } else {
+      idsToToggle = item.employees?.map(e => String(e.id)) || [];
+    }
+
+    let nextRecipients = [...(config.reminderRecipients || [])];
+    if (checked) {
+      nextRecipients = Array.from(new Set([...nextRecipients, ...idsToToggle]));
+    } else {
+      nextRecipients = nextRecipients.filter(id => !idsToToggle.includes(id));
+    }
+    setConfig(prev => ({ ...prev, reminderRecipients: nextRecipients }));
+  };
+
+  // ── Config actions ─────────────────────────────────────
   const handleSaveConfig = async () => {
     setSaving(true);
     try {
       const res = await holidayConfigService.updateConfig(config);
-      if (res.success) {
-        success("Cập nhật cấu hình thành công");
-      }
+      if (res.success) toastSuccess("Cập nhật cấu hình thành công");
     } catch (err) {
       toastError("Lỗi khi cập nhật cấu hình");
     } finally {
@@ -92,13 +151,10 @@ export default function HolidayConfigurationPage() {
 
   const handleTriggerReminders = async () => {
     if (!confirm("Bạn có muốn chạy kiểm tra và gửi thông báo nhắc nhở cho các ngày lễ sắp tới ngay bây giờ?")) return;
-    
     setTriggering(true);
     try {
       const res = await holidayConfigService.triggerReminders();
-      if (res.success) {
-        success("Đã kích hoạt gửi thông báo nhắc nhở thành công");
-      }
+      if (res.success) toastSuccess("Đã kích hoạt gửi thông báo nhắc nhở thành công");
     } catch (err) {
       toastError("Lỗi khi kích hoạt thông báo");
     } finally {
@@ -106,81 +162,35 @@ export default function HolidayConfigurationPage() {
     }
   };
 
-  const handleOpenGroupModal = (group = null) => {
-    if (group) {
-      setEditingGroup(group);
-      setGroupFormData({ 
-        groupName: group.groupName, 
-        groupCode: group.groupCode || "",
-        year: group.year || new Date().getFullYear(),
-        applicableScope: group.applicableScope || "GLOBAL",
-        status: group.status || "ACTIVE",
-        description: group.description || "" 
-      });
-    } else {
-      setEditingGroup(null);
-      setGroupFormData({ 
-        groupName: "", 
-        groupCode: "",
-        year: new Date().getFullYear(),
-        applicableScope: "GLOBAL",
-        status: "ACTIVE",
-        description: "" 
-      });
-    }
-    setIsGroupModalOpen(true);
-  };
-
-  const handleSaveGroup = async (data) => {
-    try {
-      if (editingGroup) {
-        await holidayConfigService.updateGroup(editingGroup.id, data);
-        success("Cập nhật danh mục thành công");
-      } else {
-        await holidayConfigService.createGroup(data);
-        success("Thêm danh mục mới thành công");
-      }
-      setIsGroupModalOpen(false);
-      fetchData();
-    } catch (err) {
-      toastError(err.response?.data?.message || "Lỗi khi lưu danh mục");
-    }
-  };
-
-  const handleDeleteGroup = async (id) => {
-    if (confirm("Bạn có chắc chắn muốn xóa nhóm này?")) {
-      try {
-        await holidayConfigService.deleteGroup(id);
-        success("Xóa nhóm thành công");
-        fetchData();
-      } catch (err) {
-        toastError(err.response?.data?.message || "Lỗi khi xóa nhóm");
-      }
-    }
-  };
-
   if (loading) {
-    return <div className="p-8 text-center">Đang tải...</div>;
+    return <div className="p-8 text-center text-slate-500 animate-pulse">Đang tải cấu hình...</div>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 container mx-auto py-8 max-w-4xl">
       <PageTitle title="Cấu hình Ngày nghỉ lễ" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Global Settings */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="p-6">
-            <div className="flex items-center gap-2 mb-4 border-b pb-2">
-              <Settings className="h-5 w-5 text-indigo-500" />
-              <h2 className="text-lg font-semibold">Cài đặt chung</h2>
-            </div>
+      <Card className="p-8">
+        <div className="flex items-center gap-3 mb-8 border-b pb-4">
+          <div className="p-2 bg-indigo-50 rounded-lg">
+            <Settings className="h-6 w-6 text-indigo-500" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Cài đặt chung & Nhắc nhở</h2>
+            <p className="text-sm text-slate-500 mt-0.5">Thiết lập các quy tắc mặc định và chính sách thông báo ngày nghỉ.</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* Section: Core Rules */}
+          <div className="space-y-8">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest border-l-4 border-indigo-400 pl-3">Quy tắc mặc định</h3>
             
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="space-y-6">
+              <div className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-all hover:shadow-md">
                 <div>
-                  <p className="font-medium">Mặc định là ngày nghỉ có lương</p>
-                  <p className="text-sm text-slate-500">Tự động đánh dấu nghỉ có lương khi tạo mới</p>
+                  <p className="font-bold text-slate-800">Mặc định nghỉ có lương</p>
+                  <p className="text-xs text-slate-500 mt-1">Tự động đánh dấu là ngày nghỉ có hưởng lương khi tạo mới ngày lễ.</p>
                 </div>
                 <Switch 
                   checked={config.isPaidByDefault} 
@@ -188,212 +198,185 @@ export default function HolidayConfigurationPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-all hover:shadow-md">
                 <div>
-                  <p className="font-medium">Hỗ trợ ngày làm bù</p>
-                  <p className="text-sm text-slate-500">Cho phép cấu hình các ngày làm việc bù cho ngày lễ</p>
+                  <p className="font-bold text-slate-800">Hỗ trợ ngày làm bù</p>
+                  <p className="text-xs text-slate-500 mt-1">Bật tính năng cấu hình các ngày làm việc thay thế cho ngày nghỉ lễ.</p>
                 </div>
                 <Switch 
                   checked={config.compensatoryWorkingDaysEnabled} 
                   onCheckedChange={(val) => setConfig({...config, compensatoryWorkingDaysEnabled: val})}
                 />
               </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-amber-500" />
-                  <p className="font-medium">Nhắc nhở ngày nghỉ lễ</p>
-                </div>
-                
-                <div className="space-y-4 pl-6 border-l-2 border-slate-100 ml-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Bật nhắc nhở</span>
-                    <Switch 
-                      checked={config.remindersEnabled} 
-                      onCheckedChange={(val) => setConfig({...config, remindersEnabled: val})}
-                    />
-                  </div>
-
-                  {config.remindersEnabled && (
-                    <>
-                      <div className="space-y-1">
-                        <label className="text-xs text-slate-500 uppercase font-bold">Thời gian nhắc (ngày trước lễ)</label>
-                        <Input 
-                          type="number"
-                          min="0"
-                          value={config.reminderLeadTime || 0}
-                          onChange={(e) => setConfig({...config, reminderLeadTime: parseInt(e.target.value)})}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs text-slate-500 uppercase font-bold">Kênh thông báo</label>
-                        <div className="flex gap-4">
-                          <Checkbox 
-                            label="Trong ứng dụng"
-                            checked={config.reminderChannels?.includes('IN_APP')}
-                            onCheckedChange={(checked) => {
-                              const channels = config.reminderChannels || [];
-                              const newChannels = checked 
-                                ? [...channels, 'IN_APP'] 
-                                : channels.filter(c => c !== 'IN_APP');
-                              setConfig({...config, reminderChannels: newChannels});
-                            }}
-                          />
-                          <Checkbox 
-                            label="Email"
-                            checked={config.reminderChannels?.includes('EMAIL')}
-                            onCheckedChange={(checked) => {
-                              const channels = config.reminderChannels || [];
-                              const newChannels = checked 
-                                ? [...channels, 'EMAIL'] 
-                                : channels.filter(c => c !== 'EMAIL');
-                              setConfig({...config, reminderChannels: newChannels});
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs text-slate-500 uppercase font-bold">Người nhận (Vai trò)</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'].map(role => (
-                            <Checkbox 
-                              key={role}
-                              label={role}
-                              checked={config.reminderRecipients?.includes(role)}
-                              onCheckedChange={(checked) => {
-                                const recs = config.reminderRecipients || [];
-                                const newRecs = checked 
-                                  ? [...recs, role] 
-                                  : recs.filter(r => r !== role);
-                                setConfig({...config, reminderRecipients: newRecs});
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs text-slate-500 uppercase font-bold">Nhóm loại ngày nghỉ (phân cách bởi dấu phẩy)</label>
-                        <Input 
-                          placeholder="Ví dụ: Nghỉ lễ, tết"
-                          value={Array.isArray(config.reminderHolidayTypes) ? config.reminderHolidayTypes.join(', ') : (config.reminderHolidayTypes || "")}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const types = val.split(',').map(s => s.trim()).filter(s => s !== '');
-                            setConfig({...config, reminderHolidayTypes: types});
-                          }}
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs text-slate-500 uppercase font-bold">Chính sách/Ghi chú</label>
-                        <Input 
-                          placeholder="Thông báo chung"
-                          value={config.holidayReminderPolicy || ""}
-                          onChange={(e) => setConfig({...config, holidayReminderPolicy: e.target.value})}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-4 space-y-2 border-t mt-4">
-                <Button 
-                  className="w-full" 
-                  onClick={handleSaveConfig}
-                  disabled={saving}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? "Đang lưu..." : "Lưu cài đặt"}
-                </Button>
-
-                <Button 
-                  variant="outline"
-                  className="w-full" 
-                  onClick={handleTriggerReminders}
-                  disabled={triggering}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {triggering ? "Đang xử lý..." : "Chạy kiểm tra thông báo ngay"}
-                </Button>
-              </div>
             </div>
-          </Card>
-        </div>
 
-        {/* Groups List */}
-        <div className="lg:col-span-2">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4 border-b pb-2">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-indigo-500" />
-                <h2 className="text-lg font-semibold">Danh sách Nhóm Ngày lễ</h2>
-              </div>
-              <Button size="sm" onClick={() => handleOpenGroupModal()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Thêm nhóm
+            <div className="pt-6 border-t border-slate-100 space-y-4">
+              <Button className="w-full h-12 rounded-xl shadow-lg shadow-indigo-200" onClick={handleSaveConfig} disabled={saving}>
+                <Save className="h-5 w-5 mr-2" />
+                {saving ? "Đang lưu cấu hình..." : "Lưu cài đặt cấu hình"}
+              </Button>
+
+              <Button variant="outline" className="w-full h-12 rounded-xl text-slate-600 border-slate-200 hover:bg-slate-50" onClick={handleTriggerReminders} disabled={triggering}>
+                <Send className="h-4 w-4 mr-2 text-indigo-500" />
+                {triggering ? "Đang xử lý..." : "Kích hoạt kiểm tra thông báo ngay"}
               </Button>
             </div>
+          </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs uppercase bg-slate-50 text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3 text-xs">Mã</th>
-                    <th className="px-4 py-3">Tên danh mục</th>
-                    <th className="px-4 py-3 text-xs">Năm</th>
-                    <th className="px-4 py-3 text-xs">Trạng thái</th>
-                    <th className="px-4 py-3">Mô tả</th>
-                    <th className="px-4 py-3 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {groups.map((group) => (
-                    <tr key={group.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 font-mono text-xs">{group.groupCode}</td>
-                      <td className="px-4 py-3 font-medium">{group.groupName}</td>
-                      <td className="px-4 py-3">{group.year}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${group.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                          {group.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 truncate max-w-[150px]">{group.description || "-"}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenGroupModal(group)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600" onClick={() => handleDeleteGroup(group.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {groups.length === 0 && (
-                    <tr>
-                      <td colSpan="3" className="px-4 py-8 text-center text-slate-400 italic">
-                        Chưa có nhóm nào được định nghĩa
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          {/* Section: Reminders */}
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest border-l-4 border-amber-400 pl-3">Thông báo nhắc nhở</h3>
+              <Switch 
+                checked={config.remindersEnabled} 
+                onCheckedChange={(val) => setConfig({...config, remindersEnabled: val})}
+              />
             </div>
-          </Card>
-        </div>
-      </div>
+            
+            <div className={`space-y-6 transition-all duration-500 ${config.remindersEnabled ? 'opacity-100 scale-100' : 'opacity-40 grayscale pointer-events-none scale-[0.98]'}`}>
+              <div className="space-y-2">
+                <label className="text-[11px] text-slate-400 uppercase font-extrabold tracking-tighter">Thời gian nhắc (ngày trước lễ)</label>
+                <div className="relative">
+                  <Input 
+                    type="number"
+                    min="0"
+                    placeholder="Số ngày..."
+                    className="h-11 rounded-xl bg-white border-slate-200 focus:ring-amber-200"
+                    value={config.reminderLeadTime || 0}
+                    onChange={(e) => setConfig({...config, reminderLeadTime: parseInt(e.target.value)})}
+                  />
+                  <Calendar className="absolute right-3.5 top-3 h-5 w-5 text-slate-300" />
+                </div>
+              </div>
 
-      <HolidayGroupModal 
-        isOpen={isGroupModalOpen}
-        onClose={() => setIsGroupModalOpen(false)}
-        onSubmit={handleSaveGroup}
-        group={editingGroup}
-      />
+              <div className="space-y-3">
+                <label className="text-[11px] text-slate-400 uppercase font-extrabold tracking-tighter">Kênh thông báo</label>
+                <div className="flex gap-6 p-1">
+                  <Checkbox 
+                    label="Trong ứng dụng"
+                    checked={config.reminderChannels?.includes('IN_APP')}
+                    onCheckedChange={(checked) => {
+                      const channels = config.reminderChannels || [];
+                      setConfig({...config, reminderChannels: checked ? [...channels, 'IN_APP'] : channels.filter(c => c !== 'IN_APP')});
+                    }}
+                  />
+                  <Checkbox 
+                    label="Email"
+                    checked={config.reminderChannels?.includes('EMAIL')}
+                    onCheckedChange={(checked) => {
+                      const channels = config.reminderChannels || [];
+                      setConfig({...config, reminderChannels: checked ? [...channels, 'EMAIL'] : channels.filter(c => c !== 'EMAIL')});
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[11px] text-slate-400 uppercase font-extrabold tracking-tighter">Đối tượng người nhận</label>
+                <div className="flex p-1.5 bg-slate-100/80 rounded-2xl w-full border border-slate-200/50">
+                  <button 
+                    type="button"
+                    onClick={() => handleRecipientModeChange('ALL')}
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                      recipientMode === 'ALL' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Tất cả nhân viên
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => handleRecipientModeChange('PARTIAL')}
+                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                      recipientMode === 'PARTIAL' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Chọn một phần
+                  </button>
+                </div>
+
+                {recipientMode === 'PARTIAL' && (
+                  <div className="animate-in slide-in-from-top-2 duration-300">
+                    <Button 
+                      variant="outline" 
+                      className="w-full h-11 text-[13px] border-dashed border-indigo-200 bg-indigo-50/20 hover:bg-indigo-50 hover:border-indigo-400 transition-all text-indigo-600 rounded-xl"
+                      onClick={() => setIsTreeModalOpen(true)}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Mở sơ đồ chọn nhân sự ({config.reminderRecipients?.filter(r => r !== 'ALL_EMPLOYEES').length || 0})
+                    </Button>
+                  </div>
+                )}
+                
+                {recipientMode === 'ALL' && (
+                  <p className="text-[11px] text-indigo-500/80 italic font-medium bg-indigo-50/50 p-2 rounded-lg border border-indigo-100/50">
+                    * Hệ thống sẽ tự động gửi thông báo đến toàn bộ nhân sự đang hoạt động.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] text-slate-400 uppercase font-extrabold tracking-tighter">Áp dụng cho loại ngày nghỉ</label>
+                <Input 
+                  placeholder="Ví dụ: Nghỉ lễ, tết"
+                  className="h-11 rounded-xl bg-white border-slate-200"
+                  value={Array.isArray(config.reminderHolidayTypes) ? config.reminderHolidayTypes.join(', ') : (config.reminderHolidayTypes || "")}
+                  onChange={(e) => {
+                    const types = e.target.value.split(',').map(s => s.trim()).filter(s => s !== '');
+                    setConfig({...config, reminderHolidayTypes: types});
+                  }}
+                />
+                <p className="text-[10px] text-slate-400 italic">Để trống nếu muốn áp dụng cho tất cả loại nghỉ lễ.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] text-slate-400 uppercase font-extrabold tracking-tighter">Chính sách/Ghi chú mẫu</label>
+                <textarea 
+                  placeholder="Nhập nội dung ghi chú cho thông báo..."
+                  className="w-full min-h-[100px] p-4 text-sm rounded-2xl bg-white border border-slate-200 focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none resize-none transition-all"
+                  value={config.holidayReminderPolicy || ""}
+                  onChange={(e) => setConfig({...config, holidayReminderPolicy: e.target.value})}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Recipient Selector Modal */}
+      <Dialog open={isTreeModalOpen} onOpenChange={setIsTreeModalOpen}>
+        <DialogContent className="max-w-2xl bg-white rounded-3xl overflow-hidden p-0 border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-slate-50 border-b border-slate-100">
+            <DialogTitle className="flex items-center gap-3 text-slate-800">
+              <div className="p-2 bg-indigo-600 text-white rounded-xl">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col">
+                <span>Chọn đối tượng nhận thông báo</span>
+                <span className="text-xs font-normal text-slate-500 mt-0.5">Sử dụng sơ đồ tổ chức để chọn chính xác nhân sự hoặc phòng ban.</span>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="p-6">
+            <EmployeeTreeSelector 
+              treeData={treeData}
+              selectedIds={config.reminderRecipients || []}
+              onSelect={handleTreeSelect}
+              loading={loadingChart}
+              maxHeight="450px"
+            />
+          </div>
+
+          <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between sm:justify-between">
+            <div className="text-sm font-medium text-slate-500">
+              Đã chọn <span className="text-indigo-600 font-bold">{config.reminderRecipients?.length || 0}</span> nhân sự
+            </div>
+            <Button onClick={() => setIsTreeModalOpen(false)} className="px-10 h-11 rounded-xl shadow-lg shadow-indigo-200">
+              Xác nhận và đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
