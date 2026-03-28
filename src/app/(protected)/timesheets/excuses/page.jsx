@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { 
-    Clock, 
-    Filter, 
-    AlertCircle, 
-    CheckCircle2, 
-    XCircle, 
+import {
+    Clock,
+    Filter,
+    AlertCircle,
+    CheckCircle2,
+    XCircle,
     Clock8,
     FileEdit,
     User,
@@ -16,22 +16,22 @@ import {
     Search,
     Loader2
 } from "lucide-react";
-import { 
-    Card, 
-    CardContent, 
-    CardHeader, 
-    CardTitle 
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/common/Select";
 import { Input } from "@/components/common/Input";
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/common/Toast";
@@ -56,14 +56,14 @@ export default function ExcuseRequestsPage() {
 
     const [loading, setLoading] = useState(false);
     const [records, setRecords] = useState([]);
-    
+
     // Modal state
-    const [excuseModal, setExcuseModal] = useState({ 
-        open: false, 
-        mode: 'view', 
-        date: '', 
-        employeeId: null, 
-        data: null 
+    const [excuseModal, setExcuseModal] = useState({
+        open: false,
+        mode: 'view',
+        date: '',
+        employeeId: null,
+        data: null
     });
 
     const handleReset = () => {
@@ -78,7 +78,7 @@ export default function ExcuseRequestsPage() {
         try {
             const params = { month, year };
             if (isHR && departmentId) params.departmentId = departmentId;
-            
+
             const res = await timesheetsService.getLateEarlyRecords(params);
             setRecords(res?.data || []);
         } catch (err) {
@@ -91,7 +91,7 @@ export default function ExcuseRequestsPage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [month, year, departmentId]);
 
     const handleOpenSubmit = (record) => {
         setExcuseModal({
@@ -143,8 +143,8 @@ export default function ExcuseRequestsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Đơn giải trình</h1>
                     <p className="text-slate-500 mt-1">
-                        {isHR 
-                            ? "Quản lý và phê duyệt các đơn giải trình đi muộn/về sớm." 
+                        {isHR
+                            ? "Quản lý và phê duyệt các đơn giải trình đi muộn/về sớm."
                             : "Danh sách các ngày đi muộn/về sớm cần giải trình."}
                     </p>
                 </div>
@@ -171,19 +171,15 @@ export default function ExcuseRequestsPage() {
                         </div>
                         {isHR && (
                             <div className="w-64">
-                                <Input 
-                                    placeholder="Tìm kiếm nhân viên, mã số..." 
+                                <Input
+                                    placeholder="Tìm kiếm nhân viên, mã số..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     icon={<Search className="w-4 h-4 text-slate-400" />}
                                 />
                             </div>
                         )}
-                        <Button onClick={fetchData} disabled={loading} className="gap-2 h-10 px-6">
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Filter className="w-4 h-4" />} 
-                            Lọc
-                        </Button>
-                        <Button variant="ghost" onClick={handleReset} className="text-slate-500 hover:text-rose-500 hover:bg-rose-50 px-3">
+                        <Button variant="ghost" onClick={handleReset} className="text-slate-500 hover:text-rose-500 hover:bg-rose-50 px-3 h-10">
                             Xóa lọc
                         </Button>
                     </div>
@@ -274,9 +270,9 @@ export default function ExcuseRequestsPage() {
                                     <TableCell>{getStatusBadge(record.excuseRequest?.status)}</TableCell>
                                     <TableCell className="text-right">
                                         {record.excuseRequest ? (
-                                            <Button 
-                                                size="sm" 
-                                                variant="outline" 
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
                                                 className="h-8 gap-1.5 border-slate-200 text-slate-600 shadow-none hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
                                                 onClick={() => handleViewExcuse(record)}
                                             >
@@ -284,8 +280,8 @@ export default function ExcuseRequestsPage() {
                                                 Chi tiết
                                             </Button>
                                         ) : !isHR && (
-                                            <Button 
-                                                size="sm" 
+                                            <Button
+                                                size="sm"
                                                 className="h-8 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200 transition-all font-semibold"
                                                 onClick={() => handleOpenSubmit(record)}
                                             >

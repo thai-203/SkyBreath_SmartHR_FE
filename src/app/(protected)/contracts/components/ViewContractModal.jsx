@@ -133,7 +133,7 @@ export default function ViewContractModal({
       title="Chi tiết hợp đồng lao động"
       size="4xl"
     >
-      <div className="space-y-6 mt-4 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-6 mt-4 pr-2">
         {/* Header Section */}
         <header className="flex flex-col md:flex-row justify-between gap-6 bg-slate-50 p-6 rounded-3xl border">
           <div className="flex items-center gap-5">

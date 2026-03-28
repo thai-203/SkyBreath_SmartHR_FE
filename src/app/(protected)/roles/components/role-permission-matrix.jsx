@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { PermissionService, RoleService } from '@/services/roles.service';
 import { authService } from '@/services/auth.service';
-import { CheckCircle2, Loader2, Pencil, Search, Shield, Trash2, X } from 'lucide-react';
+import { CheckCircle2, Loader2, Pencil, Search, Shield, Trash2, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -28,6 +28,7 @@ export default function RolePermissionMatrix({ onEditRole }) {
     const [selectedModuleFilter, setSelectedModuleFilter] = useState('all');
     const [selectedActionFilter, setSelectedActionFilter] = useState('all');
     const [sortMode, setSortMode] = useState('asc'); // 'asc' or 'desc'
+    const [expandedModules, setExpandedModules] = useState({});
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -405,47 +406,93 @@ export default function RolePermissionMatrix({ onEditRole }) {
 
                                         if (filteredPerms.length === 0 && permissionSearch) return null;
 
-                                        const allChecked = filteredPerms.every(p => selectedPermissions.includes(p.id));
+                                        const getAction = (code) => {
+                                            if (code.includes(':')) return code.split(':').pop().toUpperCase();
+                                            if (code.includes('_')) return code.split('_').pop().toUpperCase();
+                                            return 'OTHER';
+                                        };
+
+                                        const viewPerm = filteredPerms.find(p => getAction(p.permissionCode) === 'VIEW');
+                                        const childPerms = viewPerm ? filteredPerms.filter(p => p.id !== viewPerm.id) : filteredPerms;
+
+                                        const allChecked = filteredPerms.length > 0 && filteredPerms.every(p => selectedPermissions.includes(p.id));
                                         const someChecked = filteredPerms.some(p => selectedPermissions.includes(p.id)) && !allChecked;
 
                                         return (
-                                            <div key={module} className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
-                                                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                                            <div key={module} className="space-y-4 animate-in slide-in-from-bottom-2 duration-300 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                                                     <div className="flex items-center gap-3">
-                                                        <Checkbox
-                                                            id={`module-${module}`}
-                                                            checked={allChecked ? true : someChecked ? "indeterminate" : false}
-                                                            onCheckedChange={(checked) => toggleModulePermissions(module, filteredPerms, !!checked)}
-                                                            className="rounded-full border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                                                        />
-                                                        <h3 className="text-base font-bold text-gray-800">{module}</h3>
-                                                        <Badge variant="outline" className="ml-2 font-normal text-gray-400 text-[10px] h-5">
+                                                        {viewPerm ? (
+                                                            <Checkbox
+                                                                id={`perm-${viewPerm.id}`}
+                                                                checked={selectedPermissions.includes(viewPerm.id)}
+                                                                onCheckedChange={() => togglePermission(viewPerm.id)}
+                                                                className="h-5 w-5 rounded-md border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                                            />
+                                                        ) : (
+                                                            <Checkbox
+                                                                id={`module-${module}`}
+                                                                checked={allChecked ? true : someChecked ? "indeterminate" : false}
+                                                                onCheckedChange={(checked) => toggleModulePermissions(module, filteredPerms, !!checked)}
+                                                                className="h-5 w-5 rounded-md border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                                            />
+                                                        )}
+                                                        <button 
+                                                            className="text-base font-bold text-gray-800 cursor-pointer flex items-center flex-wrap gap-2 hover:text-blue-600 transition-colors"
+                                                            onClick={() => setExpandedModules(prev => ({ ...prev, [module]: !prev[module] }))}
+                                                        >
+                                                            {expandedModules[module] ? <ChevronDown className="h-4 w-4 text-gray-500" /> : <ChevronRight className="h-4 w-4 text-gray-500" />}
+                                                            {module}
+                                                            {viewPerm && <span className="text-sm font-normal text-muted-foreground">(Truy cập trang)</span>}
+                                                        </button>
+                                                        <Badge variant="secondary" className="font-normal text-xs">
                                                             {filteredPerms.length} quyền
                                                         </Badge>
                                                     </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                            onClick={() => toggleModulePermissions(module, filteredPerms, true)}
+                                                        >
+                                                            Chọn tất cả
+                                                        </Button>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={() => toggleModulePermissions(module, filteredPerms, false)}
+                                                        >
+                                                            Bỏ chọn tất cả
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 pl-8">
-                                                    {filteredPerms.map((perm) => {
-                                                        const label = perm.description || perm.permissionCode;
+                                                
+                                                {childPerms.length > 0 && expandedModules[module] && (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 pl-9 pt-1 animate-in slide-in-from-top-2 duration-200">
+                                                        {childPerms.map((perm) => {
+                                                            const label = perm.description || perm.permissionCode;
 
-                                                        return (
-                                                            <div key={perm.id} className="flex items-center space-x-3 group py-1">
-                                                                <Checkbox
-                                                                    id={`perm-${perm.id}`}
-                                                                    checked={selectedPermissions.includes(perm.id)}
-                                                                    onCheckedChange={() => togglePermission(perm.id)}
-                                                                    className="h-4 w-4 rounded-full border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 transition-all"
-                                                                />
-                                                                <label
-                                                                    htmlFor={`perm-${perm.id}`}
-                                                                    className="text-sm font-medium text-gray-600 cursor-pointer group-hover:text-blue-600 transition-colors"
-                                                                >
-                                                                    {label}
-                                                                </label>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                                            return (
+                                                                <div key={perm.id} className="flex items-center space-x-3 group py-1">
+                                                                    <Checkbox
+                                                                        id={`perm-${perm.id}`}
+                                                                        checked={selectedPermissions.includes(perm.id)}
+                                                                        onCheckedChange={() => togglePermission(perm.id)}
+                                                                        className="h-4 w-4 rounded border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 transition-all"
+                                                                    />
+                                                                    <label
+                                                                        htmlFor={`perm-${perm.id}`}
+                                                                        className="text-sm font-medium text-gray-600 cursor-pointer group-hover:text-blue-600 transition-colors"
+                                                                    >
+                                                                        {label}
+                                                                    </label>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
