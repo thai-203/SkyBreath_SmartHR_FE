@@ -34,7 +34,7 @@ export default function OvertimeTable({
     onDelete,
     onActivate,
 }) {
-    const columnCount = 9;
+    const columnCount = 10;
     const [showFilters, setShowFilters] = useState(false);
 
     const handleFilterChange = (field, value) => {
@@ -201,6 +201,7 @@ export default function OvertimeTable({
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Hệ số</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Giờ/ngày</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Giờ/tháng</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 w-32">Phòng ban</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Hiệu lực</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Trạng thái</th>
                             {(authService.hasPermission("OVERTIME_RULE_UPDATE") || authService.hasPermission("OVERTIME_RULE_DELETE")) && (
@@ -240,6 +241,14 @@ export default function OvertimeTable({
                                     </td>
                                     <td className="px-4 py-3 text-center text-sm text-slate-600">{rule.maxHoursPerDay}h</td>
                                     <td className="px-4 py-3 text-center text-sm text-slate-600">{rule.maxHoursPerMonth}h</td>
+                                    <td className="px-4 py-3">
+                                        <div 
+                                            className="text-xs text-slate-600 truncate max-w-[150px]" 
+                                            title={rule.departments?.map(d => d.departmentName).join(", ") || "Tất cả"}
+                                        >
+                                            {rule.departments?.map(d => d.departmentName).join(", ") || "Tất cả"}
+                                        </div>
+                                    </td>
                                     <td className="px-4 py-3 text-sm text-slate-600">
                                         {rule.effectiveFrom ? (
                                             <div className="text-xs">
