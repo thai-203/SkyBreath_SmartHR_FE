@@ -42,7 +42,6 @@ export default function DataManagementPage() {
         departmentId: searchParams.get("departmentId") || "",
         status: searchParams.get("status") || "",
     };
-    const [draft, setDraft] = useState({ ...initialFilters });
     const [filters, setFilters] = useState({ ...initialFilters });
 
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -161,6 +160,13 @@ export default function DataManagementPage() {
         finally { setConfirmLoading(false); }
     };
 
+    const handleFilterChange = (key, value) => {
+        const newFilters = { ...filters, [key]: value };
+        setFilters(newFilters);
+        setPagination(p => ({ ...p, pageIndex: 0 }));
+        syncURL(newFilters);
+    };
+
     const handleExportSummary = async () => {
         try {
             const blob = await timesheetsService.exportSummary({ month: filters.month, year: filters.year, departmentId: filters.departmentId || undefined });
@@ -195,14 +201,7 @@ export default function DataManagementPage() {
         router.replace(`/timesheets/data${qs ? `?${qs}` : ''}`, { scroll: false });
     }, [router]);
 
-    const handleApplyFilter = () => {
-        setFilters({ ...draft });
-        setPagination(p => ({ ...p, pageIndex: 0 }));
-        syncURL(draft);
-    };
-
     const handleClearFilters = () => {
-        setDraft({ ...defaultFilters });
         setFilters({ ...defaultFilters });
         setSearch("");
         setPagination(p => ({ ...p, pageIndex: 0 }));
@@ -248,28 +247,25 @@ export default function DataManagementPage() {
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
                 <div className="flex flex-wrap gap-3 items-center flex-1">
                     <div className="w-32">
-                        <Select hidePlaceholder value={draft.month} onChange={(e) => setDraft({ ...draft, month: parseInt(e.target.value) })}
+                        <Select hidePlaceholder value={filters.month} onChange={(e) => handleFilterChange('month', parseInt(e.target.value))}
                             options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `Tháng ${i + 1}` }))} />
                     </div>
                     <div className="w-24">
-                        <Select hidePlaceholder value={draft.year} onChange={(e) => setDraft({ ...draft, year: parseInt(e.target.value) })}
+                        <Select hidePlaceholder value={filters.year} onChange={(e) => handleFilterChange('year', parseInt(e.target.value))}
                             options={Array.from({ length: 5 }, (_, i) => ({ value: currentDate.getFullYear() - 2 + i, label: `${currentDate.getFullYear() - 2 + i}` }))} />
                     </div>
                     {!isEmployeeOnly && (
                         <>
                             <div className="w-48">
-                                <Select placeholder="Phòng ban" value={draft.departmentId} onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}
+                                <Select placeholder="Phòng ban" value={filters.departmentId} onChange={(e) => handleFilterChange('departmentId', e.target.value)}
                                     options={departments.map(d => ({ value: d.id, label: d.departmentName }))} />
                             </div>
                             <div className="w-32">
-                                <Select placeholder="Trạng thái" value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+                                <Select placeholder="Trạng thái" value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}
                                     options={[{ value: "unlocked", label: "Đang mở" }, { value: "locked", label: "Đã khóa" }]} />
                             </div>
                         </>
                     )}
-                    <Button onClick={handleApplyFilter} className="gap-2 h-10">
-                        <Filter className="h-4 w-4" /> Lọc
-                    </Button>
                     <button onClick={handleClearFilters} className="text-slate-400 hover:text-rose-500 p-2" title="Xóa bộ lọc">
                         <FilterX className="h-5 w-5" />
                     </button>

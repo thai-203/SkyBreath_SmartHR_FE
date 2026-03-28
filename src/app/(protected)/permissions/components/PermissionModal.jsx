@@ -164,7 +164,8 @@ export default function PermissionModal({ permission, open, onOpenChange, onSucc
                                     <FormControl>
                                         <Input
                                             placeholder="VD: USER_CREATE, REPORT_VIEW..."
-                                            className="border-gray-200 focus:border-blue-500 transition-all uppercase"
+                                            disabled={isEdit}
+                                            className="border-gray-200 focus:border-blue-500 transition-all uppercase disabled:bg-gray-100 disabled:cursor-not-allowed"
                                             {...field}
                                             onChange={(e) => {
                                                 const value = e.target.value.toUpperCase().replace(/\s/g, '_');
