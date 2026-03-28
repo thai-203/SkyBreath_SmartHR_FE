@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { title } from "process";
 import { useEffect, useState } from "react";
 
 const menuItems = [
@@ -106,6 +107,7 @@ const menuItems = [
     children: [
       { title: "Danh sách", href: "/holidays" },
       { title: "Gửi nhắc nhở", href: "/holidays/notifications" },
+      { title: "Thêm Danh Mục", href: "/holidays/groups" },
       { title: "Cấu hình", href: "/holidays/configuration" },
     ],
   },
