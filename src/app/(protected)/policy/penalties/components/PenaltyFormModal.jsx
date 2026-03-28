@@ -102,7 +102,7 @@ export default function PenaltyFormModal({
             size="lg"
         >
             <div className="space-y-5">
-                {/* Trường hợp */}
+                {/* Row 1: Violation Type */}
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">
                         <span className="text-red-500">*</span> Trường hợp
@@ -115,7 +115,7 @@ export default function PenaltyFormModal({
                     {errors.violationType && <p className="text-xs text-red-500">{errors.violationType}</p>}
                 </div>
 
-                {/* Ngày hiệu lực */}
+                {/* Row 2: Dates */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">
@@ -131,32 +131,32 @@ export default function PenaltyFormModal({
                     </div>
                 </div>
 
-                {/* Khoảng phút + Giờ quy đổi */}
+                {/* Row 3: Minute range & Converted hours */}
                 <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">
                             <span className="text-red-500">*</span> Thời gian đi muộn, về sớm từ (phút)
                         </label>
-                        <input type="number" min="0" placeholder="VD: 30" value={form.fromMinute} onChange={(e) => handleChange("fromMinute", e.target.value)} className={inputClass("fromMinute")} />
+                        <input type="number" min="0" placeholder="Nhập thời gian từ (phút)" value={form.fromMinute} onChange={(e) => handleChange("fromMinute", e.target.value)} className={inputClass("fromMinute")} />
                         {errors.fromMinute && <p className="text-xs text-red-500">{errors.fromMinute}</p>}
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">
                             <span className="text-red-500">*</span> Thời gian đi muộn, về sớm đến (phút)
                         </label>
-                        <input type="number" min="1" placeholder="VD: 60" value={form.toMinute} onChange={(e) => handleChange("toMinute", e.target.value)} className={inputClass("toMinute")} />
+                        <input type="number" min="1" placeholder="Nhập thời gian đến (phút)" value={form.toMinute} onChange={(e) => handleChange("toMinute", e.target.value)} className={inputClass("toMinute")} />
                         {errors.toMinute && <p className="text-xs text-red-500">{errors.toMinute}</p>}
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">
                             <span className="text-red-500">*</span> Số giờ quy đổi
                         </label>
-                        <input type="number" min="0" step="0.5" placeholder="VD: 1" value={form.convertedHours} onChange={(e) => handleChange("convertedHours", e.target.value)} className={inputClass("convertedHours")} />
+                        <input type="number" min="0" step="0.5" placeholder="Nhập số giờ công" value={form.convertedHours} onChange={(e) => handleChange("convertedHours", e.target.value)} className={inputClass("convertedHours")} />
                         {errors.convertedHours && <p className="text-xs text-red-500">{errors.convertedHours}</p>}
                     </div>
                 </div>
 
-                {/* Ghi chú */}
+                {/* Row 4: Note */}
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Ghi chú</label>
                     <textarea
@@ -168,7 +168,7 @@ export default function PenaltyFormModal({
                     />
                 </div>
 
-                {/* Trạng thái (edit only) */}
+                {/* Row 5: Status (edit only) */}
                 {isEdit && (
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">Trạng thái</label>

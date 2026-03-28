@@ -12,22 +12,9 @@ import { authService } from "@/services";
 
 const PAGE_SIZE = 10;
 
-const emptyForm = {
-    name: "",
-    penaltyType: "",
-    severityLevel: "",
-    deductionAmount: "",
-    deductionPercentage: "",
-    description: "",
-    status: "ACTIVE",
-};
-
 const emptyFilters = {
-    penaltyType: "",
-    severityLevel: "",
+    violationType: "",
     status: "",
-    minDeductionAmount: "",
-    maxDeductionAmount: "",
 };
 
 export default function PenaltiesPage() {
@@ -41,15 +28,12 @@ export default function PenaltiesPage() {
     const [totalItems, setTotalItems] = useState(0);
 
     // Modal state
-    const [formModal, setFormModal] = useState({ open: false, mode: "add", data: null });
-    const [formData, setFormData] = useState(emptyForm);
-    const [formErrors, setFormErrors] = useState({});
+    const [formModalOpen, setFormModalOpen] = useState(false);
+    const [editingPenalty, setEditingPenalty] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ open: false, data: null });
     const [submitting, setSubmitting] = useState(false);
 
     const { success, error: showError } = useToast();
-
-    // Debounce timer ref for search
     const searchTimerRef = useRef(null);
 
     // ============ FETCH DATA ============
@@ -59,36 +43,29 @@ export default function PenaltiesPage() {
             const params = { page, limit: PAGE_SIZE };
 
             if (searchValue?.trim()) params.search = searchValue.trim();
-            if (filtersValue.penaltyType) params.penaltyType = filtersValue.penaltyType;
-            if (filtersValue.severityLevel) params.severityLevel = filtersValue.severityLevel;
+            if (filtersValue.violationType) params.violationType = filtersValue.violationType;
             if (filtersValue.status) params.status = filtersValue.status;
-            if (filtersValue.minDeductionAmount) params.minDeductionAmount = filtersValue.minDeductionAmount;
-            if (filtersValue.maxDeductionAmount) params.maxDeductionAmount = filtersValue.maxDeductionAmount;
 
             const res = await penaltiesService.getAll(params);
             setPenalties(res.data?.items || []);
             setTotalPages(res.data?.pagination?.totalPages || 1);
             setTotalItems(res.data?.pagination?.total || 0);
         } catch (err) {
-            showError("Không thể tải danh sách quy định hình phạt");
+            showError("Không thể tải danh sách quy định vi phạm");
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Initial load
     useEffect(() => {
         fetchPenalties(search, filters, currentPage);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Re-fetch khi filter hoặc page thay đổi
     useEffect(() => {
         fetchPenalties(search, filters, currentPage);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters, currentPage]);
 
-    // ============ SEARCH với DEBOUNCE ============
+    // ============ SEARCH ============
     const handleSearchChange = (value) => {
         setSearch(value);
         if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -98,100 +75,38 @@ export default function PenaltiesPage() {
         }, 400);
     };
 
-    // ============ FILTER CHANGE ============
     const handleFilterChange = (newFilters) => {
         setFilters(newFilters);
         setCurrentPage(1);
     };
 
-    // ============ FORM VALIDATION ============
-    const validateForm = () => {
-        const errors = {};
-        if (!formData.name.trim()) errors.name = "Tên hình phạt là bắt buộc";
-        if (!formData.penaltyType) errors.penaltyType = "Loại hình phạt là bắt buộc";
-        if (!formData.severityLevel) errors.severityLevel = "Mức độ là bắt buộc";
-
-        if (formData.deductionAmount) {
-            const amount = Number(formData.deductionAmount);
-            if (isNaN(amount) || amount < 0)
-                errors.deductionAmount = "Số tiền trừ phải lớn hơn hoặc bằng 0";
-        }
-
-        if (formData.deductionPercentage) {
-            const percentage = Number(formData.deductionPercentage);
-            if (isNaN(percentage) || percentage < 0)
-                errors.deductionPercentage = "Phần trăm trừ phải lớn hơn hoặc bằng 0";
-            else if (percentage > 100)
-                errors.deductionPercentage = "Phần trăm trừ không được vượt quá 100";
-        }
-
-        return Object.keys(errors).length > 0 ? errors : null;
-    };
-
-    // ============ CRUD HANDLERS ============
+    // ============ CRUD ============
     const handleOpenAdd = () => {
-        setFormData(emptyForm);
-        setFormErrors({});
-        setFormModal({ open: true, mode: "add", data: null });
+        setEditingPenalty(null);
+        setFormModalOpen(true);
     };
 
     const handleOpenEdit = (penalty) => {
-        setFormData({
-            name: penalty.name,
-            penaltyType: penalty.penaltyType,
-            severityLevel: penalty.severityLevel,
-            deductionAmount: penalty.deductionAmount != null ? String(penalty.deductionAmount) : "",
-            deductionPercentage: penalty.deductionPercentage != null ? String(penalty.deductionPercentage) : "",
-            description: penalty.description || "",
-            status: penalty.status,
-        });
-        setFormErrors({});
-        setFormModal({ open: true, mode: "edit", data: penalty });
+        setEditingPenalty(penalty);
+        setFormModalOpen(true);
     };
 
-    const handleSubmitForm = async () => {
-        const errors = validateForm();
-        if (errors) {
-            setFormErrors(errors);
-            return;
-        }
-
-        const penaltyData = {
-            name: formData.name.trim(),
-            penaltyType: formData.penaltyType,
-            severityLevel: formData.severityLevel,
-            deductionAmount: formData.deductionAmount ? parseFloat(formData.deductionAmount) : null,
-            deductionPercentage: formData.deductionPercentage ? parseFloat(formData.deductionPercentage) : null,
-            description: formData.description.trim() || null,
-            status: formData.status,
-        };
-
+    const handleFormSubmit = async (formData) => {
         try {
             setSubmitting(true);
-            if (formModal.mode === "add") {
-                await penaltiesService.create(penaltyData);
-                success("Thêm quy định hình phạt thành công");
+            if (editingPenalty) {
+                await penaltiesService.update(editingPenalty.id, formData);
+                success("Cập nhật quy định vi phạm thành công");
             } else {
-                await penaltiesService.update(formModal.data.id, penaltyData);
-                success("Cập nhật quy định hình phạt thành công");
+                await penaltiesService.create(formData);
+                success("Tạo quy định vi phạm thành công");
             }
-            setFormModal({ open: false, mode: "add", data: null });
+            setFormModalOpen(false);
+            setEditingPenalty(null);
             fetchPenalties(search, filters, currentPage);
         } catch (err) {
-            const resData = err.response?.data;
-            if (resData?.errors && Array.isArray(resData.errors)) {
-                const beErrors = {};
-                resData.errors.forEach((e) => {
-                    if (e.property && e.constraints) {
-                        beErrors[e.property] = Object.values(e.constraints)[0];
-                    }
-                });
-                if (Object.keys(beErrors).length > 0) {
-                    setFormErrors(beErrors);
-                    return;
-                }
-            }
-            showError(resData?.message || "Đã xảy ra lỗi");
+            const msg = err.response?.data?.message || "Có lỗi xảy ra";
+            showError(msg);
         } finally {
             setSubmitting(false);
         }
@@ -205,8 +120,7 @@ export default function PenaltiesPage() {
         try {
             await penaltiesService.delete(deleteModal.data.id);
             setDeleteModal({ open: false, data: null });
-            success("Xóa quy định hình phạt thành công");
-            // Nếu xóa item cuối cùng trên trang, lùi về trang trước
+            success("Xóa quy định vi phạm thành công");
             if (penalties.length <= 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
             } else {
@@ -216,6 +130,8 @@ export default function PenaltiesPage() {
             showError(err.response?.data?.message || "Đã xảy ra lỗi khi xóa");
         }
     };
+
+    const violationLabel = deleteModal.data?.violationType === "LATE" ? "Đi muộn" : "Về sớm";
 
     // ============ RENDER ============
     return (
@@ -228,10 +144,10 @@ export default function PenaltiesPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">
-                            Quy định hình phạt
+                            Quy định vi phạm
                         </h1>
                         <p className="text-sm text-slate-500">
-                            Quản lý các quy định hình phạt trong công ty
+                            Quản lý các quy định xử phạt đi muộn, về sớm
                         </p>
                     </div>
                 </div>
@@ -262,14 +178,11 @@ export default function PenaltiesPage() {
 
             {/* Add/Edit Modal */}
             <PenaltyFormModal
-                isOpen={formModal.open}
-                onClose={() => setFormModal({ open: false, mode: "add", data: null })}
-                onSubmit={handleSubmitForm}
-                formData={formData}
-                onFormChange={setFormData}
-                errors={formErrors}
-                mode={formModal.mode}
-                submitting={submitting}
+                isOpen={formModalOpen}
+                onClose={() => { setFormModalOpen(false); setEditingPenalty(null); }}
+                onSubmit={handleFormSubmit}
+                penalty={editingPenalty}
+                loading={submitting}
             />
 
             {/* Delete Confirm Modal */}
@@ -277,8 +190,8 @@ export default function PenaltiesPage() {
                 isOpen={deleteModal.open}
                 onClose={() => setDeleteModal({ open: false, data: null })}
                 onConfirm={handleConfirmDelete}
-                title="Xóa quy định hình phạt"
-                description={`Bạn có chắc chắn muốn xóa quy định "${deleteModal.data?.name}"? Hành động này không thể hoàn tác.`}
+                title="Xóa quy định vi phạm"
+                description={`Bạn có chắc chắn muốn xóa quy định "${violationLabel}" [${deleteModal.data?.fromMinute}-${deleteModal.data?.toMinute} phút]? Hành động này không thể hoàn tác.`}
                 confirmText="Xóa"
                 cancelText="Hủy"
                 variant="destructive"

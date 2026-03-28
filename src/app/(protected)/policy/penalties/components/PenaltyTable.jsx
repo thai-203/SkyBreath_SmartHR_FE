@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/common/Button";
 import { Pagination } from "@/components/common/Pagination";
 import { Skeleton } from "@/components/common/Skeleton";
-import { Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Filter, ChevronDown, ChevronUp, Plus, Eye, Pencil, Trash2 } from "lucide-react";
 
 const violationTypeLabels = {
     LATE: "Đi muộn",
@@ -16,7 +16,7 @@ const violationTypeColors = {
     EARLY: "bg-blue-50 text-blue-700",
 };
 
-export default function PenaltyViewTable({
+export default function PenaltyTable({
     data = [],
     loading = false,
     search,
@@ -28,8 +28,12 @@ export default function PenaltyViewTable({
     onPageChange,
     pageSize,
     totalItems = 0,
+    onCreate,
+    onEdit,
+    onView,
+    onDelete,
 }) {
-    const columnCount = 8;
+    const columnCount = 9;
     const [showFilters, setShowFilters] = useState(false);
 
     const handleFilterChange = (field, value) => {
@@ -77,6 +81,10 @@ export default function PenaltyViewTable({
                         )}
                         {showFilters ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                     </Button>
+                    <Button variant="default" className="gap-1.5 h-10" onClick={onCreate}>
+                        <Plus className="h-4 w-4" />
+                        Thêm mới
+                    </Button>
                 </div>
             </div>
 
@@ -119,7 +127,7 @@ export default function PenaltyViewTable({
                 </div>
             )}
 
-            {/* Table - View only, no action column */}
+            {/* Table */}
             <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead>
@@ -132,6 +140,7 @@ export default function PenaltyViewTable({
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Ngày hiệu lực</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Ngày hết hiệu lực</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Trạng thái</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 w-28">Hành động</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -167,6 +176,19 @@ export default function PenaltyViewTable({
                                         }`}>
                                             {penalty.status === "ACTIVE" ? "Hoạt động" : "Ngừng hoạt động"}
                                         </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="flex items-center justify-center gap-1">
+                                            <button onClick={() => onView(penalty)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Xem chi tiết">
+                                                <Eye className="h-4 w-4" />
+                                            </button>
+                                            <button onClick={() => onEdit(penalty)} className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Chỉnh sửa">
+                                                <Pencil className="h-4 w-4" />
+                                            </button>
+                                            <button onClick={() => onDelete(penalty)} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Xóa">
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))

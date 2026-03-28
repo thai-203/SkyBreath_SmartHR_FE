@@ -9,15 +9,11 @@ import { useToast } from "@/components/common/Toast";
 const PAGE_SIZE = 10;
 
 const emptyFilters = {
-    penaltyType: "",
-    severityLevel: "",
+    violationType: "",
     status: "",
-    minDeductionAmount: "",
-    maxDeductionAmount: "",
 };
 
 export default function EmployeePenaltyPolicyPage() {
-    // ============ STATE ============
     const [penalties, setPenalties] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -29,43 +25,28 @@ export default function EmployeePenaltyPolicyPage() {
     const { error: showError } = useToast();
     const searchTimerRef = useRef(null);
 
-    // ============ FETCH DATA ============
     const fetchPenalties = useCallback(async (searchValue, filtersValue, page) => {
         try {
             setLoading(true);
             const params = { page, limit: PAGE_SIZE };
-
             if (searchValue?.trim()) params.search = searchValue.trim();
-            if (filtersValue.penaltyType) params.penaltyType = filtersValue.penaltyType;
-            if (filtersValue.severityLevel) params.severityLevel = filtersValue.severityLevel;
+            if (filtersValue.violationType) params.violationType = filtersValue.violationType;
             if (filtersValue.status) params.status = filtersValue.status;
-            if (filtersValue.minDeductionAmount) params.minDeductionAmount = filtersValue.minDeductionAmount;
-            if (filtersValue.maxDeductionAmount) params.maxDeductionAmount = filtersValue.maxDeductionAmount;
 
             const res = await penaltiesService.getAll(params);
             setPenalties(res.data?.items || []);
             setTotalPages(res.data?.pagination?.totalPages || 1);
             setTotalItems(res.data?.pagination?.total || 0);
         } catch (err) {
-            showError("Không thể tải danh sách quy định hình phạt");
+            showError("Không thể tải danh sách quy định vi phạm");
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Initial load
-    useEffect(() => {
-        fetchPenalties(search, filters, currentPage);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    useEffect(() => { fetchPenalties(search, filters, currentPage); }, []);
+    useEffect(() => { fetchPenalties(search, filters, currentPage); }, [filters, currentPage]);
 
-    // Re-fetch khi filter hoặc page thay đổi
-    useEffect(() => {
-        fetchPenalties(search, filters, currentPage);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters, currentPage]);
-
-    // ============ SEARCH với DEBOUNCE ============
     const handleSearchChange = (value) => {
         setSearch(value);
         if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -75,16 +56,13 @@ export default function EmployeePenaltyPolicyPage() {
         }, 400);
     };
 
-    // ============ FILTER CHANGE ============
     const handleFilterChange = (newFilters) => {
         setFilters(newFilters);
         setCurrentPage(1);
     };
 
-    // ============ RENDER ============
     return (
         <div className="space-y-6">
-            {/* Page Header */}
             <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500 text-white">
                     <ShieldAlert className="h-5 w-5" />
@@ -94,12 +72,11 @@ export default function EmployeePenaltyPolicyPage() {
                         Quy định Vi phạm (Penalty)
                     </h1>
                     <p className="text-sm text-slate-500">
-                        Xem các quy định hình phạt áp dụng trong công ty
+                        Xem các quy định xử phạt đi muộn, về sớm
                     </p>
                 </div>
             </div>
 
-            {/* Table (Read-only) */}
             <PenaltyViewTable
                 data={penalties}
                 loading={loading}
