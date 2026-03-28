@@ -169,7 +169,7 @@ export default function OvertimeFormModal({
                                 value={formData.effectiveFrom || ""}
                                 onChange={(e) => handleChange("effectiveFrom", e.target.value)}
                                 disabled={isLockedByRequests || isLockedByPayroll}
-                                className={`flex h-10 w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-50 ${errors.effectiveFrom ? 'border-red-500 focus-visible:ring-red-500' : 'border-slate-200 focus-visible:ring-indigo-500'}`}
+                                className={`h-10 w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-50 ${errors.effectiveFrom ? 'border-red-500 focus-visible:ring-red-500' : 'border-slate-200 focus-visible:ring-indigo-500'}`}
                             />
                             {errors.effectiveFrom && (
                                 <p className="text-xs font-medium text-red-500">{errors.effectiveFrom}</p>
@@ -185,7 +185,7 @@ export default function OvertimeFormModal({
                                 value={formData.effectiveTo || ""}
                                 min={formData.effectiveFrom || ""}
                                 onChange={(e) => handleChange("effectiveTo", e.target.value || null)}
-                                className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-indigo-500 disabled:opacity-50 disabled:bg-slate-50"
+                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-indigo-500 disabled:opacity-50 disabled:bg-slate-50"
                             />
                         </div>
                     </div>
