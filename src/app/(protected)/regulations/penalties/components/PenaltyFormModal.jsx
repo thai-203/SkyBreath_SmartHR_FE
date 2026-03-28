@@ -99,9 +99,9 @@ export default function PenaltyFormModal({
             isOpen={isOpen}
             onClose={onClose}
             title={isEdit ? "Chỉnh sửa quy định vi phạm" : "Thêm mới quy định vi phạm"}
-            size="lg"
+            size="xl"
         >
-            <div className="space-y-5">
+            <div className="space-y-5 p-0.5">
                 {/* Trường hợp */}
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">
