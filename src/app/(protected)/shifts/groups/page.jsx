@@ -18,7 +18,7 @@ export default function ShiftGroupsPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 5 });
   const [totalPages, setTotalPages] = useState(1);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -42,7 +42,9 @@ export default function ShiftGroupsPage() {
         search,
       });
       setData(res?.items || []);
-      setTotalPages(res?.total || 1);
+      const total = res?.total || 0;
+      const pages = Math.ceil(total / pagination.pageSize);
+      setTotalPages(pages);
     } catch (err) {
       error(err.response?.data?.message || "Lỗi tải dữ liệu");
     } finally {
