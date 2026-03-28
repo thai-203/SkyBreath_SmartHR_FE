@@ -207,7 +207,7 @@ export default function AttendanceDetailModal({
                                 min="0"
                                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 value={editData.totalWorkingDays}
-                                onChange={e => setEditData(d => ({ ...d, totalWorkingDays: parseFloat(e.target.value) || 0 }))}
+                                onChange={e => { const v = parseFloat(e.target.value); setEditData(d => ({ ...d, totalWorkingDays: isNaN(v) ? '' : Math.max(0, v) })); }}
                             />
                         </div>
                         <div>
@@ -218,7 +218,7 @@ export default function AttendanceDetailModal({
                                 min="0"
                                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 value={editData.totalWorkingHours}
-                                onChange={e => setEditData(d => ({ ...d, totalWorkingHours: parseFloat(e.target.value) || 0 }))}
+                                onChange={e => { const v = parseFloat(e.target.value); setEditData(d => ({ ...d, totalWorkingHours: isNaN(v) ? '' : Math.max(0, v) })); }}
                             />
                         </div>
                         <div>
@@ -229,7 +229,7 @@ export default function AttendanceDetailModal({
                                 min="0"
                                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 value={editData.overtimeHours}
-                                onChange={e => setEditData(d => ({ ...d, overtimeHours: parseFloat(e.target.value) || 0 }))}
+                                onChange={e => { const v = parseFloat(e.target.value); setEditData(d => ({ ...d, overtimeHours: isNaN(v) ? '' : Math.max(0, v) })); }}
                             />
                         </div>
                     </div>

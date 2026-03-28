@@ -71,4 +71,9 @@ export const timesheetsService = {
         });
         return response.data;
     },
+
+    getLateEarlyRecords: async (params = {}) => {
+        const response = await api.get("/timesheets/attendance/late-early", { params });
+        return response.data;
+    },
 };

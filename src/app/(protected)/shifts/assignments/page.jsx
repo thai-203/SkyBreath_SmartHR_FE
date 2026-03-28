@@ -28,6 +28,27 @@ const initialData = {
   repeatType: "weekly",
 };
 
+const normalizeAssignmentPayload = (formData) => {
+  const payload = {
+    ...formData,
+    assignmentName: formData.assignmentName?.trim?.() || "",
+  };
+
+  ["employeeIds", "departmentIds", "shiftIds", "weekdays"].forEach((key) => {
+    if (!Array.isArray(payload[key]) || payload[key].length === 0) {
+      delete payload[key];
+    }
+  });
+
+  ["startDate", "endDate", "repeatType"].forEach((key) => {
+    if (!payload[key]) {
+      delete payload[key];
+    }
+  });
+
+  return payload;
+};
+
 export default function AssignmentsPage() {
   const { success, error } = useToast();
   const [data, setData] = useState([]);
@@ -181,12 +202,14 @@ export default function AssignmentsPage() {
 
     setFormLoading(true);
     try {
+      const payload = normalizeAssignmentPayload(formData);
+
       if (selected) {
-        await shiftAssignmentsService.update(selected.id, formData);
+        await shiftAssignmentsService.update(selected.id, payload);
         success("Cập nhật phân ca thành công");
       } else {
         // send payload to create route -- service will handle employees or departments arrays
-        await shiftAssignmentsService.assignToEmployee(formData);
+        await shiftAssignmentsService.assignToEmployee(payload);
         success("Phân ca thành công");
       }
       setIsFormOpen(false);

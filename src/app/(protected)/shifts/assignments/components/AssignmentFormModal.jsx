@@ -264,6 +264,12 @@ export default function AssignmentFormModal({
   onSubmit,
 }) {
   const [expandedDept, setExpandedDept] = useState(new Set());
+  const todayDateKey = useMemo(() => formatDateKey(new Date()), []);
+  const minEndDate = data.startDate || todayDateKey;
+  const isInvalidDateRange =
+    !!data.startDate &&
+    ((data.startDate < todayDateKey && !isEditing) ||
+      (!!data.endDate && data.endDate < data.startDate));
   const allEmployeeIds = useMemo(
     () => employeeList.map((e) => e.id),
     [employeeList],
@@ -439,9 +445,27 @@ export default function AssignmentFormModal({
                   <Input
                     type="date"
                     value={data.startDate || ""}
-                    onChange={(e) =>
-                      setData({ ...data, startDate: e.target.value })
-                    }
+                    min={isEditing ? undefined : todayDateKey}
+                    onChange={(e) => {
+                      const nextStartDate = e.target.value;
+                      const normalizedStartDate =
+                        !isEditing &&
+                        nextStartDate &&
+                        nextStartDate < todayDateKey
+                          ? todayDateKey
+                          : nextStartDate;
+
+                      setData({
+                        ...data,
+                        startDate: normalizedStartDate,
+                        endDate:
+                          data.endDate &&
+                          normalizedStartDate &&
+                          data.endDate < normalizedStartDate
+                            ? normalizedStartDate
+                            : data.endDate,
+                      });
+                    }}
                     className="h-10 border-slate-200 focus:ring-blue-500"
                   />
                 </div>
@@ -452,9 +476,17 @@ export default function AssignmentFormModal({
                   <Input
                     type="date"
                     value={data.endDate || ""}
-                    onChange={(e) =>
-                      setData({ ...data, endDate: e.target.value })
-                    }
+                    min={minEndDate}
+                    onChange={(e) => {
+                      const nextEndDate = e.target.value;
+                      setData({
+                        ...data,
+                        endDate:
+                          nextEndDate && nextEndDate < minEndDate
+                            ? minEndDate
+                            : nextEndDate,
+                      });
+                    }}
                     className="h-10 border-slate-200 focus:ring-blue-500"
                   />
                 </div>
@@ -606,7 +638,8 @@ export default function AssignmentFormModal({
               !data.startDate ||
               !data.shiftIds?.length ||
               !data.employeeIds?.length ||
-              !data.weekdays?.length
+              !data.weekdays?.length ||
+              isInvalidDateRange
             }
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-lg h-10 font-bold transition-all active:scale-95"
           >

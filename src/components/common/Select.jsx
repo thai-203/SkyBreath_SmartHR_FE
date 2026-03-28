@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
 export const Select = forwardRef(function Select(
-    { className, options = [], placeholder = "Chọn...", error, label, ...props },
+    { className, options = [], placeholder = "Chọn...", hidePlaceholder = false, error, label, ...props },
     ref
 ) {
     return (
@@ -27,7 +27,7 @@ export const Select = forwardRef(function Select(
                     ref={ref}
                     {...props}
                 >
-                    <option value="" style={{ color: '#1e293b' }}>{placeholder}</option>
+                    {!hidePlaceholder && <option value="" style={{ color: '#1e293b' }}>{placeholder}</option>}
                     {options.map((option) => (
                         <option key={option.value} value={option.value} style={{ color: '#1e293b' }}>
                             {option.label}
