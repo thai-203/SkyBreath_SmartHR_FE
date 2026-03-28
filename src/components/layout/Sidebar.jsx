@@ -105,6 +105,7 @@ const menuItems = [
     href: "/holidays",
     roles: ["ADMIN", "HR", "MANAGER"],
     children: [
+      { title: "Thêm Danh Mục", href: "/holidays/groups" },
       { title: "Danh sách", href: "/holidays" },
       { title: "Gửi nhắc nhở", href: "/holidays/notifications" },
       { title: "Thêm Danh Mục", href: "/holidays/groups" },
