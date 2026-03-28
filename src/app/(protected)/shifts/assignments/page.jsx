@@ -53,7 +53,7 @@ export default function AssignmentsPage() {
   const { success, error } = useToast();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 5 });
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
