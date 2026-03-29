@@ -136,6 +136,16 @@ const menuItems = [
     ],
   },
   {
+    title: "Yêu cầu của tôi",
+    icon: FileText,
+    href: "/requests/overtime/create", // Tạm link vào đăng ký tăng ca
+    roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Đăng ký tăng ca", href: "/requests/overtime/create" },
+      { title: "Đăng ký nghỉ phép", href: "/requests/leave/create" },
+    ],
+  },
+  {
     title: "Chính sách & Quy định",
     icon: ScrollText,
     href: "/policy/overtime",
