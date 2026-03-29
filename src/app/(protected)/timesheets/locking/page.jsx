@@ -32,7 +32,6 @@ export default function LockingPage() {
         year: parseInt(searchParams.get("year") || defaultFilters.year),
         departmentId: searchParams.get("departmentId") || "",
     };
-    const [draft, setDraft] = useState({ ...initialFilters });
     const [filters, setFilters] = useState({ ...initialFilters });
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [totalPages, setTotalPages] = useState(0);
@@ -115,14 +114,14 @@ export default function LockingPage() {
         router.replace(`/timesheets/locking${qs ? `?${qs}` : ''}`, { scroll: false });
     }, [router]);
 
-    const handleApplyFilter = () => {
-        setFilters({ ...draft });
+    const handleFilterChange = (key, value) => {
+        const newFilters = { ...filters, [key]: value };
+        setFilters(newFilters);
         setPagination(p => ({ ...p, pageIndex: 0 }));
-        syncURL(draft);
+        syncURL(newFilters);
     };
 
     const handleClearFilters = () => {
-        setDraft({ ...defaultFilters });
         setFilters({ ...defaultFilters });
         setSearch("");
         setPagination(p => ({ ...p, pageIndex: 0 }));
@@ -150,20 +149,17 @@ export default function LockingPage() {
 
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-3 items-center">
                 <div className="w-32">
-                    <Select hidePlaceholder value={draft.month} onChange={(e) => setDraft({ ...draft, month: parseInt(e.target.value) })}
+                    <Select hidePlaceholder value={filters.month} onChange={(e) => handleFilterChange('month', parseInt(e.target.value))}
                         options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `Tháng ${i + 1}` }))} />
                 </div>
                 <div className="w-24">
-                    <Select hidePlaceholder value={draft.year} onChange={(e) => setDraft({ ...draft, year: parseInt(e.target.value) })}
+                    <Select hidePlaceholder value={filters.year} onChange={(e) => handleFilterChange('year', parseInt(e.target.value))}
                         options={Array.from({ length: 5 }, (_, i) => ({ value: currentDate.getFullYear() - 2 + i, label: `${currentDate.getFullYear() - 2 + i}` }))} />
                 </div>
                 <div className="w-64">
-                    <Select placeholder="Phòng ban" value={draft.departmentId} onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}
+                    <Select placeholder="Phòng ban" value={filters.departmentId} onChange={(e) => handleFilterChange('departmentId', e.target.value)}
                         options={departments.map(d => ({ value: d.id, label: d.departmentName }))} />
                 </div>
-                <Button onClick={handleApplyFilter} className="gap-2 h-10">
-                    <Filter className="h-4 w-4" /> Lọc
-                </Button>
                 <button onClick={handleClearFilters} className="text-slate-400 hover:text-rose-500 p-2" title="Xóa bộ lọc">
                     <FilterX className="h-5 w-5" />
                 </button>
