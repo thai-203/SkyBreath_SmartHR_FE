@@ -11,6 +11,16 @@ export const timesheetsService = {
         return response.data;
     },
 
+    getPeriods: async (params = {}) => {
+        const response = await api.get("/timesheets/periods", { params });
+        return response.data;
+    },
+
+    getMatrix: async (params = {}) => {
+        const response = await api.get("/timesheets/matrix", { params });
+        return response.data;
+    },
+
     addEmployee: async (data) => {
         const response = await api.post("/timesheets/add-employee", data);
         return response.data;
