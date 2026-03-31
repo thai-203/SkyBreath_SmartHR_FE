@@ -13,6 +13,7 @@ import {
   Clock,
   DollarSign,
   FileText,
+  FolderGit2,
   LayoutDashboard,
   ScrollText,
   Settings,
@@ -136,6 +137,12 @@ const menuItems = [
       { title: "Làm thêm giờ", href: "/regulations/overtime" },
       { title: "Hình phạt", href: "/regulations/penalties" },
     ],
+  },
+  {
+    title: "Cấu hình đơn từ",
+    icon: FolderGit2,
+    href: "/requests/groups",
+    roles: ["ADMIN", "HR"],
   },
   {
     title: "Yêu cầu của tôi",
