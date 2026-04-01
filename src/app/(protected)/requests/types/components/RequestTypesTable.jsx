@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Trash2, Search, Eye, Settings2 } from "lucide-react";
+import { Edit, Trash2, Search, Eye, Settings2, ArchiveRestore } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 export default function RequestTypesTable({
     data, loading, search, onSearchChange,
     currentPage, totalPages, onPageChange,
-    onEdit, onDelete, onDetail, onPolicy,
+    onEdit, onDelete, onDetail, onPolicy, onRestore,
     groups, selectedGroupId, onGroupFilterChange
 }) {
     return (
@@ -61,7 +61,10 @@ export default function RequestTypesTable({
                             </TableRow>
                         ) : (
                             data.map((item, index) => (
-                                <TableRow key={item.id} className="hover:bg-slate-50">
+                                <TableRow
+                                    key={item.id}
+                                    className={item.isDeleted ? "bg-slate-100 opacity-60" : "hover:bg-slate-50"}
+                                >
                                     <TableCell>{(currentPage - 1) * 10 + index + 1}</TableCell>
                                     <TableCell className="font-medium text-slate-900">{item.name}</TableCell>
                                     <TableCell>
@@ -83,44 +86,61 @@ export default function RequestTypesTable({
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={item.status === "ACTIVE" ? "success" : "secondary"}>
-                                            {item.status === "ACTIVE" ? "Hoạt động" : "Tạm ngưng"}
-                                        </Badge>
+                                        {item.isDeleted ? (
+                                            <Badge variant="destructive" className="opacity-70">Đã xóa</Badge>
+                                        ) : (
+                                            <Badge variant={item.status === "ACTIVE" ? "success" : "secondary"}>
+                                                {item.status === "ACTIVE" ? "Hoạt động" : "Tạm ngưng"}
+                                            </Badge>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-1 text-slate-500">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => onDetail(item)}
-                                                title="Xem chi tiết"
-                                            >
-                                                <Eye className="h-4 w-4 text-slate-500" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => onPolicy(item)}
-                                                title="Cấu hình Policy"
-                                            >
-                                                <Settings2 className="h-4 w-4 text-indigo-500" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => onEdit(item)}
-                                                title="Chỉnh sửa"
-                                            >
-                                                <Edit className="h-4 w-4 text-emerald-600" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => onDelete(item)}
-                                                title="Xóa"
-                                            >
-                                                <Trash2 className="h-4 w-4 text-rose-500" />
-                                            </Button>
+                                            {item.isDeleted ? (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => onRestore(item)}
+                                                    title="Khôi phục bản ghi"
+                                                >
+                                                    <ArchiveRestore className="h-4 w-4 text-indigo-500" />
+                                                </Button>
+                                            ) : (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => onDetail(item)}
+                                                        title="Xem chi tiết"
+                                                    >
+                                                        <Eye className="h-4 w-4 text-slate-500" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => onPolicy(item)}
+                                                        title="Cấu hình Policy"
+                                                    >
+                                                        <Settings2 className="h-4 w-4 text-indigo-500" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => onEdit(item)}
+                                                        title="Chỉnh sửa"
+                                                    >
+                                                        <Edit className="h-4 w-4 text-emerald-600" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => onDelete(item)}
+                                                        title="Xóa"
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-rose-500" />
+                                                    </Button>
+                                                </>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

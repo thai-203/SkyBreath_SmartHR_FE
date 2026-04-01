@@ -25,4 +25,9 @@ export const requestGroupsService = {
         const response = await api.delete(`/request-groups/${id}`);
         return response.data;
     },
+
+    restore: async (id) => {
+        const response = await api.post(`/request-groups/${id}/restore`);
+        return response.data;
+    },
 };

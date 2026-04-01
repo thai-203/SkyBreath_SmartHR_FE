@@ -37,6 +37,7 @@ export default function RequestGroupsPage() {
     const [formData, setFormData] = useState(emptyForm);
     const [formErrors, setFormErrors] = useState({});
     const [deleteModal, setDeleteModal] = useState({ open: false, data: null });
+    const [restoreModal, setRestoreModal] = useState({ open: false, data: null });
     const [submitting, setSubmitting] = useState(false);
 
     const { success, error: showError } = useToast();
@@ -171,6 +172,21 @@ export default function RequestGroupsPage() {
         }
     };
 
+    const handleOpenRestore = (group) => {
+        setRestoreModal({ open: true, data: group });
+    };
+
+    const confirmRestore = async () => {
+        try {
+            await requestGroupsService.restore(restoreModal.data.id);
+            setRestoreModal({ open: false, data: null });
+            success(`Khôi phục "${restoreModal.data?.name}" thành công. Trạng thái: Tạm ngưng — hãy Kích hoạt để sử dụng.`);
+            fetchGroups(search, currentPage);
+        } catch (err) {
+            showError(err.response?.data?.message || "Không thể khôi phục nhóm đơn");
+        }
+    };
+
     const handleViewDetail = (group) => {
         router.push(`/requests/groups/${group.id}`);
     };
@@ -204,6 +220,7 @@ export default function RequestGroupsPage() {
                 onDelete={handleOpenDelete}
                 onConfig={handleOpenWorkflow}
                 onView={handleViewDetail}
+                onRestore={handleOpenRestore}
             />
 
             <RequestGroupFormModal
@@ -234,6 +251,16 @@ export default function RequestGroupsPage() {
                 description={`Bạn có chắc muốn xóa nhóm đơn "${deleteModal.data?.name}"?`}
                 confirmText="Xóa"
                 variant="destructive"
+            />
+
+            <ConfirmModal
+                isOpen={restoreModal.open}
+                onClose={() => setRestoreModal({ open: false, data: null })}
+                onConfirm={confirmRestore}
+                title="Khôi phục nhóm đơn"
+                description={`Khôi phục nhóm đơn "${restoreModal.data?.name}"? Bản ghi sẽ trở về trạng thái Tạm ngưng, bạn cần Kích hoạt thủ công sau.`}
+                confirmText="Khôi phục"
+                variant="default"
             />
         </div>
     );

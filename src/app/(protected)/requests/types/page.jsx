@@ -53,6 +53,9 @@ export default function RequestTypesPage() {
 
     // Modal: Xóa
     const [deleteModal, setDeleteModal] = useState({ open: false, data: null });
+    
+    // Modal: Khôi phục
+    const [restoreModal, setRestoreModal] = useState({ open: false, data: null });
 
     const [submitting, setSubmitting] = useState(false);
 
@@ -219,6 +222,22 @@ export default function RequestTypesPage() {
         }
     };
 
+    // ─── Restore Modal ───────────────────────────────────────────────
+    const handleOpenRestore = (typeItem) => {
+        setRestoreModal({ open: true, data: typeItem });
+    };
+
+    const confirmRestore = async () => {
+        try {
+            await requestTypesService.restore(restoreModal.data.id);
+            setRestoreModal({ open: false, data: null });
+            success(`Khôi phục loại đơn "${restoreModal.data?.name}" thành công. Trạng thái: Tạm ngưng.`);
+            fetchTypes(search, currentPage, selectedGroupId);
+        } catch (err) {
+            showError(err.response?.data?.message || "Đã xảy ra lỗi khi khôi phục");
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 bg-white rounded-lg shadow-sm border border-slate-200">
@@ -248,6 +267,7 @@ export default function RequestTypesPage() {
                 onDelete={handleOpenDelete}
                 onDetail={handleOpenDetail}
                 onPolicy={handleOpenPolicy}
+                onRestore={handleOpenRestore}
                 groups={groups}
                 selectedGroupId={selectedGroupId}
                 onGroupFilterChange={handleGroupFilterChange}
@@ -295,6 +315,17 @@ export default function RequestTypesPage() {
                 description={`Bạn có chắc muốn xóa loại đơn "${deleteModal.data?.name}"? Hệ thống sẽ giấu dữ liệu nếu đã có phát sinh thực tế.`}
                 confirmText="Xóa"
                 variant="destructive"
+            />
+
+            {/* Modal: Khôi phục */}
+            <ConfirmModal
+                isOpen={restoreModal.open}
+                onClose={() => setRestoreModal({ open: false, data: null })}
+                onConfirm={confirmRestore}
+                title="Khôi phục loại đơn"
+                description={`Khôi phục loại đơn "${restoreModal.data?.name}"? Loại đơn sẽ ở trạng thái Tạm ngưng, bạn cần bật sang Hoạt động để sử dụng.`}
+                confirmText="Khôi phục"
+                variant="default"
             />
         </div>
     );

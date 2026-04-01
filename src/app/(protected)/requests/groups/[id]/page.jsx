@@ -19,6 +19,8 @@ export default function RequestGroupDetailPage() {
     const [group, setGroup] = useState(null);
     const [types, setTypes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState("active"); // Mặc định ẩn các loại đơn đã bị xoá khỏi view cho đỡ rối
+
 
     const { error: showError } = useToast();
 
@@ -36,8 +38,8 @@ export default function RequestGroupDetailPage() {
 
     const fetchTypes = useCallback(async () => {
         try {
-            const res = await requestTypesService.getAll({ requestGroupId: groupId, take: 100 });
-            setTypes(res.items || []);
+            const res = await requestTypesService.getAll({ requestGroupId: groupId, limit: 100 });
+            setTypes(res.data?.data || []);
         } catch (err) {
             console.error("Lỗi tải loại đơn:", err);
         }
@@ -60,6 +62,14 @@ export default function RequestGroupDetailPage() {
         if (wf.approverUser) return `${wf.approverUser.fullName || wf.approverUser.username} (${wf.approverRole?.roleName || 'N/A'})`;
         return wf.approverRole?.roleName || 'N/A';
     };
+
+    const filteredTypes = types.filter(t => {
+        if (statusFilter === "all") return true;
+        if (statusFilter === "deleted") return t.isDeleted;
+        if (statusFilter === "inactive") return !t.isDeleted && t.status === "INACTIVE";
+        if (statusFilter === "active") return !t.isDeleted && t.status === "ACTIVE";
+        return true;
+    });
 
     if (loading) {
         return (
@@ -169,11 +179,23 @@ export default function RequestGroupDetailPage() {
 
             {/* Danh sách loại đơn */}
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-emerald-500" />
-                    Loại đơn thuộc nhóm
-                </h2>
-                {types.length > 0 ? (
+                <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-emerald-500" />
+                        Loại đơn thuộc nhóm
+                    </h2>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="h-9 rounded-md border border-slate-300 bg-white px-3 py-1 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    >
+                        <option value="all">Tất cả</option>
+                        <option value="active">Đang sử dụng</option>
+                        <option value="inactive">Tạm ngưng</option>
+                        <option value="deleted">Đã xóa mềm</option>
+                    </select>
+                </div>
+                {filteredTypes.length > 0 ? (
                     <div className="rounded-md border overflow-hidden">
                         <Table>
                             <TableHeader className="bg-slate-50">
@@ -187,17 +209,21 @@ export default function RequestGroupDetailPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {types.map((item, index) => (
-                                    <TableRow key={item.id} className="hover:bg-slate-50">
+                                {filteredTypes.map((item, index) => (
+                                    <TableRow key={item.id} className={item.isDeleted ? "bg-slate-100 opacity-60" : "hover:bg-slate-50"}>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell className="font-medium text-slate-900">{item.name}</TableCell>
                                         <TableCell>Theo {renderTrackingCycle(item.policy?.trackingCycle)}</TableCell>
                                         <TableCell>{renderUnit(item.policy?.unit)}</TableCell>
                                         <TableCell className="font-semibold text-emerald-600">{item.policy?.maxQuantity}</TableCell>
                                         <TableCell>
-                                            <Badge variant={item.status === 'ACTIVE' ? 'success' : 'secondary'}>
-                                                {item.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngưng'}
-                                            </Badge>
+                                            {item.isDeleted ? (
+                                                <Badge variant="destructive" className="opacity-70">Đã xóa</Badge>
+                                            ) : (
+                                                <Badge variant={item.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                                                    {item.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngưng'}
+                                                </Badge>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -206,7 +232,7 @@ export default function RequestGroupDetailPage() {
                     </div>
                 ) : (
                     <div className="text-center text-slate-400 py-6 border border-dashed rounded-lg">
-                        Chưa có loại đơn nào thuộc nhóm này
+                        Không có loại đơn nào phù hợp với bộ lọc
                     </div>
                 )}
             </div>

@@ -30,5 +30,10 @@ export const requestTypesService = {
         const response = await api.delete(`/request-types/${id}`);
         return response.data;
     },
+
+    restore: async (id) => {
+        const response = await api.post(`/request-types/${id}/restore`);
+        return response.data;
+    },
 };
 

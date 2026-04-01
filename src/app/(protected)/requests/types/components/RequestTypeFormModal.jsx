@@ -17,6 +17,12 @@ export default function RequestTypeFormModal({
         onFormChange({ ...formData, [name]: value });
     };
 
+    const availableGroups = (groups || []).filter(g => {
+        if (!g.isDeleted && g.status === "ACTIVE") return true;
+        if (mode === "edit" && parseInt(formData.requestGroupId) === g.id) return true;
+        return false;
+    });
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent hideClose className="max-w-lg p-0 overflow-hidden bg-white border-none rounded-xl">
@@ -39,7 +45,7 @@ export default function RequestTypeFormModal({
                             className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                         >
                             <option value="">-- Chọn nhóm đơn --</option>
-                            {(groups || []).map(g => (
+                            {availableGroups.map(g => (
                                 <option key={g.id} value={g.id}>{g.name}</option>
                             ))}
                         </select>

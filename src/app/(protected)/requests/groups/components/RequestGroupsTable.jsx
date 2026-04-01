@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Trash2, Eye, GitMerge } from "lucide-react";
+import { Edit, Trash2, Eye, GitMerge, ArchiveRestore } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { REQUEST_GROUP_CODE_LABELS } from "@/constants/request.enum";
 export default function RequestGroupsTable({
     data, loading, search, onSearchChange,
     currentPage, totalPages, onPageChange,
-    onEdit, onDelete, onConfig, onView
+    onEdit, onDelete, onConfig, onView, onRestore
 }) {
     return (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
@@ -49,31 +49,53 @@ export default function RequestGroupsTable({
                             </TableRow>
                         ) : (
                             data.map((item, index) => (
-                                <TableRow key={item.id} className="hover:bg-slate-50">
+                                <TableRow
+                                    key={item.id}
+                                    className={item.isDeleted ? "bg-slate-100 opacity-60" : "hover:bg-slate-50"}
+                                >
                                     <TableCell>{(currentPage - 1) * 10 + index + 1}</TableCell>
                                     <TableCell className="font-semibold text-slate-700">
                                         {REQUEST_GROUP_CODE_LABELS[item.code] || item.code}
                                     </TableCell>
                                     <TableCell className="font-medium text-slate-900">{item.name}</TableCell>
                                     <TableCell>
-                                        <Badge variant={item.status === 'ACTIVE' ? 'success' : 'secondary'}>
-                                            {item.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngưng'}
-                                        </Badge>
+                                        {item.isDeleted ? (
+                                            <Badge variant="destructive" className="opacity-70">Đã xóa</Badge>
+                                        ) : (
+                                            <Badge variant={item.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                                                {item.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngưng'}
+                                            </Badge>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2 text-slate-500">
-                                            <Button variant="ghost" size="icon" onClick={() => onView(item)} title="Xem chi tiết (Loại đơn)">
-                                                <Eye className="h-4 w-4 text-primary" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => onConfig(item)} title="Cấu hình luồng duyệt">
-                                                <GitMerge className="h-4 w-4 text-amber-600" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => onEdit(item)} title="Chỉnh sửa">
-                                                <Edit className="h-4 w-4 text-emerald-600" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => onDelete(item)} title="Xóa">
-                                                <Trash2 className="h-4 w-4 text-rose-500" />
-                                            </Button>
+                                            {item.isDeleted ? (
+                                                /* Bản ghi đã xóa mềm: chỉ hiển thị nút khôi phục */
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => onRestore(item)}
+                                                    title="Khôi phục bản ghi"
+                                                >
+                                                    <ArchiveRestore className="h-4 w-4 text-indigo-500" />
+                                                </Button>
+                                            ) : (
+                                                /* Bản ghi bình thường */
+                                                <>
+                                                    <Button variant="ghost" size="icon" onClick={() => onView(item)} title="Xem chi tiết (Loại đơn)">
+                                                        <Eye className="h-4 w-4 text-primary" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => onConfig(item)} title="Cấu hình luồng duyệt">
+                                                        <GitMerge className="h-4 w-4 text-amber-600" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => onEdit(item)} title="Chỉnh sửa">
+                                                        <Edit className="h-4 w-4 text-emerald-600" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => onDelete(item)} title="Xóa">
+                                                        <Trash2 className="h-4 w-4 text-rose-500" />
+                                                    </Button>
+                                                </>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
