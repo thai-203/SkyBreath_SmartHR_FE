@@ -28,7 +28,7 @@ export default function RequestTypeFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-xl p-0 overflow-hidden bg-white border-none rounded-xl">
+            <DialogContent hideClose className="max-w-xl p-0 overflow-hidden bg-white border-none rounded-xl">
                 <DialogHeader className="px-6 py-4 border-b bg-slate-50 relative">
                     <DialogTitle className="text-xl font-bold text-slate-800">
                         {mode === "add" ? "Thêm Loại Đơn Mới" : "Cập nhật Loại Đơn"}

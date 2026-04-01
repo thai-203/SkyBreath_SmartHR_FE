@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { REQUEST_GROUP_CODE_LABELS } from "@/constants/request.enum";
 
 export default function RequestGroupsTable({
     data, loading, search, onSearchChange,
@@ -50,7 +51,9 @@ export default function RequestGroupsTable({
                             data.map((item, index) => (
                                 <TableRow key={item.id} className="hover:bg-slate-50">
                                     <TableCell>{(currentPage - 1) * 10 + index + 1}</TableCell>
-                                    <TableCell className="font-semibold text-slate-700">{item.code}</TableCell>
+                                    <TableCell className="font-semibold text-slate-700">
+                                        {REQUEST_GROUP_CODE_LABELS[item.code] || item.code}
+                                    </TableCell>
                                     <TableCell className="font-medium text-slate-900">{item.name}</TableCell>
                                     <TableCell>
                                         <Badge variant={item.status === 'ACTIVE' ? 'success' : 'secondary'}>

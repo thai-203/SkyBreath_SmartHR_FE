@@ -21,8 +21,14 @@ export const requestTypesService = {
         return response.data;
     },
 
+    updatePolicy: async (id, policyData) => {
+        const response = await api.patch(`/request-types/${id}/policy`, policyData);
+        return response.data;
+    },
+
     delete: async (id) => {
         const response = await api.delete(`/request-types/${id}`);
         return response.data;
     },
 };
+

@@ -6,10 +6,9 @@ import { Button } from "@/components/common/Button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { REQUEST_GROUP_CODES, REQUEST_GROUP_CODE_LABELS } from "@/constants/request.enum";
 
-export default function RequestGroupFormModal({
-    isOpen, onClose, onSubmit, formData, onFormChange, errors, mode, submitting
+export default function RequestTypeFormModal({
+    isOpen, onClose, onSubmit, formData, onFormChange, errors, mode, submitting, groups
 }) {
     if (!isOpen) return null;
 
@@ -20,43 +19,42 @@ export default function RequestGroupFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent hideClose className="max-w-xl p-0 overflow-hidden bg-white border-none rounded-xl">
+            <DialogContent hideClose className="max-w-lg p-0 overflow-hidden bg-white border-none rounded-xl">
                 <DialogHeader className="px-6 py-4 border-b bg-slate-50 relative">
                     <DialogTitle className="text-xl font-bold text-slate-800">
-                        {mode === "add" ? "Thêm Nhóm Đơn Mới" : "Cập nhật Nhóm Đơn"}
+                        {mode === "add" ? "Thêm Loại Đơn Mới" : "Cập nhật Loại Đơn"}
                     </DialogTitle>
                     <button onClick={onClose} className="absolute right-4 top-4 rounded-full p-1.5 hover:bg-slate-200 text-slate-500 transition-colors">
                         <X className="h-5 w-5" />
                     </button>
                 </DialogHeader>
 
-                <div className="px-6 py-6 space-y-5 flex-1 overflow-y-auto">
+                <div className="px-6 py-6 space-y-4">
                     <div className="space-y-2">
-                        <Label>Tên Nhóm Đơn <span className="text-red-500">*</span></Label>
+                        <Label>Nhóm Đơn <span className="text-red-500">*</span></Label>
+                        <select
+                            name="requestGroupId"
+                            value={formData.requestGroupId || ""}
+                            onChange={handleChange}
+                            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        >
+                            <option value="">-- Chọn nhóm đơn --</option>
+                            {(groups || []).map(g => (
+                                <option key={g.id} value={g.id}>{g.name}</option>
+                            ))}
+                        </select>
+                        {errors.requestGroupId && <p className="text-sm font-medium text-red-500">{errors.requestGroupId}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Tên Loại Đơn <span className="text-red-500">*</span></Label>
                         <Input
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            placeholder="Nhập tên nhóm đơn..."
+                            placeholder="Nhập tên loại đơn..."
                         />
                         {errors.name && <p className="text-sm font-medium text-red-500">{errors.name}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Mã Nhóm Đơn <span className="text-red-500">*</span></Label>
-                        <select
-                            name="code"
-                            value={formData.code}
-                            onChange={handleChange}
-                            disabled={mode === "edit"}
-                            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:opacity-80"
-                        >
-                            <option value="">-- Chọn mã nhóm đơn --</option>
-                            {Object.entries(REQUEST_GROUP_CODE_LABELS).map(([key, label]) => (
-                                <option key={key} value={key}>{label} ({key})</option>
-                            ))}
-                        </select>
-                        {errors.code && <p className="text-sm font-medium text-red-500">{errors.code}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -65,7 +63,7 @@ export default function RequestGroupFormModal({
                             name="status"
                             value={formData.status}
                             onChange={handleChange}
-                            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                         >
                             <option value="ACTIVE">Hoạt động</option>
                             <option value="INACTIVE">Tạm ngưng</option>
@@ -73,13 +71,13 @@ export default function RequestGroupFormModal({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Mô tả Nhóm Đơn</Label>
+                        <Label>Mô tả</Label>
                         <Textarea
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
                             rows={3}
-                            placeholder="Thêm mô tả cho nhóm đơn này..."
+                            placeholder="Thêm mô tả cho loại đơn này..."
                         />
                     </div>
                 </div>
@@ -89,9 +87,9 @@ export default function RequestGroupFormModal({
                     <Button
                         onClick={onSubmit}
                         disabled={submitting}
-                        className="bg-indigo-600 hover:bg-indigo-700 font-semibold"
+                        className="bg-emerald-600 hover:bg-emerald-700 font-semibold"
                     >
-                        {submitting ? "Đang lưu..." : "Lưu Thay Đổi"}
+                        {submitting ? "Đang lưu..." : mode === "add" ? "Tạo Loại Đơn" : "Lưu Thay Đổi"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

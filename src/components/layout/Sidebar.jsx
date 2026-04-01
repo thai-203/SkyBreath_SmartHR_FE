@@ -143,6 +143,10 @@ const menuItems = [
     icon: FolderGit2,
     href: "/requests/groups",
     roles: ["ADMIN", "HR"],
+    children: [
+      { title: "Nhóm đơn", href: "/requests/groups" },
+      { title: "Loại đơn từ", href: "/requests/types" },
+    ],
   },
   {
     title: "Yêu cầu của tôi",

@@ -9,7 +9,8 @@ import RequestGroupsTable from "./components/RequestGroupsTable";
 import RequestGroupFormModal from "./components/RequestGroupFormModal";
 import WorkflowConfigModal from "./components/WorkflowConfigModal";
 import { requestGroupsService } from "@/services/request-groups.service";
-import { RoleService } from "@/services/roles.service";
+import { userService } from "@/services/user.service";
+
 import { useRouter } from "next/navigation";
 
 const PAGE_SIZE = 10;
@@ -46,13 +47,18 @@ export default function RequestGroupsPage() {
     const fetchGroups = useCallback(async (searchValue, page) => {
         try {
             setLoading(true);
-            const params = { skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE };
+            const params = { page, limit: PAGE_SIZE };
             if (searchValue?.trim()) params.search = searchValue.trim();
 
             const res = await requestGroupsService.getAll(params);
-            setGroups(res.items || []);
-            setTotalItems(res.total || 0);
-            setTotalPages(Math.ceil((res.total || 0) / PAGE_SIZE) || 1);
+            
+            // Theo chuẩn PaginatedResponseDto: data => { data: [], meta: { totalItems, totalPages } }
+            const items = res.data?.data || [];
+            const meta = res.data?.meta || {};
+            
+            setGroups(items);
+            setTotalItems(meta.totalItems || 0);
+            setTotalPages(meta.totalPages || 1);
         } catch (err) {
             showError("Không thể tải danh sách Nhóm đơn từ");
         } finally {
@@ -62,8 +68,8 @@ export default function RequestGroupsPage() {
 
     const fetchRoles = useCallback(async () => {
         try {
-            const res = await RoleService.getRoles();
-            setRoles(res.data || []);
+            const res = await userService.getMetadata();
+            setRoles(res.data?.roles || res.data || []);
         } catch (err) {
             console.error("Lỗi khi tải dữ liệu vai trò:", err);
         }
