@@ -13,6 +13,7 @@ import {
   Clock,
   DollarSign,
   FileText,
+  FolderGit2,
   LayoutDashboard,
   ScrollText,
   Settings,
@@ -135,6 +136,26 @@ const menuItems = [
     children: [
       { title: "Làm thêm giờ", href: "/regulations/overtime" },
       { title: "Hình phạt", href: "/regulations/penalties" },
+    ],
+  },
+  {
+    title: "Cấu hình đơn từ",
+    icon: FolderGit2,
+    href: "/requests/groups",
+    roles: ["ADMIN", "HR"],
+    children: [
+      { title: "Nhóm đơn", href: "/requests/groups" },
+      { title: "Loại đơn từ", href: "/requests/types" },
+    ],
+  },
+  {
+    title: "Yêu cầu của tôi",
+    icon: FileText,
+    href: "/requests/overtime/create", // Tạm link vào đăng ký tăng ca
+    roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Đăng ký tăng ca", href: "/requests/overtime/create" },
+      { title: "Đăng ký nghỉ phép", href: "/requests/leave/create" },
     ],
   },
   {
