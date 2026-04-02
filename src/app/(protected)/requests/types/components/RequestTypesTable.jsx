@@ -89,7 +89,10 @@ export default function RequestTypesTable({
                                         {item.isDeleted ? (
                                             <Badge variant="destructive" className="opacity-70">Đã xóa</Badge>
                                         ) : (
-                                            <Badge variant={item.status === "ACTIVE" ? "success" : "secondary"}>
+                                            <Badge 
+                                                variant="outline" 
+                                                className={item.status === 'ACTIVE' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-transparent shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-transparent"}
+                                            >
                                                 {item.status === "ACTIVE" ? "Hoạt động" : "Tạm ngưng"}
                                             </Badge>
                                         )}
@@ -121,7 +124,7 @@ export default function RequestTypesTable({
                                                         onClick={() => onPolicy(item)}
                                                         title="Cấu hình Policy"
                                                     >
-                                                        <Settings2 className="h-4 w-4 text-indigo-500" />
+                                                        <Settings2 className="h-4 w-4 text-amber-600" />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"

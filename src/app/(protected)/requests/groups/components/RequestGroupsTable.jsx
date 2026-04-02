@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Trash2, Eye, GitMerge, ArchiveRestore } from "lucide-react";
+import { Edit, Trash2, Eye, Settings2, ArchiveRestore } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,10 @@ export default function RequestGroupsTable({
                                         {item.isDeleted ? (
                                             <Badge variant="destructive" className="opacity-70">Đã xóa</Badge>
                                         ) : (
-                                            <Badge variant={item.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                                            <Badge 
+                                                variant="outline" 
+                                                className={item.status === 'ACTIVE' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-transparent shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-transparent"}
+                                            >
                                                 {item.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngưng'}
                                             </Badge>
                                         )}
@@ -86,7 +89,7 @@ export default function RequestGroupsTable({
                                                         <Eye className="h-4 w-4 text-primary" />
                                                     </Button>
                                                     <Button variant="ghost" size="icon" onClick={() => onConfig(item)} title="Cấu hình luồng duyệt">
-                                                        <GitMerge className="h-4 w-4 text-amber-600" />
+                                                        <Settings2 className="h-4 w-4 text-amber-600" />
                                                     </Button>
                                                     <Button variant="ghost" size="icon" onClick={() => onEdit(item)} title="Chỉnh sửa">
                                                         <Edit className="h-4 w-4 text-emerald-600" />

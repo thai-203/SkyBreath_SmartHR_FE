@@ -160,7 +160,7 @@ const menuItems = [
     ],
   },
   {
-    title: "Cấu hình đơn từ",
+    title: "Quản lý đơn từ",
     icon: FolderGit2,
     href: "/requests/groups",
     roles: ["ADMIN", "HR"],
@@ -170,13 +170,13 @@ const menuItems = [
     ],
   },
   {
-    title: "Yêu cầu của tôi",
+    title: "Yêu cầu",
     icon: FileText,
-    href: "/requests/overtime/create", // Tạm link vào đăng ký tăng ca
+    href: "/requests/my-requests",
     roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
     children: [
-      { title: "Đăng ký tăng ca", href: "/requests/overtime/create" },
-      { title: "Đăng ký nghỉ phép", href: "/requests/leave/create" },
+      { title: "Đơn từ của tôi", href: "/requests/my-requests" },
+      { title: "Đơn cần phê duyệt", href: "/requests/pending-approvals", roles: ["ADMIN", "HR", "MANAGER"] },
     ],
   },
   {
