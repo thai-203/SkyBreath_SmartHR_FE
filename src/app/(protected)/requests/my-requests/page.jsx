@@ -7,6 +7,8 @@ import { useToast } from "@/components/common/Toast";
 import RequestFormModal from "./components/RequestFormModal";
 import RequestStatusBadge from "./components/RequestStatusBadge";
 import RequestDetailModal from "./components/RequestDetailModal";
+import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/Modal";
 
 const STATUS_OPTIONS = [
     { value: "", label: "Tất cả trạng thái" },
@@ -28,6 +30,7 @@ export default function MyRequestsPage() {
     const [filters, setFilters] = useState({ status: "" });
     const [showForm, setShowForm] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [editRequestId, setEditRequestId] = useState(null);
 
     const fetchRequests = useCallback(async () => {
         setLoading(true);
@@ -48,15 +51,19 @@ export default function MyRequestsPage() {
         fetchRequests();
     }, [fetchRequests]);
 
-    const handleCancel = async (id) => {
-        if (!confirm("Bạn có chắc chắn muốn hủy đơn này?")) return;
+    const [confirmCancel, setConfirmCancel] = useState(null);
+
+    const handleCancel = async () => {
+        if (!confirmCancel) return;
         try {
-            await requestsService.cancel(id);
+            await requestsService.cancel(confirmCancel);
             success("Hủy đơn thành công");
             fetchRequests();
         } catch (err) {
             console.error(err);
             toastError(err?.response?.data?.message || "Hủy đơn thất bại");
+        } finally {
+            setConfirmCancel(null);
         }
     };
 
@@ -72,13 +79,10 @@ export default function MyRequestsPage() {
                     <h1 className="text-2xl font-bold text-slate-800">Đơn Từ Của Tôi</h1>
                     <p className="text-sm text-slate-500 mt-0.5">Quản lý và theo dõi các đơn từ bạn đã tạo</p>
                 </div>
-                <button
-                    onClick={() => setShowForm(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm hover:shadow-md"
-                >
+                <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
                     Tạo đơn mới
-                </button>
+                </Button>
             </div>
 
             {/* Filters */}
@@ -92,12 +96,9 @@ export default function MyRequestsPage() {
                         <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                 </select>
-                <button
-                    onClick={fetchRequests}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors ml-auto"
-                >
+                <Button variant="outline" onClick={fetchRequests} className="flex items-center gap-1.5 ml-auto">
                     <RefreshCw className="w-4 h-4" /> Làm mới
-                </button>
+                </Button>
             </div>
 
             {/* Table */}
@@ -153,12 +154,14 @@ export default function MyRequestsPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                                             {(req.status === "DRAFT" || req.status === "PENDING") && (
-                                                <button
-                                                    onClick={() => handleCancel(req.id)}
-                                                    className="text-xs text-red-500 hover:text-red-700 hover:underline"
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setConfirmCancel(req.id)}
+                                                    className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
                                                 >
                                                     Hủy đơn
-                                                </button>
+                                                </Button>
                                             )}
                                         </td>
                                     </tr>
@@ -201,7 +204,11 @@ export default function MyRequestsPage() {
             {showForm && (
                 <RequestFormModal
                     isOpen={showForm}
-                    onClose={() => setShowForm(false)}
+                    requestId={editRequestId}
+                    onClose={() => {
+                        setShowForm(false);
+                        setEditRequestId(null);
+                    }}
                     onSuccess={fetchRequests}
                 />
             )}
@@ -212,8 +219,24 @@ export default function MyRequestsPage() {
                     request={selectedRequest}
                     onClose={() => setSelectedRequest(null)}
                     onRefresh={fetchRequests}
+                    onEdit={(req) => {
+                        setSelectedRequest(null);
+                        setEditRequestId(req.id);
+                        setShowForm(true);
+                    }}
                 />
             )}
+
+            <ConfirmModal 
+                isOpen={!!confirmCancel} 
+                onClose={() => setConfirmCancel(null)}
+                onConfirm={handleCancel}
+                title="Xác nhận hủy đơn"
+                description="Bạn có thực sự muốn hủy đơn này? Hành động này không thể hoàn tác."
+                confirmText="Xác nhận hủy"
+                cancelText="Quay lại"
+                variant="destructive"
+            />
         </div>
     );
 }

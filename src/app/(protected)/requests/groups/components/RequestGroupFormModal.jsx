@@ -20,7 +20,7 @@ export default function RequestGroupFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent hideClose className="max-w-xl p-0 overflow-hidden bg-white border-none rounded-xl">
+            <DialogContent hideClose className="max-w-xl p-0 overflow-hidden bg-white text-slate-900 border-none rounded-xl">
                 <DialogHeader className="px-6 py-4 border-b bg-slate-50 relative">
                     <DialogTitle className="text-xl font-bold text-slate-800">
                         {mode === "add" ? "Thêm Nhóm Đơn Mới" : "Cập nhật Nhóm Đơn"}
@@ -32,7 +32,7 @@ export default function RequestGroupFormModal({
 
                 <div className="px-6 py-6 space-y-5 flex-1 overflow-y-auto">
                     <div className="space-y-2">
-                        <Label>Tên Nhóm Đơn <span className="text-red-500">*</span></Label>
+                        <Label className="text-slate-700">Tên Nhóm Đơn <span className="text-red-500">*</span></Label>
                         <Input
                             name="name"
                             value={formData.name}
@@ -43,13 +43,13 @@ export default function RequestGroupFormModal({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Mã Nhóm Đơn <span className="text-red-500">*</span></Label>
+                        <Label className="text-slate-700">Mã Nhóm Đơn <span className="text-red-500">*</span></Label>
                         <select
                             name="code"
                             value={formData.code}
                             onChange={handleChange}
                             disabled={mode === "edit"}
-                            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:opacity-80"
+                            className="flex h-10 w-full rounded-md border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:opacity-80"
                         >
                             <option value="">-- Chọn mã nhóm đơn --</option>
                             {Object.entries(REQUEST_GROUP_CODE_LABELS).map(([key, label]) => (
@@ -60,12 +60,12 @@ export default function RequestGroupFormModal({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Trạng thái</Label>
+                        <Label className="text-slate-700">Trạng thái</Label>
                         <select
                             name="status"
                             value={formData.status}
                             onChange={handleChange}
-                            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex h-10 w-full rounded-md border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <option value="ACTIVE">Hoạt động</option>
                             <option value="INACTIVE">Tạm ngưng</option>
@@ -73,7 +73,7 @@ export default function RequestGroupFormModal({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Mô tả Nhóm Đơn</Label>
+                        <Label className="text-slate-700">Mô tả Nhóm Đơn</Label>
                         <Textarea
                             name="description"
                             value={formData.description}

@@ -4,34 +4,33 @@ import { useState, useEffect, useCallback } from "react";
 import { X, Upload, Trash2, Loader2, FileText, CheckCircle, Clock, XCircle, RotateCcw } from "lucide-react";
 import { requestsService } from "@/services/requests.service";
 import { requestTypesService } from "@/services/request-types.service";
+import { requestGroupsService } from "@/services/request-groups.service";
 import { employeesService } from "@/services/employees.service";
-import { toast } from "sonner";
+import { authService } from "@/services/auth.service";
+import { useToast } from "@/components/common/Toast";
 
 const APPROVAL_TYPE_LABEL = {
     DIRECT_MANAGER: "Quản lý trực tiếp",
     ROLE: "Theo vai trò",
 };
 
-const STATUS_CONFIG = {
-    DRAFT: { label: "Nháp", color: "bg-gray-100 text-gray-700", icon: Clock },
-    PENDING: { label: "Chờ duyệt", color: "bg-yellow-100 text-yellow-700", icon: Clock },
-    APPROVED: { label: "Đã duyệt", color: "bg-green-100 text-green-700", icon: CheckCircle },
-    REJECTED: { label: "Từ chối", color: "bg-red-100 text-red-700", icon: XCircle },
-    CANCELLED: { label: "Đã hủy", color: "bg-gray-100 text-gray-500", icon: XCircle },
-    REVOKED: { label: "Hủy duyệt", color: "bg-orange-100 text-orange-700", icon: RotateCcw },
-};
-
 export default function RequestFormModal({ isOpen, onClose, employeeId, requestId, onSuccess }) {
+    const { success, error: toastError } = useToast();
     const [requestTypes, setRequestTypes] = useState([]);
+    const [requestGroups, setRequestGroups] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [workflowPreview, setWorkflowPreview] = useState([]);
     const [attachments, setAttachments] = useState([]);
+    
+    // States
     const [uploading, setUploading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [savedRequestId, setSavedRequestId] = useState(requestId || null);
+    const [currentUserEmployeeId, setCurrentUserEmployeeId] = useState(null);
 
     const [form, setForm] = useState({
         employeeId: employeeId || "",
+        requestGroupId: "",
         requestTypeId: "",
         startDate: new Date().toISOString().slice(0, 10),
         endDate: new Date().toISOString().slice(0, 10),
@@ -45,15 +44,58 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
     const [policy, setPolicy] = useState(null);
     const [errors, setErrors] = useState({});
 
-    // Load request types
+    // Init data
     useEffect(() => {
         if (!isOpen) return;
+        
+        requestGroupsService.getAll({ status: "ACTIVE", limit: 100 }).then((res) => {
+            const arr = res?.data?.data || res?.items || res?.data?.items || [];
+            setRequestGroups(arr.filter(Item => !Item.isDeleted && Item.status === 'ACTIVE'));
+        });
+
         requestTypesService.getAll({ status: "ACTIVE", limit: 200 }).then((res) => {
-            setRequestTypes(res?.data?.items || []);
+            const arr = res?.data?.data || res?.data?.items || res?.items || [];
+            setRequestTypes(arr.filter(Item => !Item.isDeleted && Item.status === 'ACTIVE'));
         });
+        
         employeesService.getAll({ limit: 500 }).then((res) => {
-            setEmployees(res?.data?.items || res?.items || []);
+            const arr = res?.data?.data || res?.data?.items || res?.items || [];
+            setEmployees(arr.filter(Item => !Item.isDeleted));
         });
+
+        // Set default employeeId
+        authService.getCurrentEmployeeByUserId().then(emp => {
+            if (emp?.id) {
+                setCurrentUserEmployeeId(emp.id);
+                if (!employeeId && !form.employeeId && !requestId) {
+                    setForm(prev => ({ ...prev, employeeId: emp.id }));
+                }
+            }
+        }).catch(err => console.error("Lỗi lấy thông tin NV hiện tại", err));
+
+        // Load existing request data if editing
+        if (requestId) {
+            requestsService.getById(requestId).then((res) => {
+                const data = res?.data;
+                if (data) {
+                    setForm(prev => ({
+                        ...prev,
+                        employeeId: data.employeeId || data.employee?.id || prev.employeeId,
+                        requestGroupId: data.requestGroupId || data.requestGroup?.id || data.requestType?.requestGroupId || "",
+                        requestTypeId: data.requestTypeId || data.requestType?.id || "",
+                        startDate: data.startDate || new Date().toISOString().slice(0, 10),
+                        endDate: data.endDate || new Date().toISOString().slice(0, 10),
+                        startTime: data.startTime || "",
+                        endTime: data.endTime || "",
+                        description: data.description || "",
+                        isWorkedTime: !!data.isWorkedTime,
+                        unit: data.unit || "",
+                    }));
+                    setSavedRequestId(data.id);
+                    setAttachments(data.attachments || []);
+                }
+            }).catch(console.error);
+        }
     }, [isOpen]);
 
     // Load workflow preview khi chọn loại đơn hoặc người được tạo đơn
@@ -98,7 +140,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
 
     const handleSaveDraft = async () => {
         if (!form.requestTypeId) {
-            toast.error("Vui lòng chọn lý do đơn trước khi lưu nháp");
+            toastError("Vui lòng chọn lý do đơn trước khi lưu nháp");
             return;
         }
         setSubmitting(true);
@@ -106,10 +148,10 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
             const res = await requestsService.saveDraft({ ...form, requestId: savedRequestId });
             const newId = res?.data?.id;
             setSavedRequestId(newId);
-            toast.success("Lưu nháp thành công");
+            success("Lưu nháp thành công");
             onSuccess?.();
         } catch (err) {
-            toast.error(err?.response?.data?.message || "Lưu nháp thất bại");
+            toastError(err?.response?.data?.message || "Lưu nháp thất bại");
         } finally {
             setSubmitting(false);
         }
@@ -136,11 +178,11 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
 
             // 3. Gửi duyệt
             await requestsService.submit(currentId);
-            toast.success("Gửi duyệt thành công!");
+            success("Gửi duyệt thành công!");
             onSuccess?.();
             onClose();
         } catch (err) {
-            toast.error(err?.response?.data?.message || "Gửi duyệt thất bại");
+            toastError(err?.response?.data?.message || "Gửi duyệt thất bại");
         } finally {
             setSubmitting(false);
         }
@@ -166,7 +208,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
             {/* Modal */}
-            <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+            <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-4 max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-slate-50 to-blue-50">
                     <h2 className="text-lg font-bold text-slate-800">TẠO MỚI ĐƠN TỪ</h2>
@@ -215,7 +257,8 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                                 <select
                                     value={form.employeeId}
                                     onChange={(e) => setForm((p) => ({ ...p, employeeId: e.target.value }))}
-                                    className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                                    disabled
+                                    className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50 text-slate-500 cursor-not-allowed"
                                 >
                                     <option value="">-- Chọn nhân viên --</option>
                                     {employees.map((emp) => (
@@ -227,19 +270,40 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                                 {errors.employeeId && <p className="text-xs text-red-500 mt-1">{errors.employeeId}</p>}
                             </div>
 
-                            {/* Lý do + Tính công */}
+                            {/* Nhóm đơn & Lý do + Tính công */}
                             <div className="flex gap-4">
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                                        Lý do <span className="text-red-500">*</span>
+                                        Nhóm đơn <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        value={form.requestGroupId}
+                                        onChange={(e) => setForm((p) => ({ ...p, requestGroupId: e.target.value, requestTypeId: "" }))}
+                                        className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                                    >
+                                        <option value="">-- Chọn nhóm đơn --</option>
+                                        {requestGroups.map((group) => (
+                                            <option key={group.id} value={group.id}>
+                                                {group.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                        Lý do (Loại đơn) <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         value={form.requestTypeId}
                                         onChange={(e) => setForm((p) => ({ ...p, requestTypeId: e.target.value }))}
-                                        className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                                        disabled={!form.requestGroupId}
+                                        className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white disabled:bg-slate-50 disabled:text-slate-400"
                                     >
                                         <option value="">Chọn lý do</option>
-                                        {requestTypes.map((type) => (
+                                        {requestTypes
+                                            .filter(t => form.requestGroupId ? t.requestGroupId === parseInt(form.requestGroupId) : true)
+                                            .map((type) => (
                                             <option key={type.id} value={type.id}>
                                                 {type.name}
                                             </option>
@@ -249,7 +313,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                                 </div>
 
                                 {/* Tính công — readonly từ policy */}
-                                <div className="flex items-end pb-1 gap-2">
+                                <div className="flex items-end pb-1 gap-2 w-auto min-w-[100px]">
                                     <input
                                         type="checkbox"
                                         id="isWorkedTime"
