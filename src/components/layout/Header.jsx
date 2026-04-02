@@ -36,6 +36,14 @@ export function Header({ onMenuClick }) {
     employee: "Nhân viên",
     groups: "Nhóm ca",
     working: "Ca",
+    configurations: "Cấu hình",
+    "face-recognition": "Nhận diện khuôn mặt",
+    "attendance-security": "Bảo mật chấm công",
+    "attendance-blocking": "Cấu hình chặn điểm danh",
+    checkin: "Điểm danh",
+    register: "Đăng ký khuôn mặt",
+    face: "Chấm công",
+    manage: "Quản lý dữ liệu khuôn mặt",
   };
 
   const pathParts = pathname.split("/").filter(Boolean);

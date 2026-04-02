@@ -5,6 +5,7 @@ import { authService } from "@/services";
 import {
   BookOpen,
   Building2,
+  Camera,
   Calendar,
   CalendarClock,
   ChevronDown,
@@ -21,11 +22,12 @@ import {
   User,
   UserPlus,
   Users,
-  X
+  X,
+  UserCog,
+  CalendarCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { title } from "process";
 import { useEffect, useState } from "react";
 
 const menuItems = [
@@ -33,6 +35,16 @@ const menuItems = [
     title: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard",
+  },
+  {
+    title: "Chấm công",
+    icon: CalendarCheck,
+    href: "/face/checkin",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Điểm danh (Camera)", href: "/face/checkin" },
+      { title: "Đăng ký khuôn mặt", href: "/face/register" },
+    ],
   },
   {
     title: "Phòng ban",
@@ -81,6 +93,15 @@ const menuItems = [
       { title: "Bảng lương tháng", href: "/payroll" },
       { title: "Loại bảng lương", href: "/payroll/types" },
     ],
+    href: "/timesheets",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    children: [{ title: "Danh sách", href: "/timesheets" }],
+  },
+  {
+    title: "Quản lý Face Data",
+    icon: Camera,
+    href: "/face/manage",
+    roles: ["ADMIN"],
   },
   {
     title: "Ca làm việc",
@@ -190,13 +211,19 @@ const menuItems = [
   },
   {
     title: "Cài đặt",
-    icon: Settings,
+    icon: UserCog,
     href: "/settings",
     roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
       { title: "Hồ sơ", href: "/settings/general" },
       { title: "Mật khẩu", href: "/settings/security" },
     ],
+  },
+  {
+    title: "Cấu hình hệ thống",
+    icon: Settings,
+    href: "/configurations",
+    roles: ["ADMIN"],
   },
 ];
 
