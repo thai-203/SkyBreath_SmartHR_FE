@@ -3,16 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --primary: #4E73DF;
-  --primary-light: #6B8AE6;
-  --primary-dark: #3A5BC7;
-  --success: #1CC88A;
-  --warning: #F6C23E;
-  --danger: #E74A3B;
-  --info: #36B9CC;
-  --card: #FFFFFF;
-  --border: #E2E8F0;
-  --muted: #64748B;
+  --primary: #4e73df;
+  --primary-rgb: 78, 115, 223;
+  --primary-light: #6b8ae6;
+  --primary-dark: #3a5bc7;
+  --success: #1cc88a;
+  --warning: #f6c23e;
+  --danger: #e74a3b;
+  --info: #36b9cc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --muted: #64748b;
   --radius: 12px;
 }
 
@@ -26,7 +27,13 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
 }
 
 body {
@@ -49,12 +56,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #94a3b8;
 }
 
 #nprogress {
@@ -145,8 +152,6 @@ a {
   }
 }
 
-
-
 @layer base {
   * {
     @apply border-border;
@@ -188,7 +193,7 @@ a {
 /* Connectors */
 .org-tree-ngang li::before,
 .org-tree-ngang li::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   right: 50%;
@@ -202,16 +207,13 @@ a {
   left: 50%;
   border-left: 2px solid #cbd5e1;
 }
-
 .org-tree-ngang li:only-child::after,
 .org-tree-ngang li:only-child::before {
   display: none;
 }
-
 .org-tree-ngang li:only-child {
   padding-top: 0;
 }
-
 .org-tree-ngang li:first-child::before,
 .org-tree-ngang li:last-child::after {
   border: 0 none;
@@ -227,7 +229,7 @@ a {
 }
 
 .org-tree-ngang ul::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 50%;
@@ -248,7 +250,7 @@ a {
 }
 
 .org-tree-doc-children::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -10px;
   bottom: 50%;
@@ -261,7 +263,7 @@ a {
 }
 
 .org-tree-doc-node::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 25px;
   /* Adjust to hit the middle of the card header height */

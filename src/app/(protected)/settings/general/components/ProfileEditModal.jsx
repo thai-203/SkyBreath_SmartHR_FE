@@ -226,7 +226,7 @@ export default function ProfileEditModal({
                 <div className="space-y-3">
                   <div className="flex items-center gap-4 p-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm transition-shadow">
                     <div className="relative">
-                      <Image
+                      <img
                         src={
                           previewAvatar || `${API_BASE_URL}/${formData.avatar}`
                         }
@@ -234,7 +234,6 @@ export default function ProfileEditModal({
                         width={64}
                         height={64}
                         className="w-16 h-16 rounded-lg object-cover border-2 border-slate-100"
-                        unoptimized
                       />
                     </div>
                     <div className="flex-1">

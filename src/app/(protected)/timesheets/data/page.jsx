@@ -5,17 +5,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/common/Button";
 import { Select } from "@/components/common/Select";
 import { ConfirmModal } from "@/components/common/Modal";
+import { Input } from "@/components/common/Input";
+import { Pagination } from "@/components/common/Pagination";
 import { useToast } from "@/components/common/Toast";
 import { timesheetsService } from "@/services/timesheets.service";
 import { departmentsService } from "@/services/departments.service";
 import { employeesService } from "@/services/employees.service";
 import { authService } from "@/services/auth.service";
-import TimesheetTable from "../components/TimesheetTable";
 import CalendarView from "../components/CalendarView";
 import AttendanceDetailModal from "../components/AttendanceDetailModal";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
-import { CalendarDays, Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Filter } from "lucide-react";
+import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search } from "lucide-react";
 
 const currentDate = new Date();
 
@@ -25,7 +26,7 @@ export default function DataManagementPage() {
     const currentUser = authService.getCurrentUser();
     const isEmployeeOnly = currentUser?.roles?.includes('EMPLOYEE') && !currentUser?.roles?.some(r => ['ADMIN', 'HR'].includes(r));
 
-    const [timesheets, setTimesheets] = useState([]);
+    const [matrixData, setMatrixData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
     const [departments, setDepartments] = useState([]);
@@ -46,15 +47,17 @@ export default function DataManagementPage() {
 
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [totalPages, setTotalPages] = useState(0);
+    const [totalRecords, setTotalRecords] = useState(0);
     const [viewMode, setViewMode] = useState("table");
     const [calendarEmployeeId, setCalendarEmployeeId] = useState("");
     const [calendarData, setCalendarData] = useState(null);
     const [calendarLoading, setCalendarLoading] = useState(false);
     const [employeeList, setEmployeeList] = useState([]);
 
-    // Modals (shared hook)
     const [confirmModal, setConfirmModal] = useState({ open: false, data: null, action: null });
     const [confirmLoading, setConfirmLoading] = useState(false);
+    const [syncLoading, setSyncLoading] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const { success, error: toastError } = useToast();
 
@@ -70,12 +73,14 @@ export default function DataManagementPage() {
             } catch (err) { console.error(err); }
         };
         fetchDeps();
+        setIsInitialized(true);
     }, []);
 
-    const fetchTimesheets = useCallback(async () => {
+    const fetchMatrix = useCallback(async () => {
+        if (!isInitialized) return;
         setLoading(true);
         try {
-            const res = await timesheetsService.getAll({
+            const res = await timesheetsService.getProcessedMatrix({
                 page: pagination.pageIndex + 1,
                 limit: pagination.pageSize,
                 search: search || undefined,
@@ -84,13 +89,15 @@ export default function DataManagementPage() {
                 departmentId: filters.departmentId || undefined,
                 status: filters.status || undefined,
             });
-            setTimesheets(res?.data?.items || []);
-            setTotalPages(res?.data?.totalPages || 0);
+            const data = res?.data || res || {};
+            setMatrixData(data.items || []);
+            setTotalPages(data.totalPages || 0);
+            setTotalRecords(data.total || 0);
         } catch (err) { toastError("Lỗi khi tải dữ liệu"); }
         finally { setLoading(false); }
-    }, [pagination, search, filters]);
+    }, [pagination, search, filters, isInitialized]);
 
-    useEffect(() => { fetchTimesheets(); }, [fetchTimesheets]);
+    useEffect(() => { fetchMatrix(); }, [fetchMatrix]);
 
     const fetchCalendarData = useCallback(async () => {
         if (viewMode !== "calendar" || !calendarEmployeeId) return;
@@ -112,41 +119,45 @@ export default function DataManagementPage() {
 
     useEffect(() => { fetchCalendarData(); }, [fetchCalendarData]);
 
-    // Auto-select first employee when switching to calendar
     useEffect(() => {
-        if (viewMode === "calendar" && !calendarEmployeeId && timesheets.length > 0) {
-            const currentUser = authService.getCurrentUser();
-            const userTimesheet = timesheets.find(ts => ts.employee?.userId === currentUser?.id);
+        if (viewMode === "calendar" && !calendarEmployeeId && matrixData.length > 0) {
+            const userTimesheet = matrixData.find(ts => ts.employeeCode === currentUser?.employeeCode);
             if (userTimesheet) {
-                setCalendarEmployeeId(userTimesheet.employee?.id?.toString() || "");
+                setCalendarEmployeeId(employeeList.find(e => e.employeeCode === userTimesheet.employeeCode)?.id?.toString() || "");
             } else {
-                setCalendarEmployeeId(timesheets[0].employee?.id?.toString() || "");
+                setCalendarEmployeeId(employeeList.find(e => e.employeeCode === matrixData[0].employeeCode)?.id?.toString() || "");
             }
         }
-    }, [viewMode, timesheets, calendarEmployeeId]);
+    }, [viewMode, matrixData, calendarEmployeeId, employeeList]);
 
-    // Shared detail/excuse modal hook
     const {
         detailModal, handleViewDetail, closeDetailModal, handleDetailUpdate,
         excuseModal, handleViewExcuse, handleCreateExcuse, closeExcuseModal, handleExcuseSuccess,
-    } = useTimesheetDetail({ fetchTimesheets, canEdit: !isEmployeeOnly });
-
-    const handleRecalculate = (timesheet) => {
-        setConfirmModal({ open: true, data: timesheet, action: "recalculate" });
-    };
+    } = useTimesheetDetail({ fetchTimesheets: fetchMatrix, canEdit: !isEmployeeOnly });
 
     const handleBulkRecalculate = () => {
-        setConfirmModal({ open: true, data: { count: timesheets.filter(t => !t.isLocked).length }, action: "bulkRecalculate" });
+        setConfirmModal({ open: true, data: { count: matrixData.filter(t => !t.isLocked).length }, action: "bulkRecalculate" });
+    };
+
+    const handleSync = async () => {
+        setSyncLoading(true);
+        try {
+            const res = await timesheetsService.syncAttendance({
+                month: filters.month,
+                year: filters.year,
+                departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+            });
+            success(`Đã đồng bộ ${res?.data?.syncedRecords || 0} bản ghi`);
+            fetchMatrix();
+        } catch (err) { toastError("Lỗi khi đồng bộ công"); }
+        finally { setSyncLoading(false); }
     };
 
     const handleConfirmAction = async () => {
-        const { data, action } = confirmModal;
+        const { action } = confirmModal;
         setConfirmLoading(true);
         try {
-            if (action === "recalculate") {
-                await timesheetsService.recalculate(data.id);
-                success("Đã tính lại bảng chấm công");
-            } else if (action === "bulkRecalculate") {
+            if (action === "bulkRecalculate") {
                 const res = await timesheetsService.bulkRecalculate({
                     month: filters.month,
                     year: filters.year,
@@ -155,7 +166,7 @@ export default function DataManagementPage() {
                 success(`Đã tính lại ${res?.data?.recalculated || 0} bảng`);
             }
             setConfirmModal({ open: false, data: null, action: null });
-            fetchTimesheets();
+            fetchMatrix();
         } catch (err) { toastError("Lỗi khi thực hiện"); }
         finally { setConfirmLoading(false); }
     };
@@ -208,6 +219,38 @@ export default function DataManagementPage() {
         syncURL(defaultFilters);
     };
 
+    const daysInMonth = new Date(filters.year, filters.month, 0).getDate();
+    const dayColumns = Array.from({ length: daysInMonth }, (_, i) => {
+        const d = new Date(filters.year, filters.month - 1, i + 1);
+        const dayOfWeek = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"][d.getDay()];
+        const shortDateStr = `${String(i + 1).padStart(2, '0')}/${String(filters.month).padStart(2, '0')}`;
+        return {
+            id: `day-${i + 1}`,
+            label: dayOfWeek,
+            shortDateStr: shortDateStr,
+            isWeekend: d.getDay() === 0 || d.getDay() === 6,
+            dayIndex: i + 1,
+        };
+    });
+
+    const getDayCellContent = (dailyDetails, dayIndex) => {
+        if (!dailyDetails || !Array.isArray(dailyDetails)) return '-';
+        const dayData = dailyDetails.find(d => {
+            if (d.date) {
+                const parts = d.date.split('/');
+                if (parts.length === 3) {
+                    return parseInt(parts[0], 10) === dayIndex;
+                }
+            }
+            return false;
+        });
+
+        if (!dayData) return '-';
+        if (dayData.attendanceStatus === 'WEEKEND') return 'N';
+        if (dayData.attendanceStatus === 'ABSENT') return '0';
+        return dayData.attendanceStatus || '-';
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -217,15 +260,18 @@ export default function DataManagementPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">
-                            {isEmployeeOnly ? "Bảng dữ liệu công cá nhân" : "Quản lý dữ liệu chấm công"}
+                            {isEmployeeOnly ? "Ma trận bảng công cá nhân" : "Ma trận dữ liệu chấm công"}
                         </h1>
                         <p className="text-sm text-slate-500">
-                            {isEmployeeOnly ? "Xem chi tiết dữ liệu công của bạn theo tháng" : "Xem và hiệu chỉnh số liệu công hàng tháng"}
+                            {isEmployeeOnly ? "Xem chi tiết dữ liệu công ma trận của bạn" : "Hiển thị dữ liệu công dạng ma trận theo tháng"}
                         </p>
                     </div>
                 </div>
                 {!isEmployeeOnly && (
                     <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={handleSync} loading={syncLoading} className="gap-2 text-teal-700 border-teal-200">
+                            <RefreshCw className="h-4 w-4" /> Đồng bộ công
+                        </Button>
                         <Button variant="outline" onClick={handleBulkRecalculate} className="gap-2 text-amber-600 border-amber-200">
                             <RefreshCw className="h-4 w-4" /> Tính lại tất cả
                         </Button>
@@ -235,11 +281,6 @@ export default function DataManagementPage() {
                         <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
                             <Download className="h-4 w-4" /> Xuất chi tiết
                         </Button>
-                    </div>
-                )}
-                {isEmployeeOnly && (
-                    <div className="flex flex-wrap gap-2 h-10">
-                        {/* No action buttons for employees as per request */}
                     </div>
                 )}
             </div>
@@ -271,19 +312,87 @@ export default function DataManagementPage() {
                     </button>
                 </div>
 
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border">
-                    <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
-                        <LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Dạng Bảng</span>
-                    </button>
-                    <button onClick={() => setViewMode("calendar")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "calendar" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
-                        <CalendarIcon className="h-4 w-4" /><span className="hidden sm:inline">Dạng Lịch</span>
-                    </button>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Input placeholder="Tìm nhân viên..." value={search} onChange={(e) => { setSearch(e.target.value); setPagination(p => ({ ...p, pageIndex: 0 })); }} className="pl-9 w-full sm:w-64" />
+                    </div>
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border">
+                        <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
+                            <LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Ma trận</span>
+                        </button>
+
+                    </div>
                 </div>
             </div>
 
             {viewMode === "table" ? (
-                <TimesheetTable mode="data" data={timesheets} loading={loading} search={search} onSearchChange={setSearch} pagination={pagination} onPaginationChange={setPagination} totalPages={totalPages}
-                    onViewDetail={handleViewDetail} onRecalculate={handleRecalculate} />
+                <div className="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left border-collapse" style={{ minWidth: "1500px" }}>
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-0 bg-slate-50 z-10 whitespace-nowrap text-center">STT</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[45px] bg-slate-50 z-10 whitespace-nowrap">Họ tên</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[195px] bg-slate-50 z-10 whitespace-nowrap">Mã NS</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-slate-50 z-10 whitespace-nowrap">Chức danh</th>
+
+                                    {dayColumns.map(col => (
+                                        <th key={col.id} className={`px-1 py-1 border-r border-slate-200 font-medium text-center text-[10px] min-w-[50px] ${col.isWeekend ? 'bg-amber-50 text-amber-700' : 'text-slate-600'}`}>
+                                            <div className="flex flex-col items-center">
+                                                <span>{col.label}</span>
+                                                <span className="text-slate-400 font-normal">({col.shortDateStr})</span>
+                                            </div>
+                                        </th>
+                                    ))}
+                                    <th className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap bg-teal-50 border-x border-slate-200">Tổng công</th>
+                                    <th className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap bg-slate-50 border-r border-slate-200">Công chuẩn</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr><td colSpan={dayColumns.length + 5} className="p-8 text-center text-slate-500">Đang tải dữ liệu ma trận...</td></tr>
+                                ) : matrixData.length === 0 ? (
+                                    <tr><td colSpan={dayColumns.length + 5} className="p-8 text-center text-slate-500">Không có dữ liệu bảng công cho kỳ này</td></tr>
+                                ) : (
+                                    matrixData.map((row, idx) => (
+                                        <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-0 bg-white group-hover:bg-slate-50 z-10 font-medium text-center">{pagination.pageIndex * pagination.pageSize + idx + 1}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-medium text-slate-800" style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.fullName}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[195px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-mono text-xs">{row.employeeCode}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
+
+                                            {dayColumns.map(col => {
+                                                const cellContent = getDayCellContent(row.dailyDetails, col.dayIndex);
+                                                return (
+                                                    <td key={`${row.id}-${col.id}`} className={`px-1 py-2 border-r border-slate-200 text-center font-medium text-xs ${col.isWeekend ? 'bg-amber-50/50 text-amber-600' : 'text-slate-700'}`}>
+                                                        {cellContent}
+                                                    </td>
+                                                );
+                                            })}
+                                            <td className="px-3 py-2 text-center font-bold text-teal-700 bg-teal-50/50 border-x border-slate-200">
+                                                {row.totalWorkingDays}
+                                            </td>
+                                            <td className="px-3 py-2 text-center font-medium text-slate-600 bg-slate-50/50 border-r border-slate-200">
+                                                {dayColumns.filter(c => !c.isWeekend).length}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 bg-white">
+                        <p className="text-sm text-slate-500">
+                            Hiển thị {matrixData.length} / Trang {pagination.pageIndex + 1} của {totalPages} (Tổng: {totalRecords})
+                        </p>
+                        <Pagination
+                            currentPage={pagination.pageIndex + 1}
+                            totalPages={totalPages}
+                            onPageChange={(page) => setPagination({ ...pagination, pageIndex: page - 1 })}
+                        />
+                    </div>
+                </div>
             ) : (
                 <div className="space-y-4">
                     {!isEmployeeOnly && (
@@ -309,8 +418,8 @@ export default function DataManagementPage() {
                 onSuccess={handleExcuseSuccess} />
 
             <ConfirmModal isOpen={confirmModal.open} onClose={() => setConfirmModal({ open: false, data: null, action: null })} onConfirm={handleConfirmAction}
-                title={confirmModal.action === "recalculate" ? "Tính lại" : "Tính lại hàng loạt"}
-                description={confirmModal.action === "recalculate" ? "Tính lại bảng công cho nhân viên này?" : "Tính lại tất cả bảng công chưa khóa?"}
+                title="Tính lại hàng loạt"
+                description="Tính lại tất cả bảng công chưa khóa?"
                 loading={confirmLoading} />
         </div>
     );

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
+import { Select } from "@/components/common/Select";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 
 export default function GenerateTimesheetModal({
@@ -14,9 +15,12 @@ export default function GenerateTimesheetModal({
     existingTimesheets = [],
     loading,
 }) {
+    const currentDate = new Date();
     const [selectedEmployees, setSelectedEmployees] = useState(new Set());
     const [expandedDepts, setExpandedDepts] = useState(new Set());
     const [regenerateMode, setRegenerateMode] = useState(false);
+    const [month, setMonth] = useState(currentDate.getMonth() + 1);
+    const [year, setYear] = useState(currentDate.getFullYear());
 
     const existingEmployeeIds = useMemo(() => {
         return new Set(existingTimesheets.map(t => t.employeeId || t.employee?.id));
@@ -90,13 +94,34 @@ export default function GenerateTimesheetModal({
     };
 
     const handleSubmit = () => {
-        onSubmit(Array.from(selectedEmployees), regenerateMode);
+        onSubmit(Array.from(selectedEmployees), regenerateMode, month, year);
     };
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Tạo bảng chấm công" size="2xl">
             <div className="mb-4 text-sm text-slate-500">
-                Vui lòng chọn các phòng ban hoặc nhân viên cụ thể để tạo bảng chấm công.
+                Vui lòng chọn thời gian và các phòng ban hoặc nhân viên cụ thể để tạo bảng chấm công.
+            </div>
+
+            <div className="flex gap-4 mb-4">
+                <div className="w-1/2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tháng</label>
+                    <Select
+                        hidePlaceholder
+                        value={month}
+                        onChange={(e) => setMonth(parseInt(e.target.value))}
+                        options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `Tháng ${i + 1}` }))}
+                    />
+                </div>
+                <div className="w-1/2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Năm</label>
+                    <Select
+                        hidePlaceholder
+                        value={year}
+                        onChange={(e) => setYear(parseInt(e.target.value))}
+                        options={Array.from({ length: 5 }, (_, i) => ({ value: currentDate.getFullYear() - 2 + i, label: `${currentDate.getFullYear() - 2 + i}` }))}
+                    />
+                </div>
             </div>
 
             {/* Regenerate mode toggle */}
