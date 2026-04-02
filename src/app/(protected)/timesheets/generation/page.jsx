@@ -1,50 +1,36 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { FormProvider, useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/common/Button";
-import { Select } from "@/components/common/Select";
-import { ConfirmModal } from "@/components/common/Modal";
 import { useToast } from "@/components/common/Toast";
+import { Select } from "@/components/common/Select";
+import { Pagination } from "@/components/common/Pagination";
 import { timesheetsService } from "@/services/timesheets.service";
 import { departmentsService } from "@/services/departments.service";
 import { employeesService } from "@/services/employees.service";
-import { authService } from "@/services/auth.service";
-import TimesheetTable from "../components/TimesheetTable";
 import GenerateTimesheetModal from "../components/GenerateTimesheetModal";
-import { UserPlus, Plus, History, CalendarDays, Filter, FilterX } from "lucide-react";
+import Link from "next/link";
+import { Plus, History, Calendar, FilterX, Users, Lock, ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const currentDate = new Date();
 
 export default function GenerationPage() {
-    const [timesheets, setTimesheets] = useState([]);
+    const [periods, setPeriods] = useState([]);
     const [loading, setLoading] = useState(false);
     const [generating, setGenerating] = useState(false);
-    const [search, setSearch] = useState("");
     const [departments, setDepartments] = useState([]);
-    const defaultFilters = {
-        month: currentDate.getMonth() + 1,
-        year: currentDate.getFullYear(),
-        departmentId: "",
-    };
-    const searchParams = useSearchParams();
-    const initialFilters = {
-        month: parseInt(searchParams.get("month") || defaultFilters.month),
-        year: parseInt(searchParams.get("year") || defaultFilters.year),
-        departmentId: searchParams.get("departmentId") || "",
-    };
-    const [filters, setFilters] = useState({ ...initialFilters });
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-    const [totalPages, setTotalPages] = useState(0);
-    const [isInitialized, setIsInitialized] = useState(false);
     const [employeeList, setEmployeeList] = useState([]);
-
     const [generateModalOpen, setGenerateModalOpen] = useState(false);
-    const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
-    const [confirmModal, setConfirmModal] = useState({ open: false, data: null, action: null });
-    const [confirmLoading, setConfirmLoading] = useState(false);
-    const router = useRouter();
+    
+    const searchParams = useSearchParams();
+    const [filters, setFilters] = useState({
+        month: searchParams.get("month") || "",
+        year: parseInt(searchParams.get("year") || currentDate.getFullYear()),
+    });
 
+    const router = useRouter();
     const { success, error: toastError } = useToast();
 
     useEffect(() => {
@@ -61,46 +47,39 @@ export default function GenerationPage() {
             }
         };
         fetchDeps();
-        setIsInitialized(true);
     }, []);
 
-    const fetchTimesheets = useCallback(async () => {
-        if (!isInitialized) return;
+    const fetchPeriods = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await timesheetsService.getAll({
-                page: pagination.pageIndex + 1,
-                limit: pagination.pageSize,
-                search: search || undefined,
-                month: filters.month,
+            const res = await timesheetsService.getPeriods({
+                month: filters.month ? parseInt(filters.month) : undefined,
                 year: filters.year,
-                departmentId: filters.departmentId || undefined,
             });
-            setTimesheets(res?.data?.items || []);
-            setTotalPages(res?.data?.totalPages || 0);
+            setPeriods(res?.data || res || []);
         } catch (err) {
-            toastError("Lỗi khi tải danh sách");
+            toastError("Lỗi khi tải danh sách kỳ lương");
         } finally {
             setLoading(false);
         }
-    }, [pagination, search, filters, isInitialized]);
+    }, [filters, toastError]);
 
     useEffect(() => {
-        fetchTimesheets();
-    }, [fetchTimesheets]);
+        fetchPeriods();
+    }, [fetchPeriods]);
 
-    const handleGenerateSubmit = async (employeeIds, regenerateMode = false) => {
+    const handleGenerateSubmit = async (employeeIds, regenerateMode = false, modalMonth, modalYear) => {
         setGenerating(true);
         try {
             const res = await timesheetsService.generate({
-                month: filters.month,
-                year: filters.year,
+                month: modalMonth,
+                year: modalYear,
                 employeeIds,
                 regenerate: regenerateMode,
             });
             const { generated = 0, updated = 0, failed = 0 } = res?.data || {};
             success(`Tạo mới: ${generated} | Ghi đè: ${updated} | Thất bại: ${failed}`);
-            fetchTimesheets();
+            fetchPeriods();
             setGenerateModalOpen(false);
         } catch (err) {
             toastError("Lỗi khi tạo bảng công");
@@ -109,46 +88,10 @@ export default function GenerationPage() {
         }
     };
 
-    const handleAddEmployeeSubmit = async (employeeId) => {
-        try {
-            await timesheetsService.addEmployee({
-                employeeId,
-                month: filters.month,
-                year: filters.year
-            });
-            success("Đã thêm nhân viên");
-            setAddEmployeeModalOpen(false);
-            fetchTimesheets();
-        } catch (err) {
-            toastError(err?.response?.data?.message || "Lỗi khi thêm");
-        }
-    };
-
-    const handleDelete = (timesheet) => {
-        setConfirmModal({ open: true, data: timesheet, action: "delete" });
-    };
-
-    const handleConfirmAction = async () => {
-        setConfirmLoading(true);
-        try {
-            if (confirmModal.action === "delete") {
-                await timesheetsService.remove(confirmModal.data.id);
-                success("Đã xóa nhân viên khỏi bảng công");
-            }
-            setConfirmModal({ open: false, data: null, action: null });
-            fetchTimesheets();
-        } catch (err) {
-            toastError("Lỗi khi thực hiện");
-        } finally {
-            setConfirmLoading(false);
-        }
-    };
-
     const syncURL = useCallback((f) => {
         const params = new URLSearchParams();
-        if (f.month !== defaultFilters.month) params.set("month", f.month);
-        if (f.year !== defaultFilters.year) params.set("year", f.year);
-        if (f.departmentId) params.set("departmentId", f.departmentId);
+        if (f.month) params.set("month", f.month);
+        if (f.year) params.set("year", f.year);
         const qs = params.toString();
         router.replace(`/timesheets/generation${qs ? `?${qs}` : ''}`, { scroll: false });
     }, [router]);
@@ -156,15 +99,13 @@ export default function GenerationPage() {
     const handleFilterChange = (key, value) => {
         const newFilters = { ...filters, [key]: value };
         setFilters(newFilters);
-        setPagination(p => ({ ...p, pageIndex: 0 }));
         syncURL(newFilters);
     };
 
     const handleClearFilters = () => {
-        setFilters({ ...defaultFilters });
-        setSearch("");
-        setPagination(p => ({ ...p, pageIndex: 0 }));
-        syncURL(defaultFilters);
+        const defaultF = { month: "", year: currentDate.getFullYear() };
+        setFilters(defaultF);
+        syncURL(defaultF);
     };
 
     return (
@@ -176,7 +117,7 @@ export default function GenerationPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">Khởi tạo bảng công</h1>
-                        <p className="text-sm text-slate-500">Tạo mới và quản lý nhân sự trong bảng công tháng</p>
+                        <p className="text-sm text-slate-500">Quản lý và khởi tạo bảng công theo từng kỳ lương</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -189,29 +130,24 @@ export default function GenerationPage() {
                 </div>
             </div>
 
-            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-3 items-center">
-                <div className="w-32">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center">
+                <div className="w-40">
                     <Select
                         hidePlaceholder
                         value={filters.month}
-                        onChange={(e) => handleFilterChange('month', parseInt(e.target.value))}
-                        options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `Tháng ${i + 1}` }))}
+                        onChange={(e) => handleFilterChange('month', e.target.value)}
+                        options={[
+                            { value: "", label: "Tất cả các tháng" },
+                            ...Array.from({ length: 12 }, (_, i) => ({ value: (i + 1).toString(), label: `Tháng ${i + 1}` }))
+                        ]}
                     />
                 </div>
-                <div className="w-24">
+                <div className="w-32">
                     <Select
                         hidePlaceholder
                         value={filters.year}
                         onChange={(e) => handleFilterChange('year', parseInt(e.target.value))}
-                        options={Array.from({ length: 5 }, (_, i) => ({ value: currentDate.getFullYear() - 2 + i, label: `${currentDate.getFullYear() - 2 + i}` }))}
-                    />
-                </div>
-                <div className="w-64">
-                    <Select
-                        placeholder="Phòng ban"
-                        value={filters.departmentId}
-                        onChange={(e) => handleFilterChange('departmentId', e.target.value)}
-                        options={departments.map(d => ({ value: d.id, label: d.departmentName }))}
+                        options={Array.from({ length: 5 }, (_, i) => ({ value: currentDate.getFullYear() - 2 + i, label: `Năm ${currentDate.getFullYear() - 2 + i}` }))}
                     />
                 </div>
                 <button onClick={handleClearFilters} className="text-slate-400 hover:text-rose-500 p-2" title="Xóa bộ lọc">
@@ -219,17 +155,63 @@ export default function GenerationPage() {
                 </button>
             </div>
 
-            <TimesheetTable
-                mode="generation"
-                data={timesheets}
-                loading={loading}
-                search={search}
-                onSearchChange={setSearch}
-                pagination={pagination}
-                onPaginationChange={setPagination}
-                totalPages={totalPages}
-                onDelete={handleDelete}
-            />
+            <div className="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th className="px-6 py-4 font-semibold text-slate-700 w-1/4">Kỳ lương</th>
+                                <th className="px-6 py-4 font-semibold text-slate-700 w-1/4 text-center">Tổng nhân viên</th>
+                                <th className="px-6 py-4 font-semibold text-slate-700 w-1/4 text-center">Đã chốt (khóa)</th>
+                                <th className="px-6 py-4 font-semibold text-slate-700 w-1/4 text-right">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={4} className="p-8 text-center text-slate-500">Đang tải danh sách kỳ lương...</td>
+                                </tr>
+                            ) : periods.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} className="p-8 text-center text-slate-500">Không có dữ liệu kỳ lương nào</td>
+                                </tr>
+                            ) : (
+                                periods.map((period, idx) => (
+                                    <tr key={`${period.year}-${period.month}`} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">
+                                                    <Calendar className="h-5 w-5" />
+                                                </div>
+                                                <span className="font-medium text-slate-900 text-base">Tháng {period.month}/{period.year}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="inline-flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full">
+                                                <Users className="h-4 w-4 text-slate-500" />
+                                                <span className="font-medium text-slate-700">{period.totalEmployees}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <div className="inline-flex items-center gap-1 bg-emerald-50 px-3 py-1 rounded-full">
+                                                <Lock className="h-4 w-4 text-emerald-600" />
+                                                <span className="font-medium text-emerald-700">{period.lockedEmployees} / {period.totalEmployees}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <Link href={`/timesheets/data?month=${period.month}&year=${period.year}`}>
+                                                <Button variant="ghost" className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 gap-1">
+                                                    Xem chi tiết <ChevronRight className="h-4 w-4" />
+                                                </Button>
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             <GenerateTimesheetModal
                 isOpen={generateModalOpen}
@@ -237,19 +219,7 @@ export default function GenerationPage() {
                 onSubmit={handleGenerateSubmit}
                 departments={departments}
                 employees={employeeList}
-                existingTimesheets={timesheets}
                 loading={generating}
-            />
-
-
-            <ConfirmModal
-                isOpen={confirmModal.open}
-                onClose={() => setConfirmModal({ open: false, data: null, action: null })}
-                onConfirm={handleConfirmAction}
-                title="Xác nhận xóa"
-                description={`Xóa nhân viên ${confirmModal.data?.employee?.fullName} khỏi bảng công tháng ${filters.month}/${filters.year}?`}
-                variant="destructive"
-                loading={confirmLoading}
             />
         </div>
     );

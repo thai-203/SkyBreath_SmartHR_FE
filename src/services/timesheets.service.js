@@ -6,8 +6,28 @@ export const timesheetsService = {
         return response.data;
     },
 
+    syncAttendance: async (data) => {
+        const response = await api.post("/timesheets/sync", data);
+        return response.data;
+    },
+
     getAll: async (params = {}) => {
         const response = await api.get("/timesheets", { params });
+        return response.data;
+    },
+
+    getPeriods: async (params = {}) => {
+        const response = await api.get("/timesheets/periods", { params });
+        return response.data;
+    },
+
+    getMatrix: async (params = {}) => {
+        const response = await api.get("/timesheets/matrix", { params });
+        return response.data;
+    },
+
+    getProcessedMatrix: async (params = {}) => {
+        const response = await api.get("/timesheets/processed-matrix", { params });
         return response.data;
     },
 
