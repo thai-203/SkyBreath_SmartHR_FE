@@ -17,6 +17,7 @@ import AttendanceDetailModal from "../components/AttendanceDetailModal";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
 import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search } from "lucide-react";
+import ProcessedRecordEditModal from "../components/ProcessedRecordEditModal";
 
 const currentDate = new Date();
 
@@ -58,6 +59,7 @@ export default function DataManagementPage() {
     const [confirmLoading, setConfirmLoading] = useState(false);
     const [syncLoading, setSyncLoading] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [cellModal, setCellModal] = useState({ open: false, cell: null });
 
     const { success, error: toastError } = useToast();
 
@@ -233,6 +235,18 @@ export default function DataManagementPage() {
         };
     });
 
+    const handleCellClick = (row, dayData) => {
+        if (!dayData || dayData.attendanceStatus === 'WEEKEND') return;
+        setCellModal({
+            open: true,
+            cell: {
+                ...dayData,
+                employeeName: row.fullName,
+                employeeCode: row.employeeCode,
+            },
+        });
+    };
+
     const getDayCellContent = (dailyDetails, dayIndex) => {
         if (!dailyDetails || !Array.isArray(dailyDetails)) return '-';
         const dayData = dailyDetails.find(d => {
@@ -247,7 +261,9 @@ export default function DataManagementPage() {
 
         if (!dayData) return '-';
         if (dayData.attendanceStatus === 'WEEKEND') return 'N';
-        if (dayData.attendanceStatus === 'ABSENT') return '0';
+        if (['X', 'KL', 'ABSENT', '0'].includes(dayData.attendanceStatus)) {
+            return dayData.workingHours !== undefined && dayData.workingHours !== null ? dayData.workingHours : 0;
+        }
         return dayData.attendanceStatus || '-';
     };
 
@@ -363,9 +379,22 @@ export default function DataManagementPage() {
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
 
                                             {dayColumns.map(col => {
+                                                const dayData = row.dailyDetails?.find(d => {
+                                                    if (!d.date) return false;
+                                                    const parts = d.date.split('/');
+                                                    return parts.length === 3 && parseInt(parts[0], 10) === col.dayIndex;
+                                                });
                                                 const cellContent = getDayCellContent(row.dailyDetails, col.dayIndex);
+                                                const isClickable = dayData && dayData.attendanceStatus !== 'WEEKEND';
                                                 return (
-                                                    <td key={`${row.id}-${col.id}`} className={`px-1 py-2 border-r border-slate-200 text-center font-medium text-xs ${col.isWeekend ? 'bg-amber-50/50 text-amber-600' : 'text-slate-700'}`}>
+                                                    <td
+                                                        key={`${row.id}-${col.id}`}
+                                                        onClick={() => isClickable && handleCellClick(row, dayData)}
+                                                        className={`px-1 py-2 border-r border-slate-200 text-center font-medium text-xs transition-colors
+                                                            ${col.isWeekend ? 'bg-amber-50/50 text-amber-600' : 'text-slate-700'}
+                                                            ${isClickable && !isEmployeeOnly ? 'cursor-pointer hover:bg-indigo-50 hover:text-indigo-700' : ''}
+                                                        `}
+                                                    >
                                                         {cellContent}
                                                     </td>
                                                 );
@@ -421,6 +450,14 @@ export default function DataManagementPage() {
                 title="Tính lại hàng loạt"
                 description="Tính lại tất cả bảng công chưa khóa?"
                 loading={confirmLoading} />
+
+            <ProcessedRecordEditModal
+                isOpen={cellModal.open}
+                onClose={() => setCellModal({ open: false, cell: null })}
+                cell={cellModal.cell}
+                canEdit={!isEmployeeOnly}
+                onSuccess={fetchMatrix}
+            />
         </div>
     );
 }

@@ -96,4 +96,9 @@ export const timesheetsService = {
         const response = await api.get("/timesheets/attendance/late-early", { params });
         return response.data;
     },
+
+    updateProcessedRecord: async (id, data) => {
+        const response = await api.patch(`/timesheets/processed/${id}`, data);
+        return response.data;
+    },
 };
