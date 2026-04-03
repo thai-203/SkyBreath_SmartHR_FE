@@ -75,7 +75,7 @@ api.interceptors.response.use(
         try {
           const { authService } = await import("@/services/auth.service");
           const res = await authService.refreshToken();
-          
+
           // Bulletproof extraction: check all possible locations for the token string
           let newAccessToken = null;
           if (typeof res === 'string') {

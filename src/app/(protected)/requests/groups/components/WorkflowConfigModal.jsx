@@ -6,12 +6,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/ui/input";
 import { userService } from "@/services/user.service";
+import { useToast } from "@/components/common/Toast";
 
 import { APPROVER_TYPES, APPROVER_TYPE_LABELS } from "@/constants/request.enum";
 
 export default function WorkflowConfigModal({
     isOpen, onClose, onSubmit, groupData, submitting, roles
 }) {
+    const { error: toastError } = useToast();
     const [workflows, setWorkflows] = useState([]);
     const [usersByRole, setUsersByRole] = useState({}); // { roleId: [...] }
 
@@ -118,6 +120,23 @@ export default function WorkflowConfigModal({
     };
 
     const handleFormSubmit = () => {
+        // Validate duplication directly on frontend
+        const dmCount = workflows.filter(wf => wf.approverType === APPROVER_TYPES.DIRECT_MANAGER).length;
+        if (dmCount > 1) {
+            toastError("Chỉ được thiết lập tối đa 1 cấp Duyệt bởi Quản lý trực tiếp.");
+            return;
+        }
+
+        const userIds = workflows
+            .filter(wf => wf.approverType === APPROVER_TYPES.ROLE && wf.approverUserId)
+            .map(wf => wf.approverUserId);
+        
+        const uniqueUserIds = new Set(userIds);
+        if (userIds.length !== uniqueUserIds.size) {
+            toastError("Không được chọn trùng lặp người duyệt cho nhiều cấp khác nhau để tránh vòng lặp duyệt.");
+            return;
+        }
+
         // Prepare correct types
         const payload = workflows.map(wf => {
             const roleId = wf.approverType === APPROVER_TYPES.ROLE
@@ -137,7 +156,7 @@ export default function WorkflowConfigModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent hideClose className="max-w-4xl p-0 overflow-hidden bg-white border-none rounded-xl">
+            <DialogContent hideClose className="max-w-4xl p-0 overflow-hidden bg-white text-slate-900 border-none rounded-xl">
                 <DialogHeader className="px-6 py-4 border-b bg-amber-50 relative">
                     <DialogTitle className="text-xl font-bold text-amber-900">
                         Cấu hình luồng duyệt: {groupData?.name}
@@ -174,11 +193,17 @@ export default function WorkflowConfigModal({
                                         <select
                                             value={wf.approverType}
                                             onChange={(e) => handleUpdateLevel(idx, 'approverType', e.target.value)}
-                                            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                                            className="flex h-10 w-full rounded-md border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                                         >
-                                            {Object.entries(APPROVER_TYPE_LABELS).map(([val, label]) => (
-                                                <option key={val} value={val}>{label}</option>
-                                            ))}
+                                            {Object.entries(APPROVER_TYPE_LABELS).map(([val, label]) => {
+                                                const isDMUsed = val === APPROVER_TYPES.DIRECT_MANAGER && 
+                                                                 workflows.some((w, i) => i !== idx && w.approverType === APPROVER_TYPES.DIRECT_MANAGER);
+                                                return (
+                                                    <option key={val} value={val} disabled={isDMUsed}>
+                                                        {label} {isDMUsed && "(Đã sử dụng)"}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
                                     <div className="space-y-1 text-center items-center flex flex-col justify-center">
@@ -203,7 +228,7 @@ export default function WorkflowConfigModal({
                                             <select
                                                 value={wf._selectedRoleId}
                                                 onChange={(e) => handleUpdateLevel(idx, '_selectedRoleId', e.target.value)}
-                                                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                className="flex h-10 w-full rounded-md border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                                             >
                                                 <option value="">-- Chọn vai trò --</option>
                                                 {roleOptions.map(r => (
@@ -217,12 +242,17 @@ export default function WorkflowConfigModal({
                                                 value={wf.approverUserId}
                                                 onChange={(e) => handleUpdateLevel(idx, 'approverUserId', e.target.value)}
                                                 disabled={!wf._selectedRoleId}
-                                                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                                className="flex h-10 w-full rounded-md border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-slate-100 disabled:cursor-not-allowed"
                                             >
                                                 <option value="">-- Chọn người duyệt --</option>
-                                                {(Array.isArray(usersByRole[wf._selectedRoleId]) ? usersByRole[wf._selectedRoleId] : []).map(u => (
-                                                    <option key={u.id} value={u.id}>{u.fullName || u.username} ({u.email || u.username})</option>
-                                                ))}
+                                                {(Array.isArray(usersByRole[wf._selectedRoleId]) ? usersByRole[wf._selectedRoleId] : []).map(u => {
+                                                    const isUserUsed = workflows.some((w, i) => i !== idx && w.approverType === APPROVER_TYPES.ROLE && w.approverUserId && parseInt(w.approverUserId, 10) === u.id);
+                                                    return (
+                                                        <option key={u.id} value={u.id} disabled={isUserUsed}>
+                                                            {u.fullName || u.username} ({u.email || u.username}) {isUserUsed && "- Đã chọn ở cấp khác"}
+                                                        </option>
+                                                    );
+                                                })}
                                             </select>
                                         </div>
                                     </div>
