@@ -176,6 +176,30 @@ export default function ContractsPage() {
     }
   };
 
+  const fetchEmployeeDetailById = async (empId) => {
+    if (!empId) return;
+    try {
+      const response = await employeesService.getById(empId);
+      const employee = response.data || response;
+
+      if (employee) {
+        setFormData((prev) => ({
+          ...prev,
+          departmentId:
+            employee.departmentId ||
+            employee.department?.id ||
+            prev.departmentId,
+          positionId:
+            employee.positionId || employee.position?.id || prev.positionId,
+          jobGradeId:
+            employee.jobGradeId || employee.jobGrade?.id || prev.jobGradeId,
+        }));
+      }
+    } catch (err) {
+      console.error("Không thể lấy chi tiết nhân viên:", err);
+    }
+  };
+
   const fetchDepartmentList = async () => {
     try {
       const response = await departmentsService.getAll();
@@ -228,6 +252,7 @@ export default function ContractsPage() {
   useEffect(() => {
     if (isCreateOpen || isEditOpen) {
       if (formData.employeeId) {
+        fetchEmployeeDetailById(formData.employeeId);
         fetchSalaryByEmployeeId(formData.employeeId);
       }
     }
