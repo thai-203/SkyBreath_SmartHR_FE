@@ -46,6 +46,32 @@ export default function PendingApprovalsPage() {
         fetchRequests();
     }, [fetchRequests]);
 
+    // 🔔 Real-time: Lắng nghe socket events
+    useEffect(() => {
+        const handleRemovePending = (e) => {
+            const { requestId } = e.detail || {};
+            if (requestId) {
+                setRequests((prev) => prev.filter((r) => r.id !== requestId));
+                setTotal((prev) => Math.max(0, prev - 1));
+            }
+        };
+
+        const handleNewNotification = (e) => {
+            const data = e.detail || {};
+            // Nếu thông báo liên quan tới trang pending-approvals → refresh
+            if (data.link === "/requests/pending-approvals") {
+                fetchRequests();
+            }
+        };
+
+        window.addEventListener("socket:remove-pending-request", handleRemovePending);
+        window.addEventListener("socket:new-notification", handleNewNotification);
+        return () => {
+            window.removeEventListener("socket:remove-pending-request", handleRemovePending);
+            window.removeEventListener("socket:new-notification", handleNewNotification);
+        };
+    }, [fetchRequests]);
+
     const filterRequests = (items) => {
         if (!currentEmployee) return items;
         if (filter === "WAITING") {
