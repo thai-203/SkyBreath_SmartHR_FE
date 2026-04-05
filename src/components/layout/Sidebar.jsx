@@ -91,11 +91,7 @@ const menuItems = [
     roles: ["ADMIN", "HR"],
     children: [
       { title: "Bảng lương tháng", href: "/payroll" },
-      { title: "Loại bảng lương", href: "/payroll/types" },
     ],
-    href: "/timesheets",
-    roles: ["ADMIN", "HR", "MANAGER"],
-    children: [{ title: "Danh sách", href: "/timesheets" }],
   },
   {
     title: "Quản lý Face Data",
