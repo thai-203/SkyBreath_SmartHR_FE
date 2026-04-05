@@ -25,6 +25,7 @@ import {
   X,
   UserCog,
   CalendarCheck,
+  Bot,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -223,6 +224,12 @@ const menuItems = [
     title: "Cấu hình hệ thống",
     icon: Settings,
     href: "/configurations",
+    roles: ["ADMIN"],
+  },
+  {
+    title: "Cấu hình AI",
+    icon: Bot,
+    href: "/ai-configurations",
     roles: ["ADMIN"],
   },
 ];

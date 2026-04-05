@@ -2,6 +2,11 @@ import api from "@/lib/api";
 
 export const aiService = {
   // ── Chat ─────────────────────────────────────────────────────────────────
+  getStatus: async () => {
+    const response = await api.get("/ai/status");
+    return response.data;
+  },
+
   chat: async (conversationId, content) => {
     const response = await api.post("/ai/chat", { conversationId, content });
     return response.data;

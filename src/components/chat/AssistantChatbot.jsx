@@ -47,6 +47,7 @@ export default function AssistantChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [size, setSize] = useState(SIZES.normal);
+  const [isAiActive, setIsAiActive] = useState(null);
 
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
@@ -69,6 +70,23 @@ export default function AssistantChatbot() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
+
+  // ── Check AI Status ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const res = await aiService.getStatus();
+        if (res && res.success && res.data) {
+          setIsAiActive(res.data.active);
+        } else {
+          setIsAiActive(false);
+        }
+      } catch (error) {
+        setIsAiActive(false);
+      }
+    };
+    checkStatus();
+  }, []);
 
   // ── Load conversations on open ───────────────────────────────────────────
   useEffect(() => {
@@ -243,6 +261,10 @@ export default function AssistantChatbot() {
   };
 
   // ── Closed state — floating button ───────────────────────────────────────
+  if (isAiActive === false) {
+    return null;
+  }
+
   if (!isOpen) {
     return (
       <Button
