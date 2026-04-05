@@ -7,6 +7,7 @@ import { authService } from "@/services/auth.service";
 import { useToast } from "@/components/common/Toast";
 import RequestStatusBadge from "./RequestStatusBadge";
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/Modal";
 
 const LEVEL_STATUS_CONFIG = {
     PENDING:  { label: "Chờ duyệt",  color: "text-yellow-600 bg-yellow-50 border-yellow-200" },
@@ -21,6 +22,7 @@ export default function RequestDetailModal({ isOpen, request: initialRequest, on
     const [loading, setLoading] = useState(false);
     const [showRejectForm, setShowRejectForm] = useState(false);
     const [showRevokeForm, setShowRevokeForm] = useState({ show: false, levelOrder: null });
+    const [showConfirmApprove, setShowConfirmApprove] = useState(false);
     const [comment, setComment] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [previewLevels, setPreviewLevels] = useState([]);
@@ -54,7 +56,6 @@ export default function RequestDetailModal({ isOpen, request: initialRequest, on
     }, [isOpen, initialRequest?.id]);
 
     const handleApprove = async () => {
-        if (!confirm("Xác nhận phê duyệt đơn này?")) return;
         setSubmitting(true);
         try {
             await requestsService.approve(request.id);
@@ -65,6 +66,7 @@ export default function RequestDetailModal({ isOpen, request: initialRequest, on
             toastError(err?.response?.data?.message || "Phê duyệt thất bại");
         } finally {
             setSubmitting(false);
+            setShowConfirmApprove(false);
         }
     };
 
@@ -316,14 +318,8 @@ export default function RequestDetailModal({ isOpen, request: initialRequest, on
                             </div>
                         ) : showRevokeForm.show ? (
                             <div className="space-y-3">
-                                <p className="text-sm text-orange-700 font-medium">Hủy duyệt cấp {showRevokeForm.levelOrder}?</p>
-                                <textarea
-                                    placeholder="Lý do hủy duyệt (tùy chọn)..."
-                                    value={comment}
-                                    onChange={(e) => setComment(e.target.value)}
-                                    rows={2}
-                                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none bg-white text-slate-900"
-                                />
+                                <p className="text-sm text-orange-700 font-medium">Bạn có chắc chắn muốn hủy quyết định phê duyệt cấp {showRevokeForm.levelOrder}?</p>
+                                <p className="text-xs text-orange-600/80">Đơn sẽ quay lại trạng thái chờ bạn xử lý từ đầu.</p>
                                 <div className="flex gap-2 justify-end">
                                     <Button
                                         variant="outline"
@@ -351,7 +347,7 @@ export default function RequestDetailModal({ isOpen, request: initialRequest, on
                                 </Button>
                                 <Button
                                     variant="success"
-                                    onClick={handleApprove}
+                                    onClick={() => setShowConfirmApprove(true)}
                                     loading={submitting}
                                 >
                                     <CheckCircle className="w-4 h-4 mr-2" /> Phê duyệt
@@ -366,6 +362,17 @@ export default function RequestDetailModal({ isOpen, request: initialRequest, on
                     </div>
                 )}
             </div>
+
+            <ConfirmModal 
+                isOpen={showConfirmApprove} 
+                onClose={() => setShowConfirmApprove(false)}
+                onConfirm={handleApprove}
+                title="Xác nhận phê duyệt"
+                description="Bạn có chắc chắn muốn phê duyệt đơn này không? Hành động này sẽ chuyển đơn sang cấp tiếp theo (nếu có) hoặc hoàn tất đơn."
+                confirmText="Phê duyệt"
+                cancelText="Quay lại"
+                variant="success"
+            />
         </div>
     );
 }
