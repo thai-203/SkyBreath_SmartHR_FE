@@ -25,6 +25,7 @@ import {
   X,
   UserCog,
   CalendarCheck,
+  Bot,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -91,11 +92,7 @@ const menuItems = [
     roles: ["ADMIN", "HR"],
     children: [
       { title: "Bảng lương tháng", href: "/payroll" },
-      { title: "Loại bảng lương", href: "/payroll/types" },
     ],
-    href: "/timesheets",
-    roles: ["ADMIN", "HR", "MANAGER"],
-    children: [{ title: "Danh sách", href: "/timesheets" }],
   },
   {
     title: "Quản lý Face Data",
@@ -223,6 +220,12 @@ const menuItems = [
     title: "Cấu hình hệ thống",
     icon: Settings,
     href: "/configurations",
+    roles: ["ADMIN"],
+  },
+  {
+    title: "Cấu hình AI",
+    icon: Bot,
+    href: "/ai-configurations",
     roles: ["ADMIN"],
   },
 ];

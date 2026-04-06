@@ -1,8 +1,8 @@
 "use client";
 
-import { Search, ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
-import { useState } from "react";
 import { authService } from "@/services/auth.service";
+import { MoreHorizontal, Search } from "lucide-react";
+import { useState } from "react";
 
 const STATUS_MAP = {
     DRAFT: { label: "Nháp", color: "bg-slate-100 text-slate-600" },
@@ -53,11 +53,10 @@ export default function PayrollTable({
             </div>
         );
     }
-
     return (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
             {/* Toolbar */}
-            <div className="flex items-center gap-3 p-4 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-3 p-4 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
                 <div className="relative flex-1 max-w-xs">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
@@ -71,7 +70,7 @@ export default function PayrollTable({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
+            <div className="">
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50">
@@ -191,7 +190,7 @@ export default function PayrollTable({
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50/50 rounded-b-xl">
                     <p className="text-xs text-slate-500">
                         Trang {pagination.pageIndex + 1} / {totalPages}
                     </p>

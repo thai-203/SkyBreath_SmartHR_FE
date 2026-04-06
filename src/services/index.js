@@ -25,3 +25,4 @@ export * from "./face-recognition.service";
 export * from "./face.service";
 export * from "./attendance-security.service";
 export * from "./attendance-allowed-ip.service";
+export * from "./ai-configurations.service";

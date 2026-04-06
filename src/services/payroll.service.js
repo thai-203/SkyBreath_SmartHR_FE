@@ -19,6 +19,12 @@ export const payrollService = {
         return response.data;
     },
 
+    // UC28 - Update general payroll info
+    update: async (id, data) => {
+        const response = await api.patch(`/payroll/${id}`, data);
+        return response.data;
+    },
+
     // UC28 - List payrolls
     getAll: async (params = {}) => {
         const response = await api.get("/payroll", { params });
@@ -76,6 +82,14 @@ export const payrollService = {
     // UC30 - Export payslips Excel
     exportPayslips: async (id) => {
         const response = await api.get(`/payroll/payslips/${id}`, { responseType: "blob" });
+        return response.data;
+    },
+
+    // UC28 - Import Details Excel
+    importDetails: async (id, formData) => {
+        const response = await api.post(`/payroll/${id}/import-details`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         return response.data;
     },
 };
