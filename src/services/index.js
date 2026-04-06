@@ -21,3 +21,8 @@ export * from "./requests.service";
 export * from "./holiday.service";
 export * from "./holiday-configs.service";
 export * from "./ai.service";
+export * from "./face-recognition.service";
+export * from "./face.service";
+export * from "./attendance-security.service";
+export * from "./attendance-allowed-ip.service";
+export * from "./ai-configurations.service";

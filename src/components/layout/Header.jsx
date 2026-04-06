@@ -1,11 +1,12 @@
 "use client";
 
 import { authService } from "@/services";
-import { Bell, LogOut, Menu, Search, User } from "lucide-react";
+import { LogOut, Menu, Search, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../common/Button";
+import NotificationDropdown from "./NotificationDropdown";
 
 export function Header({ onMenuClick }) {
   const pathname = usePathname();
@@ -36,6 +37,14 @@ export function Header({ onMenuClick }) {
     employee: "Nhân viên",
     groups: "Nhóm ca",
     working: "Ca",
+    configurations: "Cấu hình",
+    "face-recognition": "Nhận diện khuôn mặt",
+    "attendance-security": "Bảo mật chấm công",
+    "attendance-blocking": "Cấu hình chặn điểm danh",
+    checkin: "Điểm danh",
+    register: "Đăng ký khuôn mặt",
+    face: "Chấm công",
+    manage: "Quản lý dữ liệu khuôn mặt",
   };
 
   const pathParts = pathname.split("/").filter(Boolean);
@@ -92,10 +101,7 @@ export function Header({ onMenuClick }) {
         <Button variant="ghost" size="icon" className="hidden sm:flex">
           <Search className="h-5 w-5 text-slate-500" />
         </Button>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-slate-500" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-        </Button>
+        <NotificationDropdown />
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowDropdown(!showDropdown)}

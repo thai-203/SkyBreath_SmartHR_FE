@@ -207,8 +207,8 @@ export default function OvertimeRulesPage() {
             maxHoursPerDay: parseInt(formData.maxHoursPerDay),
             maxHoursPerMonth: parseInt(formData.maxHoursPerMonth),
             effectiveFrom: formData.effectiveFrom || undefined,
-            effectiveTo: formData.effectiveTo || undefined,
-            note: formData.note.trim() || undefined,
+            effectiveTo: formData.effectiveTo || null,
+            note: formData.note?.trim() || null,
             versionStatus: formData.versionStatus || "DRAFT",
             departmentIds: formData.departmentIds,
         };

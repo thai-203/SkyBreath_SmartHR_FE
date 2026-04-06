@@ -5,6 +5,7 @@ import { authService } from "@/services";
 import {
   BookOpen,
   Building2,
+  Camera,
   Calendar,
   CalendarClock,
   ChevronDown,
@@ -13,6 +14,7 @@ import {
   Clock,
   DollarSign,
   FileText,
+  FolderGit2,
   LayoutDashboard,
   ScrollText,
   Settings,
@@ -20,7 +22,10 @@ import {
   User,
   UserPlus,
   Users,
-  X
+  X,
+  UserCog,
+  CalendarCheck,
+  Bot,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,6 +36,16 @@ const menuItems = [
     title: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard",
+  },
+  {
+    title: "Chấm công",
+    icon: CalendarCheck,
+    href: "/face/checkin",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Điểm danh (Camera)", href: "/face/checkin" },
+      { title: "Đăng ký khuôn mặt", href: "/face/register" },
+    ],
   },
   {
     title: "Phòng ban",
@@ -77,8 +92,13 @@ const menuItems = [
     roles: ["ADMIN", "HR"],
     children: [
       { title: "Bảng lương tháng", href: "/payroll" },
-      { title: "Loại bảng lương", href: "/payroll/types" },
     ],
+  },
+  {
+    title: "Quản lý Face Data",
+    icon: Camera,
+    href: "/face/manage",
+    roles: ["ADMIN"],
   },
   {
     title: "Ca làm việc",
@@ -104,6 +124,7 @@ const menuItems = [
     href: "/holidays",
     roles: ["ADMIN", "HR", "MANAGER"],
     children: [
+      { title: "Danh mục ngày lễ", href: "/holidays/groups" },
       { title: "Danh sách", href: "/holidays" },
       { title: "Gửi nhắc nhở", href: "/holidays/notifications" },
       { title: "Cấu hình", href: "/holidays/configuration" },
@@ -133,6 +154,26 @@ const menuItems = [
     children: [
       { title: "Làm thêm giờ", href: "/regulations/overtime" },
       { title: "Hình phạt", href: "/regulations/penalties" },
+    ],
+  },
+  {
+    title: "Quản lý đơn từ",
+    icon: FolderGit2,
+    href: "/requests/groups",
+    roles: ["ADMIN", "HR"],
+    children: [
+      { title: "Nhóm đơn", href: "/requests/groups" },
+      { title: "Loại đơn từ", href: "/requests/types" },
+    ],
+  },
+  {
+    title: "Yêu cầu",
+    icon: FileText,
+    href: "/requests/my-requests",
+    roles: ["EMPLOYEE", "ADMIN", "HR", "MANAGER"],
+    children: [
+      { title: "Đơn từ của tôi", href: "/requests/my-requests" },
+      { title: "Đơn cần phê duyệt", href: "/requests/pending-approvals", roles: ["ADMIN", "HR", "MANAGER"] },
     ],
   },
   {
@@ -167,13 +208,25 @@ const menuItems = [
   },
   {
     title: "Cài đặt",
-    icon: Settings,
+    icon: UserCog,
     href: "/settings",
     roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
     children: [
       { title: "Hồ sơ", href: "/settings/general" },
       { title: "Mật khẩu", href: "/settings/security" },
     ],
+  },
+  {
+    title: "Cấu hình hệ thống",
+    icon: Settings,
+    href: "/configurations",
+    roles: ["ADMIN"],
+  },
+  {
+    title: "Cấu hình AI",
+    icon: Bot,
+    href: "/ai-configurations",
+    roles: ["ADMIN"],
   },
 ];
 

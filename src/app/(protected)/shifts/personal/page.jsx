@@ -228,6 +228,21 @@ export default function PersonalSchedulePage() {
     }, {});
   }, [schedule]);
 
+  const monthlyShiftCount = useMemo(() => {
+    const month = anchorDate.getMonth();
+    const year = anchorDate.getFullYear();
+
+    return schedule.reduce((count, item) => {
+      const key = getScheduleDateKey(item);
+      const date = parseYmd(key);
+      if (!date) return count;
+      if (date.getMonth() === month && date.getFullYear() === year) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+  }, [schedule, anchorDate]);
+
   const handleDayClick = (date) => {
     const ymd = formatYmd(date);
     const dayHolidays = processedHolidays[ymd]?.items || [];
@@ -308,7 +323,7 @@ export default function PersonalSchedulePage() {
                     Số ca làm
                   </p>
                   <p className="text-2xl font-black text-cyan-700 leading-none mt-2">
-                    {schedule.length}
+                    {monthlyShiftCount}
                   </p>
                 </CardContent>
               </Card>

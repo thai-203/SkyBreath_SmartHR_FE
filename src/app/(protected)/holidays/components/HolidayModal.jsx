@@ -231,6 +231,8 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
             if (compensatoryEnabled) {
                 const start = new Date(data.startDate + "T00:00:00");
                 const end = new Date(data.endDate + "T00:00:00");
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
                 
                 for (let i = 0; i < compensatoryDays.length; i++) {
                     const cd = compensatoryDays[i];
@@ -238,6 +240,19 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                         toastError(`Vui lòng chọn ngày làm bù cho dòng thứ ${i + 1}`);
                         return;
                     }
+
+                    const compDate = new Date(cd.date + "T00:00:00");
+                    if (compDate < today) {
+                        toastError(`Tại ngày làm bù thứ ${i + 1}: Ngày làm bù không được chọn trong quá khứ.`);
+                        return;
+                    }
+
+                    const dayOfWeek = compDate.getDay();
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                        toastError(`Tại ngày làm bù thứ ${i + 1}: Ngày làm bù phải là ngày không có phân ca (Thứ 7 hoặc Chủ Nhật).`);
+                        return;
+                    }
+
                     if (!cd.replacesDate) {
                         toastError(`Vui lòng chọn ngày cần bù cho dòng thứ ${i + 1}`);
                         return;
@@ -615,6 +630,7 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                                                             </label>
                                                             <input
                                                                 type="date"
+                                                                min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
                                                                 value={item.date}
                                                                 onChange={(e) => updateCompensatoryDay(index, "date", e.target.value)}
                                                                 className="h-9 px-3 border border-gray-200 rounded text-[13px] focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 bg-white"

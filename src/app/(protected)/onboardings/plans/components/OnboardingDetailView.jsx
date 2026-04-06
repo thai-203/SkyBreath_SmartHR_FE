@@ -22,8 +22,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { onboardingsService } from "@/services";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { resolveAssetUrl } from "@/lib/utils";
 
 export default function OnboardingFinalReview({
   onboardingPlan,
@@ -77,56 +76,60 @@ export default function OnboardingFinalReview({
   };
 
   // Component hiển thị chi tiết nhiệm vụ
-  const TaskDetailsContent = ({ task }) => (
-    <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-1 duration-200">
-      <div className="space-y-3">
-        <div className="flex items-start gap-2">
-          <Hash className="w-4 h-4 text-slate-400 mt-1" />
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase">
-              Mã tài sản / Serial
-            </p>
-            <p className="text-sm font-bold text-slate-700">
-              {task.assetCode || "N/A"}
-            </p>
+  const TaskDetailsContent = ({ task }) => {
+    const evidenceUrl = resolveAssetUrl(task.evidencePath);
+
+    return (
+      <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-1 duration-200">
+        <div className="space-y-3">
+          <div className="flex items-start gap-2">
+            <Hash className="w-4 h-4 text-slate-400 mt-1" />
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase">
+                Mã tài sản / Serial
+              </p>
+              <p className="text-sm font-bold text-slate-700">
+                {task.assetCode || "N/A"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <StickyNote className="w-4 h-4 text-slate-400 mt-1" />
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase">
+                Ghi chú
+              </p>
+              <p className="text-sm text-slate-600 italic leading-relaxed">
+                {task.notes || "Không có ghi chú"}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="flex items-start gap-2">
-          <StickyNote className="w-4 h-4 text-slate-400 mt-1" />
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase">
-              Ghi chú
-            </p>
-            <p className="text-sm text-slate-600 italic leading-relaxed">
-              {task.notes || "Không có ghi chú"}
-            </p>
-          </div>
+        <div>
+          <p className="text-[10px] font-black text-slate-400 uppercase mb-2">
+            Minh chứng
+          </p>
+          {evidenceUrl ? (
+            <div className="rounded-lg overflow-hidden border border-slate-200 aspect-video bg-white shadow-inner">
+              <img
+                src={evidenceUrl}
+                alt="Evidence"
+                className="w-full h-full object-cover hover:scale-105 transition-transform cursor-zoom-in"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(evidenceUrl, "_blank");
+                }}
+              />
+            </div>
+          ) : (
+            <div className="h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 bg-slate-50/50">
+              <ImageIcon className="w-5 h-5" />
+            </div>
+          )}
         </div>
       </div>
-      <div>
-        <p className="text-[10px] font-black text-slate-400 uppercase mb-2">
-          Minh chứng
-        </p>
-        {task.evidencePath ? (
-          <div className="rounded-lg overflow-hidden border border-slate-200 aspect-video bg-white shadow-inner">
-            <img
-              src={`${API_BASE_URL}/${task.evidencePath}`}
-              alt="Evidence"
-              className="w-full h-full object-cover hover:scale-105 transition-transform cursor-zoom-in"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`${API_BASE_URL}/${task.evidencePath}`, "_blank");
-              }}
-            />
-          </div>
-        ) : (
-          <div className="h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 bg-slate-50/50">
-            <ImageIcon className="w-5 h-5" />
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   // Component hiển thị khi danh sách trống
   const EmptyState = ({ message }) => (

@@ -11,7 +11,7 @@ import { DollarSign, Plus, Download, Mail, Lock, FileSpreadsheet } from "lucide-
 import PayrollTable from "./components/PayrollTable";
 import CreatePayrollModal from "./components/CreatePayrollModal";
 import ApprovalModal from "./components/ApprovalModal";
-import PayrollDetailTable from "./components/PayrollDetailTable";
+import PayrollDetailView from "./components/PayrollDetailView";
 import PayrollDetailEditModal from "./components/PayrollDetailEditModal";
 
 const STATUS_OPTIONS = [
@@ -86,7 +86,7 @@ export default function PayrollPage() {
     useEffect(() => { fetchPayrolls(); }, [fetchPayrolls]);
 
     // ─── View Detail ───
-    const handleViewDetail = async (payroll) => {
+    const handleViewDetail = useCallback(async (payroll) => {
         setSelectedPayroll(payroll);
         setDetailLoading(true);
         try {
@@ -97,27 +97,26 @@ export default function PayrollPage() {
         } finally {
             setDetailLoading(false);
         }
-    };
+    }, [toastError]);
 
     // ─── Create ───
-    const handleCreate = async (form) => {
+    const handleCreate = useCallback(async (form) => {
         setCreateLoading(true);
         try {
             const res = await payrollService.create(form);
             success("Tạo bảng lương thành công");
             setCreateModal(false);
             fetchPayrolls();
-            // Auto-open the new payroll detail
             if (res?.data) handleViewDetail(res.data);
         } catch (err) {
             toastError(err?.response?.data?.message || "Lỗi khi tạo bảng lương");
         } finally {
             setCreateLoading(false);
         }
-    };
+    }, [fetchPayrolls, handleViewDetail, success, toastError]);
 
     // ─── Calculate ───
-    const handleCalculate = async (payroll) => {
+    const handleCalculate = useCallback(async (payroll) => {
         setActionLoading(true);
         try {
             await payrollService.calculate(payroll.id);
@@ -129,10 +128,10 @@ export default function PayrollPage() {
         } finally {
             setActionLoading(false);
         }
-    };
+    }, [selectedPayroll, fetchPayrolls, handleViewDetail, success, toastError]);
 
     // ─── Edit detail ───
-    const handleEditDetail = async (detailId, form) => {
+    const handleEditDetail = useCallback(async (detailId, form) => {
         setEditLoading(true);
         try {
             await payrollService.updateDetail(detailId, form);
@@ -144,12 +143,12 @@ export default function PayrollPage() {
         } finally {
             setEditLoading(false);
         }
-    };
+    }, [selectedPayroll, handleViewDetail, success, toastError]);
 
     // ─── Approval Actions ───
-    const openApprovalModal = (payroll, action) => {
+    const openApprovalModal = useCallback((payroll, action) => {
         setApprovalModal({ open: true, payroll, action });
-    };
+    }, []);
 
     const handleApprovalAction = async (reason) => {
         const { payroll, action } = approvalModal;
@@ -193,21 +192,35 @@ export default function PayrollPage() {
         window.URL.revokeObjectURL(url);
     };
 
-    const handleExportSummary = async (payroll) => {
+    const handleUpdateHeader = useCallback(async (id, data) => {
+        setActionLoading(true);
+        try {
+            await payrollService.update(id, data);
+            const res = await payrollService.getById(id);
+            setDetailData(res?.data);
+            success("Cập nhật thông tin chung thành công");
+        } catch (err) {
+            toastError(err?.response?.data?.message || "Lỗi khi cập nhật");
+        } finally {
+            setActionLoading(false);
+        }
+    }, [success, toastError]);
+
+    const handleExportSummary = useCallback(async (payroll) => {
         try {
             const blob = await payrollService.exportSummary(payroll.id);
             downloadBlob(blob, `bang_luong_T${payroll.payrollMonth}_${payroll.payrollYear}.xlsx`);
             success("Xuất file tổng hợp thành công");
         } catch (err) { toastError("Lỗi khi xuất file"); }
-    };
+    }, [success, toastError]);
 
-    const handleExportPayslips = async (payroll) => {
+    const handleExportPayslips = useCallback(async (payroll) => {
         try {
             const blob = await payrollService.exportPayslips(payroll.id);
             downloadBlob(blob, `phieu_luong_T${payroll.payrollMonth}_${payroll.payrollYear}.xlsx`);
             success("Xuất phiếu lương thành công");
         } catch (err) { toastError("Lỗi khi xuất phiếu lương"); }
-    };
+    }, [success, toastError]);
 
     // ─── Filters ───
     const monthOptions = [
@@ -222,189 +235,120 @@ export default function PayrollPage() {
     const detailStatus = detailData ? STATUS_LABEL[detailData.payrollStatus] : null;
     const canEdit = detailData && ["DRAFT", "PENDING_APPROVAL"].includes(detailData.payrollStatus);
 
+    const handleBack = useCallback(() => {
+        setSelectedPayroll(null);
+        setDetailData(null);
+    }, []);
+
+    const handleCalculateCallback = useCallback((p) => handleCalculate(p), [handleCalculate]);
+    const openApprovalCallback = useCallback((type) => openApprovalModal(selectedPayroll, type), [selectedPayroll, openApprovalModal]);
+    const handleEditDetailCallback = useCallback((d) => setDetailEditModal({ open: true, data: d }), []);
+
+    // ─────────────────────────────────────────────────────────
+    // DETAIL VIEW — early return avoids ternary in JSX
+    // (fixes Turbopack "Expected static flag was missing" bug)
+    // ─────────────────────────────────────────────────────────
+    if (selectedPayroll) {
+        return (
+            <div className="space-y-6">
+                <PayrollDetailView
+                    payroll={detailData}
+                    status={detailStatus}
+                    onBack={handleBack}
+                    onCalculate={handleCalculateCallback}
+                    onApproval={openApprovalCallback}
+                    onExportSummary={handleExportSummary}
+                    onExportPayslips={handleExportPayslips}
+                    onEditDetail={handleEditDetailCallback}
+                    onUpdateHeader={handleUpdateHeader}
+                    actionLoading={actionLoading}
+                    detailLoading={detailLoading}
+                    canEdit={canEdit}
+                />
+
+                <PayrollDetailEditModal
+                    isOpen={detailEditModal.open}
+                    onClose={() => setDetailEditModal({ open: false, data: null })}
+                    onSubmit={handleEditDetail}
+                    loading={editLoading}
+                    detail={detailEditModal.data}
+                />
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // LIST VIEW
+    // ─────────────────────────────────────────────────────────
     return (
         <div className="space-y-6">
-            {/* ── Detail / List toggle ── */}
-            {selectedPayroll ? (
-                /* ──────── DETAIL VIEW ──────── */
-                <div className="space-y-6 animate-in fade-in duration-300">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => { setSelectedPayroll(null); setDetailData(null); }}
-                                className="text-slate-400 hover:text-slate-600 text-sm font-medium transition-colors"
-                            >
-                                ← Quay lại
-                            </button>
-                            <div className="h-4 w-px bg-slate-300" />
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900">
-                                    Bảng lương Tháng {detailData?.payrollMonth}/{detailData?.payrollYear}
-                                </h1>
-                                {detailStatus && (
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${detailStatus.color}`}>
-                                        {detailStatus.label}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Action buttons based on status */}
-                        <div className="flex flex-wrap gap-2">
-                            {detailData?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && (
-                                <Button
-                                    onClick={() => handleCalculate(detailData)}
-                                    loading={actionLoading}
-                                    className="gap-2 bg-amber-600 hover:bg-amber-700"
-                                >
-                                    ⚡ Tính toán tự động
-                                </Button>
-                            )}
-                            {detailData?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_APPROVE") && (
-                                <Button onClick={() => openApprovalModal(detailData, "submit")} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                                    📤 Gửi phê duyệt
-                                </Button>
-                            )}
-                            {detailData?.payrollStatus === "PENDING_APPROVAL" && authService.hasPermission("PAYROLL_APPROVE") && (
-                                <>
-                                    <Button onClick={() => openApprovalModal(detailData, "approve")} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-                                        ✅ Phê duyệt
-                                    </Button>
-                                    <Button onClick={() => openApprovalModal(detailData, "reject")} className="gap-2 bg-red-600 hover:bg-red-700">
-                                        ❌ Từ chối
-                                    </Button>
-                                </>
-                            )}
-                            {detailData?.payrollStatus === "APPROVED" && authService.hasPermission("PAYROLL_LOCK") && (
-                                <Button onClick={() => openApprovalModal(detailData, "lock")} className="gap-2 bg-slate-800 hover:bg-slate-900">
-                                    <Lock className="h-4 w-4" /> Khóa bảng lương
-                                </Button>
-                            )}
-                            {detailData?.payrollStatus === "LOCKED" && authService.hasPermission("PAYROLL_LOCK") && (
-                                <Button onClick={() => openApprovalModal(detailData, "sendPayslips")} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-                                    <Mail className="h-4 w-4" /> Gửi phiếu lương
-                                </Button>
-                            )}
-                            {authService.hasPermission("PAYROLL_EXPORT") && (
-                                <>
-                                    <Button variant="outline" onClick={() => handleExportSummary(detailData)} className="gap-2">
-                                        <FileSpreadsheet className="h-4 w-4" /> Xuất tổng hợp
-                                    </Button>
-                                    {detailData?.payrollStatus === "LOCKED" && (
-                                        <Button variant="outline" onClick={() => handleExportPayslips(detailData)} className="gap-2">
-                                            <Download className="h-4 w-4" /> Xuất phiếu lương
-                                        </Button>
-                                    )}
-                                </>
-                            )}
-                        </div>
+            {/* Header */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white">
+                        <DollarSign className="h-5 w-5" />
                     </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Bảng lương</h1>
+                        <p className="text-sm text-slate-500">Quản lý bảng lương hàng tháng</p>
+                    </div>
+                </div>
+                {authService.hasPermission("PAYROLL_CREATE") && (
+                    <Button onClick={() => setCreateModal(true)} className="gap-2">
+                        <Plus className="h-4 w-4" /> Tạo bảng lương
+                    </Button>
+                )}
+            </div>
 
-                    {/* Stats cards */}
-                    {detailData && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {[
-                                { label: "Số nhân viên", value: detailData.employeeCount || 0, unit: "NV", color: "bg-indigo-50 text-indigo-700" },
-                                { label: "Tổng thực nhận", value: new Intl.NumberFormat("vi-VN", { notation: "compact" }).format(detailData.totalNetSalary || 0), unit: "₫", color: "bg-emerald-50 text-emerald-700" },
-                                { label: "Tháng lương", value: `${detailData.payrollMonth}/${detailData.payrollYear}`, unit: "", color: "bg-blue-50 text-blue-700" },
-                                { label: "Đã gửi phiếu", value: (detailData.details || []).filter(d => d.payslipSentAt).length, unit: "NV", color: "bg-amber-50 text-amber-700" },
-                            ].map(({ label, value, unit, color }) => (
-                                <div key={label} className={`rounded-xl p-4 ${color} border border-current/10`}>
-                                    <p className="text-xs font-medium opacity-70">{label}</p>
-                                    <p className="text-2xl font-bold mt-1">{value} <span className="text-sm font-normal opacity-70">{unit}</span></p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Rejection note */}
-                    {detailData?.rejectedReason && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-                            <strong>Lý do từ chối:</strong> {detailData.rejectedReason}
-                        </div>
-                    )}
-
-                    {/* Detail table */}
-                    <PayrollDetailTable
-                        details={detailData?.details || []}
-                        loading={detailLoading}
-                        canEdit={canEdit && authService.hasPermission("PAYROLL_UPDATE")}
-                        onEdit={(d) => setDetailEditModal({ open: true, data: d })}
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg border border-slate-200">
+                <div className="w-36">
+                    <Select
+                        label="Tháng"
+                        value={filters.month}
+                        onChange={(e) => setFilters({ ...filters, month: e.target.value })}
+                        options={monthOptions}
                     />
                 </div>
-            ) : (
-                /* ──────── LIST VIEW ──────── */
-                <div className="space-y-6 animate-in fade-in duration-300">
-                    {/* Header */}
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white">
-                                <DollarSign className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900">Bảng lương</h1>
-                                <p className="text-sm text-slate-500">Quản lý bảng lương hàng tháng</p>
-                            </div>
-                        </div>
-                        {authService.hasPermission("PAYROLL_CREATE") && (
-                            <Button onClick={() => setCreateModal(true)} className="gap-2">
-                                <Plus className="h-4 w-4" /> Tạo bảng lương
-                            </Button>
-                        )}
-                    </div>
-
-                    {/* Filters */}
-                    <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg border border-slate-200">
-                        <div className="w-36">
-                            <Select
-                                label="Tháng"
-                                value={filters.month}
-                                onChange={(e) => setFilters({ ...filters, month: e.target.value })}
-                                options={monthOptions}
-                            />
-                        </div>
-                        <div className="w-32">
-                            <Select
-                                label="Năm"
-                                value={filters.year}
-                                onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                                options={yearOptions}
-                            />
-                        </div>
-                        <div className="w-44">
-                            <Select
-                                label="Trạng thái"
-                                value={filters.status}
-                                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                options={STATUS_OPTIONS}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <PayrollTable
-                        data={payrolls}
-                        loading={loading}
-                        search={search}
-                        onSearchChange={setSearch}
-                        pagination={pagination}
-                        onPaginationChange={setPagination}
-                        totalPages={totalPages}
-                        onViewDetail={handleViewDetail}
-                        onCalculate={handleCalculate}
-                        onSubmit={(p) => openApprovalModal(p, "submit")}
-                        onApprove={(p) => openApprovalModal(p, "approve")}
-                        onReject={(p) => openApprovalModal(p, "reject")}
-                        onLock={(p) => openApprovalModal(p, "lock")}
-                        onSendPayslips={(p) => openApprovalModal(p, "sendPayslips")}
-                        onExportSummary={handleExportSummary}
-                        onExportPayslips={handleExportPayslips}
+                <div className="w-32">
+                    <Select
+                        label="Năm"
+                        value={filters.year}
+                        onChange={(e) => setFilters({ ...filters, year: e.target.value })}
+                        options={yearOptions}
                     />
                 </div>
-            )}
+                <div className="w-44">
+                    <Select
+                        label="Trạng thái"
+                        value={filters.status}
+                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                        options={STATUS_OPTIONS}
+                    />
+                </div>
+            </div>
 
-            {/* ── Modals ── */}
+            {/* Table */}
+            <PayrollTable
+                data={payrolls}
+                loading={loading}
+                search={search}
+                onSearchChange={setSearch}
+                pagination={pagination}
+                onPaginationChange={setPagination}
+                totalPages={totalPages}
+                onViewDetail={handleViewDetail}
+                onCalculate={handleCalculate}
+                onSubmit={(p) => openApprovalModal(p, "submit")}
+                onApprove={(p) => openApprovalModal(p, "approve")}
+                onReject={(p) => openApprovalModal(p, "reject")}
+                onLock={(p) => openApprovalModal(p, "lock")}
+                onSendPayslips={(p) => openApprovalModal(p, "sendPayslips")}
+                onExportSummary={handleExportSummary}
+                onExportPayslips={handleExportPayslips}
+            />
+
+            {/* Modals */}
             <CreatePayrollModal
                 isOpen={createModal}
                 onClose={() => setCreateModal(false)}
@@ -419,14 +363,6 @@ export default function PayrollPage() {
                 loading={actionLoading}
                 action={approvalModal.action}
                 payroll={approvalModal.payroll}
-            />
-
-            <PayrollDetailEditModal
-                isOpen={detailEditModal.open}
-                onClose={() => setDetailEditModal({ open: false, data: null })}
-                onSubmit={handleEditDetail}
-                loading={editLoading}
-                detail={detailEditModal.data}
             />
         </div>
     );
