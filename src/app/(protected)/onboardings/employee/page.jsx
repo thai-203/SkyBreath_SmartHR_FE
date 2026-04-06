@@ -18,11 +18,9 @@ export default function EmployeeOnboardingPage() {
       if (!isRefresh) setLoading(true);
       
       const userRes = await authService.getCurrentEmployeeByUserId();
-      const user = userRes.data;
-      setEmployeeInfo(user);
-
-      if (user?.id) {
-        const planRes = await onboardingsService.getProgressByEmployee(user.id);
+      setEmployeeInfo(userRes);
+      if (userRes?.id) {
+        const planRes = await onboardingsService.getProgressByEmployee(userRes.id);
         setOnboardingPlan(planRes.data);
       }
     } catch (err) {

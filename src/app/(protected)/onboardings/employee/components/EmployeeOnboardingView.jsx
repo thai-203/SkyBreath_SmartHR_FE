@@ -19,8 +19,7 @@ import {
 } from "lucide-react";
 import { onboardingsService } from "@/services";
 import { useToast } from "@/components/common/Toast";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { resolveAssetUrl } from "@/lib/utils";
 
 const CATEGORY_CONFIG = {
   Asset: {
@@ -84,9 +83,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
     } else {
       setExpandedTaskId(task.id);
       setSelectedFile(null);
-      setPreviewUrl(
-        task.evidencePath ? `${API_BASE_URL}/${task.evidencePath}` : null,
-      );
+      setPreviewUrl(resolveAssetUrl(task.evidencePath));
       setEditForm({
         status: task.status || "NOT_STARTED",
         assetCode: task.assetCode || "",
@@ -383,9 +380,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                                         e.preventDefault();
                                         setSelectedFile(null);
                                         setPreviewUrl(
-                                          task.evidencePath
-                                            ? `${API_BASE_URL}/${task.evidencePath}`
-                                            : null,
+                                          resolveAssetUrl(task.evidencePath),
                                         );
                                       }}
                                       className="bg-rose-500 p-2 rounded-xl text-white"
