@@ -20,6 +20,12 @@ export const requestsService = {
         return response.data;
     },
 
+    /** Timesheets/Excuses: Danh sách đơn giải trình (request_type_id = 2) */
+    getExcuseRequests: async (params = {}) => {
+        const response = await api.get("/requests/excuses", { params });
+        return response.data;
+    },
+
     /** UC-REQ-06: Chi tiết đơn */
     getById: async (id) => {
         const response = await api.get(`/requests/${id}`);

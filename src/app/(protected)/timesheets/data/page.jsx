@@ -16,7 +16,7 @@ import CalendarView from "../components/CalendarView";
 import AttendanceDetailModal from "../components/AttendanceDetailModal";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
-import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search } from "lucide-react";
+import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search, Eye } from "lucide-react";
 import ProcessedRecordEditModal from "../components/ProcessedRecordEditModal";
 
 const currentDate = new Date();
@@ -136,6 +136,26 @@ export default function DataManagementPage() {
         detailModal, handleViewDetail, closeDetailModal, handleDetailUpdate,
         excuseModal, handleViewExcuse, handleCreateExcuse, closeExcuseModal, handleExcuseSuccess,
     } = useTimesheetDetail({ fetchTimesheets: fetchMatrix, canEdit: !isEmployeeOnly });
+
+    const handleViewAttendanceDetailFromMatrix = useCallback(async (row) => {
+        try {
+            const res = await timesheetsService.getAll({
+                month: filters.month,
+                year: filters.year,
+                employeeId: row?.id,
+                limit: 1,
+                page: 1,
+            });
+            const ts = res?.data?.items?.[0];
+            if (!ts?.id) {
+                toastError("Chưa có bảng công cho nhân viên này trong kỳ đã chọn");
+                return;
+            }
+            await handleViewDetail(ts);
+        } catch (err) {
+            toastError("Lỗi khi tải chi tiết chấm công");
+        }
+    }, [filters.month, filters.year, handleViewDetail, toastError]);
 
     const handleBulkRecalculate = () => {
         setConfirmModal({ open: true, data: { count: matrixData.filter(t => !t.isLocked).length }, action: "bulkRecalculate" });
@@ -352,6 +372,7 @@ export default function DataManagementPage() {
                                     <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[45px] bg-slate-50 z-10 whitespace-nowrap">Họ tên</th>
                                     <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[195px] bg-slate-50 z-10 whitespace-nowrap">Mã NS</th>
                                     <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-slate-50 z-10 whitespace-nowrap">Chức danh</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[405px] bg-slate-50 z-10 whitespace-nowrap text-center">Thao tác</th>
 
                                     {dayColumns.map(col => (
                                         <th key={col.id} className={`px-1 py-1 border-r border-slate-200 font-medium text-center text-[10px] min-w-[50px] ${col.isWeekend ? 'bg-amber-50 text-amber-700' : 'text-slate-600'}`}>
@@ -377,6 +398,16 @@ export default function DataManagementPage() {
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-medium text-slate-800" style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.fullName}</td>
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[195px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-mono text-xs">{row.employeeCode}</td>
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[405px] bg-white group-hover:bg-slate-50 z-10 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleViewAttendanceDetailFromMatrix(row)}
+                                                    className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-slate-100 transition-colors"
+                                                    title="Xem chi tiết"
+                                                >
+                                                    <Eye className="h-4 w-4 text-slate-500" />
+                                                </button>
+                                            </td>
 
                                             {dayColumns.map(col => {
                                                 const dayData = row.dailyDetails?.find(d => {
