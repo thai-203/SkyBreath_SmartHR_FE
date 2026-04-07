@@ -9,6 +9,7 @@ import {
   Layers,
   ChevronDown,
   Search,
+  Copy,
 } from "lucide-react";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Button } from "@/components/common/Button";
@@ -18,6 +19,8 @@ import { holidayConfigService, holidayService } from "@/services";
 import { HolidayGroupModal } from "../components/HolidayGroupModal";
 import { HolidayModal } from "../components/HolidayModal";
 import { HolidayTable } from "../components/HolidayTable";
+import { HolidayGroupTable } from "../components/HolidayGroupTable";
+import { InheritModal } from "../components/InheritModal";
 import { useRouter } from "next/navigation";
 
 export default function HolidayGroupsPage() {
@@ -30,6 +33,10 @@ export default function HolidayGroupsPage() {
   // ── Group Modal State ────────────────────────────────
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
+
+  // ── Inherit Modal State ──────────────────────────────
+  const [isInheritModalOpen, setIsInheritModalOpen] = useState(false);
+  const [selectedGroupForInherit, setSelectedGroupForInherit] = useState(null);
 
   // ── Inline Holiday Filtering ─────────────────────────
   const [filterGroupId, setFilterGroupId] = useState("");
@@ -87,6 +94,23 @@ export default function HolidayGroupsPage() {
       } catch (err) {
         toastError(err.response?.data?.message || "Lỗi khi xóa nhóm");
       }
+    }
+  };
+
+  const handleOpenInheritModal = (group) => {
+    setSelectedGroupForInherit(group);
+    setIsInheritModalOpen(true);
+  };
+
+  const handleInheritConfirm = async (targetYear) => {
+    if (!selectedGroupForInherit) return;
+    try {
+      await holidayConfigService.inheritGroup(selectedGroupForInherit.id, targetYear);
+      toastSuccess(`Đã kế thừa danh mục sang năm ${targetYear} thành công`);
+      fetchData();
+    } catch (err) {
+      toastError(err.response?.data?.message || "Lỗi khi kế thừa danh mục");
+      throw err;
     }
   };
 
@@ -164,53 +188,13 @@ export default function HolidayGroupsPage() {
           </Button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
-            <thead className="bg-slate-50 text-slate-500 font-semibold uppercase text-[11px] tracking-wider">
-              <tr>
-                <th className="px-5 py-4 whitespace-nowrap border-b">Mã nhóm</th>
-                <th className="px-5 py-4 whitespace-nowrap border-b">Tên danh mục</th>
-                <th className="px-5 py-4 whitespace-nowrap border-b">Năm áp dụng</th>
-                <th className="px-5 py-4 whitespace-nowrap border-b">Trạng thái</th>
-                <th className="px-5 py-4 whitespace-nowrap border-b">Mô tả</th>
-                <th className="px-5 py-4 text-right whitespace-nowrap border-b">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {groups.map((group) => (
-                <tr key={group.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-5 py-4 font-mono text-xs text-indigo-600 font-medium">{group.groupCode}</td>
-                  <td className="px-5 py-4 font-semibold text-slate-800">{group.groupName}</td>
-                  <td className="px-5 py-4 text-slate-600">{group.year}</td>
-                  <td className="px-5 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide shadow-sm ${
-                      group.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {group.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-slate-500 italic max-w-xs truncate">{group.description || "Không có mô tả"}</td>
-                  <td className="px-5 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenGroupModal(group)} className="hover:bg-indigo-50 hover:text-indigo-600">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteGroup(group.id)} className="text-red-500 hover:bg-red-50 hover:text-red-600">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {groups.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="px-5 py-10 text-center text-slate-400 italic bg-slate-50/30">
-                    Chưa có danh mục nào được định nghĩa
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="overflow-hidden">
+          <HolidayGroupTable 
+            groups={groups}
+            onEdit={handleOpenGroupModal}
+            onDelete={handleDeleteGroup}
+            onInherit={handleOpenInheritModal}
+          />
         </div>
 
         {/* ── Section Divider ─────────────────────────────────── */}
@@ -346,6 +330,12 @@ export default function HolidayGroupsPage() {
         onClose={() => setIsHolidayModalOpen(false)}
         onSubmit={handleHolidaySubmit}
         holiday={editingHoliday}
+      />
+      <InheritModal 
+        isOpen={isInheritModalOpen}
+        onClose={() => setIsInheritModalOpen(false)}
+        onConfirm={handleInheritConfirm}
+        group={selectedGroupForInherit}
       />
     </div>
   );
