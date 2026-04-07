@@ -160,15 +160,26 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
 
         // Tính trên FE: đây là ước tính calendar days (BE sẽ validate chính xác theo shift)
         // FE dùng để hiển thị cảnh báo real-time
+        // Helper tính ước lượng ngày làm việc (bỏ qua T7, CN trên FE)
+        const getEstimatedWorkingDays = (d1, d2) => {
+            let count = 0;
+            const cur = new Date(d1);
+            cur.setHours(0,0,0,0);
+            const endD = new Date(d2);
+            endD.setHours(23,59,59,999);
+            while (cur <= endD) {
+                const day = cur.getDay();
+                if (day !== 0 && day !== 6) count++; // JS getDay: 0=Sun, 6=Sat
+                cur.setDate(cur.getDate() + 1);
+            }
+            return count;
+        };
+
         const unit = quotaStatus.unit;
         if (unit === 'DAY') {
-            const msPerDay = 1000 * 60 * 60 * 24;
-            const days = Math.round((end - start) / msPerDay) + 1;
-            setRequestedQty(days);
+            setRequestedQty(getEstimatedWorkingDays(start, end));
         } else if (unit === 'HALF_DAY') {
-            const msPerDay = 1000 * 60 * 60 * 24;
-            const days = Math.round((end - start) / msPerDay) + 1;
-            setRequestedQty(days * 2);
+            setRequestedQty(getEstimatedWorkingDays(start, end) * 2);
         } else if (unit === 'HOUR') {
             if (form.startTime && form.endTime) {
                 const startD = new Date(form.startDate);
@@ -182,10 +193,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                 const diff = (endD - startD) / (1000 * 60 * 60);
                 setRequestedQty(diff > 0 ? Number(diff.toFixed(2)) : 0);
             } else {
-                // Estimate: 8h/day by default, BE sẽ tính chính xác
-                const msPerDay = 1000 * 60 * 60 * 24;
-                const days = Math.round((end - start) / msPerDay) + 1;
-                setRequestedQty(days * 8);
+                setRequestedQty(getEstimatedWorkingDays(start, end) * 8);
             }
         } else {
             setRequestedQty(1);

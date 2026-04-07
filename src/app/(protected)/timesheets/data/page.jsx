@@ -16,7 +16,7 @@ import CalendarView from "../components/CalendarView";
 import AttendanceDetailModal from "../components/AttendanceDetailModal";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
-import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search } from "lucide-react";
+import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search, Eye, Lock, Unlock } from "lucide-react";
 import ProcessedRecordEditModal from "../components/ProcessedRecordEditModal";
 
 const currentDate = new Date();
@@ -137,8 +137,36 @@ export default function DataManagementPage() {
         excuseModal, handleViewExcuse, handleCreateExcuse, closeExcuseModal, handleExcuseSuccess,
     } = useTimesheetDetail({ fetchTimesheets: fetchMatrix, canEdit: !isEmployeeOnly });
 
+    const handleViewAttendanceDetailFromMatrix = useCallback(async (row) => {
+        try {
+            const res = await timesheetsService.getAll({
+                month: filters.month,
+                year: filters.year,
+                employeeId: row?.id,
+                limit: 1,
+                page: 1,
+            });
+            const ts = res?.data?.items?.[0];
+            if (!ts?.id) {
+                toastError("Chưa có bảng công cho nhân viên này trong kỳ đã chọn");
+                return;
+            }
+            await handleViewDetail(ts);
+        } catch (err) {
+            toastError("Lỗi khi tải chi tiết chấm công");
+        }
+    }, [filters.month, filters.year, handleViewDetail, toastError]);
+
     const handleBulkRecalculate = () => {
         setConfirmModal({ open: true, data: { count: matrixData.filter(t => !t.isLocked).length }, action: "bulkRecalculate" });
+    };
+
+    const handleFinalizeMatrix = () => {
+        setConfirmModal({ open: true, data: null, action: "finalizeMatrix" });
+    };
+
+    const handleUnfinalizeMatrix = () => {
+        setConfirmModal({ open: true, data: null, action: "unfinalizeMatrix" });
     };
 
     const handleSync = async () => {
@@ -166,6 +194,24 @@ export default function DataManagementPage() {
                     departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
                 });
                 success(`Đã tính lại ${res?.data?.recalculated || 0} bảng`);
+            }
+            if (action === "finalizeMatrix") {
+                const res = await timesheetsService.finalizeProcessedMatrix({
+                    month: filters.month,
+                    year: filters.year,
+                    departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                    search: search || undefined,
+                });
+                success(`Đã chốt công ${res?.data?.affected || 0} bản ghi`);
+            }
+            if (action === "unfinalizeMatrix") {
+                const res = await timesheetsService.unfinalizeProcessedMatrix({
+                    month: filters.month,
+                    year: filters.year,
+                    departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                    search: search || undefined,
+                });
+                success(`Đã bỏ chốt công ${res?.data?.affected || 0} bản ghi`);
             }
             setConfirmModal({ open: false, data: null, action: null });
             fetchMatrix();
@@ -237,6 +283,10 @@ export default function DataManagementPage() {
 
     const handleCellClick = (row, dayData) => {
         if (!dayData || dayData.attendanceStatus === 'WEEKEND') return;
+        if (dayData.isFinalized) {
+            toastError("Ngày công đã được chốt, không thể chỉnh sửa");
+            return;
+        }
         setCellModal({
             open: true,
             cell: {
@@ -288,12 +338,15 @@ export default function DataManagementPage() {
                         <Button variant="outline" onClick={handleSync} loading={syncLoading} className="gap-2 text-teal-700 border-teal-200">
                             <RefreshCw className="h-4 w-4" /> Đồng bộ công
                         </Button>
-                        <Button variant="outline" onClick={handleBulkRecalculate} className="gap-2 text-amber-600 border-amber-200">
-                            <RefreshCw className="h-4 w-4" /> Tính lại tất cả
+
+                        <Button variant="outline" onClick={handleFinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
+                            <Lock className="h-4 w-4" /> Chốt công
                         </Button>
-                        <Button variant="outline" onClick={handleExportSummary} className="gap-2">
-                            <FileSpreadsheet className="h-4 w-4" /> Xuất tổng hợp
+
+                        <Button variant="outline" onClick={handleUnfinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
+                            <Unlock className="h-4 w-4" /> Bỏ chốt
                         </Button>
+                        
                         <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
                             <Download className="h-4 w-4" /> Xuất chi tiết
                         </Button>
@@ -352,6 +405,7 @@ export default function DataManagementPage() {
                                     <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[45px] bg-slate-50 z-10 whitespace-nowrap">Họ tên</th>
                                     <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[195px] bg-slate-50 z-10 whitespace-nowrap">Mã NS</th>
                                     <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-slate-50 z-10 whitespace-nowrap">Chức danh</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[405px] bg-slate-50 z-10 whitespace-nowrap text-center">Thao tác</th>
 
                                     {dayColumns.map(col => (
                                         <th key={col.id} className={`px-1 py-1 border-r border-slate-200 font-medium text-center text-[10px] min-w-[50px] ${col.isWeekend ? 'bg-amber-50 text-amber-700' : 'text-slate-600'}`}>
@@ -377,6 +431,16 @@ export default function DataManagementPage() {
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-medium text-slate-800" style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.fullName}</td>
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[195px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-mono text-xs">{row.employeeCode}</td>
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[405px] bg-white group-hover:bg-slate-50 z-10 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleViewAttendanceDetailFromMatrix(row)}
+                                                    className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-slate-100 transition-colors"
+                                                    title="Xem chi tiết"
+                                                >
+                                                    <Eye className="h-4 w-4 text-slate-500" />
+                                                </button>
+                                            </td>
 
                                             {dayColumns.map(col => {
                                                 const dayData = row.dailyDetails?.find(d => {
@@ -385,17 +449,21 @@ export default function DataManagementPage() {
                                                     return parts.length === 3 && parseInt(parts[0], 10) === col.dayIndex;
                                                 });
                                                 const cellContent = getDayCellContent(row.dailyDetails, col.dayIndex);
-                                                const isClickable = dayData && dayData.attendanceStatus !== 'WEEKEND';
+                                                const isClickable = dayData && dayData.attendanceStatus !== 'WEEKEND' && !dayData.isFinalized;
                                                 return (
                                                     <td
                                                         key={`${row.id}-${col.id}`}
                                                         onClick={() => isClickable && handleCellClick(row, dayData)}
                                                         className={`px-1 py-2 border-r border-slate-200 text-center font-medium text-xs transition-colors
                                                             ${col.isWeekend ? 'bg-amber-50/50 text-amber-600' : 'text-slate-700'}
+                                                            ${dayData?.isFinalized ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''}
                                                             ${isClickable && !isEmployeeOnly ? 'cursor-pointer hover:bg-indigo-50 hover:text-indigo-700' : ''}
                                                         `}
                                                     >
-                                                        {cellContent}
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            {dayData?.isFinalized && <Lock className="h-3 w-3" />}
+                                                            <span>{cellContent}</span>
+                                                        </div>
                                                     </td>
                                                 );
                                             })}
@@ -446,10 +514,30 @@ export default function DataManagementPage() {
             <ExcuseRequestModal isOpen={excuseModal.open} onClose={closeExcuseModal} mode={excuseModal.mode} date={excuseModal.date} employeeId={excuseModal.employeeId} data={excuseModal.data}
                 onSuccess={handleExcuseSuccess} />
 
-            <ConfirmModal isOpen={confirmModal.open} onClose={() => setConfirmModal({ open: false, data: null, action: null })} onConfirm={handleConfirmAction}
-                title="Tính lại hàng loạt"
-                description="Tính lại tất cả bảng công chưa khóa?"
-                loading={confirmLoading} />
+            <ConfirmModal
+                isOpen={confirmModal.open}
+                onClose={() => setConfirmModal({ open: false, data: null, action: null })}
+                onConfirm={handleConfirmAction}
+                title={
+                    confirmModal.action === "bulkRecalculate"
+                        ? "Tính lại hàng loạt"
+                        : confirmModal.action === "finalizeMatrix"
+                            ? "Chốt công"
+                            : confirmModal.action === "unfinalizeMatrix"
+                                ? "Bỏ chốt công"
+                                : "Xác nhận"
+                }
+                description={
+                    confirmModal.action === "bulkRecalculate"
+                        ? "Tính lại tất cả bảng công chưa khóa?"
+                        : confirmModal.action === "finalizeMatrix"
+                            ? `Chốt công sẽ khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Sau khi chốt, bạn không thể chỉnh sửa từng ngày. Xác nhận?`
+                            : confirmModal.action === "unfinalizeMatrix"
+                                ? `Bỏ chốt sẽ mở khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Xác nhận?`
+                                : "Xác nhận?"
+                }
+                loading={confirmLoading}
+            />
 
             <ProcessedRecordEditModal
                 isOpen={cellModal.open}

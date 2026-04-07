@@ -20,6 +20,18 @@ export const requestsService = {
         return response.data;
     },
 
+    /** Timesheets/Excuses: đơn nhóm đi muộn/về sớm & giải trình chấm công */
+    getExcuseRequests: async (params = {}) => {
+        const response = await api.get("/requests/excuses", { params });
+        return response.data;
+    },
+
+    /** Timesheets: Bảng tăng ca chi tiết (nhóm đơn OT — request_group_id = 1) */
+    getOvertimeDetailRequests: async (params = {}) => {
+        const response = await api.get("/requests/overtime-detail", { params });
+        return response.data;
+    },
+
     /** UC-REQ-06: Chi tiết đơn */
     getById: async (id) => {
         const response = await api.get(`/requests/${id}`);

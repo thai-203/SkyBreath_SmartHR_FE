@@ -26,6 +26,7 @@ import {
   UserCog,
   CalendarCheck,
   Bell,
+  Bot,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -79,9 +80,10 @@ const menuItems = [
     roles: ["ADMIN", "HR", "EMPLOYEE"],
     children: [
       { title: "Khởi tạo bảng công", href: "/timesheets/generation", roles: ["ADMIN", "HR"] },
-      { title: "Quản lý dữ liệu", href: "/timesheets/data", roles: ["ADMIN", "HR", "EMPLOYEE"] },
-      { title: "Chốt công", href: "/timesheets/locking", roles: ["ADMIN", "HR"] },
+      // { title: "Quản lý dữ liệu", href: "/timesheets/data", roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      // { title: "Chốt công", href: "/timesheets/locking", roles: ["ADMIN", "HR"] },
       { title: "Đơn giải trình", href: "/timesheets/excuses", roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { title: "Bảng tăng ca chi tiết", href: "/timesheets/overtime-detail", roles: ["ADMIN", "HR", "EMPLOYEE"] },
       { title: "Lịch sử thao tác", href: "/timesheets/history", roles: ["ADMIN", "HR"] },
     ],
   },
@@ -230,6 +232,12 @@ const menuItems = [
     title: "Cấu hình hệ thống",
     icon: Settings,
     href: "/configurations",
+    roles: ["ADMIN"],
+  },
+  {
+    title: "Cấu hình AI",
+    icon: Bot,
+    href: "/ai-configurations",
     roles: ["ADMIN"],
   },
 ];

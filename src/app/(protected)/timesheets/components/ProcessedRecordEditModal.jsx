@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Clock, Calendar, AlertTriangle, CheckCircle } from "lucide-react";
+import { X, Clock, Calendar, AlertTriangle, CheckCircle, FileText } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { ConfirmModal } from "@/components/common/Modal";
 import { useToast } from "@/components/common/Toast";
 import { timesheetsService } from "@/services/timesheets.service";
+import RequestDetailModal from "@/app/(protected)/requests/my-requests/components/RequestDetailModal";
 
 const STATUS_LABELS = {
     X: { label: "Có mặt", color: "bg-emerald-100 text-emerald-700" },
@@ -34,11 +35,13 @@ export default function ProcessedRecordEditModal({ isOpen, onClose, cell, canEdi
     const [note, setNote] = useState("");
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [requestDetailOpen, setRequestDetailOpen] = useState(false);
 
     useEffect(() => {
         if (isOpen && cell) {
             setEditValue(cell.workingHours ?? "");
             setNote("");
+            setRequestDetailOpen(false);
         }
     }, [isOpen, cell]);
 
@@ -55,6 +58,7 @@ export default function ProcessedRecordEditModal({ isOpen, onClose, cell, canEdi
     const parsedValue = parseFloat(editValue);
     const isValueInvalid = isNaN(parsedValue) || parsedValue < 0 || parsedValue > 1;
     const isValueUnchanged = parsedValue === Number(cell.workingHours);
+    const requestId = cell.requestId ?? cell.request_id ?? null;
 
     const handleSaveClick = () => {
         if (isValueInvalid || isValueUnchanged) return;
@@ -198,9 +202,38 @@ export default function ProcessedRecordEditModal({ isOpen, onClose, cell, canEdi
                                 Chỉ HR / Admin mới có thể chỉnh sửa ngày công
                             </div>
                         )}
+
+                        {/* Requests section */}
+                        <div className="border-t border-slate-100 pt-4 space-y-2">
+                            <p className="text-sm font-semibold text-slate-700">Đơn từ</p>
+                            {requestId ? (
+                                <div className="flex items-center justify-between gap-3 bg-slate-50 rounded-xl p-3 border border-slate-200">
+                                    <div className="min-w-0">
+                                        <p className="text-xs text-slate-500">Request ID</p>
+                                        <p className="text-sm font-semibold text-slate-800 truncate">#{requestId}</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        className="gap-2 shrink-0"
+                                        onClick={() => setRequestDetailOpen(true)}
+                                    >
+                                        <FileText className="h-4 w-4" />
+                                        Xem chi tiết
+                                    </Button>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-slate-400">Không có đơn từ liên kết cho ngày này</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <RequestDetailModal
+                isOpen={requestDetailOpen}
+                request={requestId ? { id: requestId } : null}
+                onClose={() => setRequestDetailOpen(false)}
+            />
 
             {/* Confirmation dialog */}
             <ConfirmModal

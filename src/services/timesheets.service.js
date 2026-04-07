@@ -101,4 +101,14 @@ export const timesheetsService = {
         const response = await api.patch(`/timesheets/processed/${id}`, data);
         return response.data;
     },
+
+    finalizeProcessedMatrix: async (data) => {
+        const response = await api.post("/timesheets/processed-finalize", data);
+        return response.data;
+    },
+
+    unfinalizeProcessedMatrix: async (data) => {
+        const response = await api.post("/timesheets/processed-unfinalize", data);
+        return response.data;
+    },
 };
