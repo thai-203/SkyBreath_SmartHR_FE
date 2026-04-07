@@ -160,43 +160,29 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
 
         // Tính trên FE: đây là ước tính calendar days (BE sẽ validate chính xác theo shift)
         // FE dùng để hiển thị cảnh báo real-time
-        // Helper tính ước lượng ngày làm việc (bỏ qua T7, CN trên FE)
-        const getEstimatedWorkingDays = (d1, d2) => {
-            let count = 0;
-            const cur = new Date(d1);
-            cur.setHours(0,0,0,0);
-            const endD = new Date(d2);
-            endD.setHours(23,59,59,999);
-            while (cur <= endD) {
-                const day = cur.getDay();
-                if (day !== 0 && day !== 6) count++; // JS getDay: 0=Sun, 6=Sat
-                cur.setDate(cur.getDate() + 1);
+        const fetchExactEstimate = async () => {
+            try {
+                const res = await requestsService.estimateQuantity({
+                    employeeId: form.employeeId,
+                    startDate: form.startDate,
+                    endDate: form.endDate,
+                    startTime: form.startTime || '',
+                    endTime: form.endTime || '',
+                    unit: quotaStatus.unit
+                });
+                if (res?.data) {
+                    setRequestedQty(res.data.estimatedQuantity);
+                }
+            } catch (error) {
+                console.error("Lỗi tải ước tính ngày:", error);
             }
-            return count;
         };
 
         const unit = quotaStatus.unit;
-        if (unit === 'DAY') {
-            setRequestedQty(getEstimatedWorkingDays(start, end));
-        } else if (unit === 'HALF_DAY') {
-            setRequestedQty(getEstimatedWorkingDays(start, end) * 2);
-        } else if (unit === 'HOUR') {
-            if (form.startTime && form.endTime) {
-                const startD = new Date(form.startDate);
-                const endD = new Date(form.endDate);
-                const [startH, startM] = form.startTime.split(':').map(Number);
-                const [endH, endM] = form.endTime.split(':').map(Number);
-                
-                startD.setHours(startH, startM, 0, 0);
-                endD.setHours(endH, endM, 0, 0);
-                
-                const diff = (endD - startD) / (1000 * 60 * 60);
-                setRequestedQty(diff > 0 ? Number(diff.toFixed(2)) : 0);
-            } else {
-                setRequestedQty(getEstimatedWorkingDays(start, end) * 8);
-            }
-        } else {
+        if (unit === 'TIME' || unit === 'OTHER') {
             setRequestedQty(1);
+        } else {
+            fetchExactEstimate();
         }
     }, [form.startDate, form.endDate, form.startTime, form.endTime, quotaStatus]);
 
