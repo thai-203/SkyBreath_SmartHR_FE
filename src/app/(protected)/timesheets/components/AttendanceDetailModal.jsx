@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
 import { Lock, Unlock, Pencil, X, Check, FileText, PlusCircle } from "lucide-react";
+import RequestDetailModal from "@/app/(protected)/requests/my-requests/components/RequestDetailModal";
 
 const dayStatusColors = {
     PRESENT: "bg-emerald-50 text-emerald-700",
@@ -52,12 +53,14 @@ export default function AttendanceDetailModal({
     const [editData, setEditData] = useState(null);
     const [saving, setSaving] = useState(false);
     const [locking, setLocking] = useState(false);
+    const [selectedRequestId, setSelectedRequestId] = useState(null);
 
     // Reset edit mode when modal opens/closes or data changes
     useEffect(() => {
         if (!isOpen) {
             setEditMode(false);
             setEditData(null);
+            setSelectedRequestId(null);
         }
     }, [isOpen]);
 
@@ -347,6 +350,18 @@ export default function AttendanceDetailModal({
                                                     Đơn {day.excuseRequest.status === 'APPROVED' ? '(Đã duyệt)' : day.excuseRequest.status === 'REJECTED' ? '(Từ chối)' : '(Chờ duyệt)'}
                                                 </span>
                                             </button>
+                                        ) : null}
+
+                                        {day.requestId ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedRequestId(day.requestId)}
+                                                className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium"
+                                                title="Xem đơn từ liên kết"
+                                            >
+                                                <FileText className="h-3 w-3" />
+                                                <span className="underline">Đơn từ</span>
+                                            </button>
                                         ) : (!canEdit && (day.lateMinutes > 0 || day.earlyLeaveMinutes > 0)) ? (
                                             <button 
                                               onClick={() => onCreateExcuse?.(day.date)}
@@ -364,6 +379,12 @@ export default function AttendanceDetailModal({
                     </tbody>
                 </table>
             </div>
+
+            <RequestDetailModal
+                isOpen={!!selectedRequestId}
+                request={selectedRequestId ? { id: selectedRequestId } : null}
+                onClose={() => setSelectedRequestId(null)}
+            />
         </Modal>
     );
 }

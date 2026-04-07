@@ -308,12 +308,7 @@ export default function DataManagementPage() {
                         <Button variant="outline" onClick={handleSync} loading={syncLoading} className="gap-2 text-teal-700 border-teal-200">
                             <RefreshCw className="h-4 w-4" /> Đồng bộ công
                         </Button>
-                        <Button variant="outline" onClick={handleBulkRecalculate} className="gap-2 text-amber-600 border-amber-200">
-                            <RefreshCw className="h-4 w-4" /> Tính lại tất cả
-                        </Button>
-                        <Button variant="outline" onClick={handleExportSummary} className="gap-2">
-                            <FileSpreadsheet className="h-4 w-4" /> Xuất tổng hợp
-                        </Button>
+                        
                         <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
                             <Download className="h-4 w-4" /> Xuất chi tiết
                         </Button>
