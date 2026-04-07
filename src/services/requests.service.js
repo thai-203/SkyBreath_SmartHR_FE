@@ -54,6 +54,12 @@ export const requestsService = {
         return response.data;
     },
 
+    /** Ước tính số ngày/giờ xin phép dựa trên ca làm việc */
+    estimateQuantity: async (params = {}) => {
+        const response = await api.get("/requests/estimate-quantity", { params });
+        return response.data;
+    },
+
     // ─── Mutations ──────────────────────────────────────────────────────
     /** UC-REQ-02: Lưu nháp */
     saveDraft: async (data) => {
