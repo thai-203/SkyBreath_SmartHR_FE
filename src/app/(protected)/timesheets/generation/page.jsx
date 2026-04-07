@@ -23,7 +23,7 @@ export default function GenerationPage() {
     const [departments, setDepartments] = useState([]);
     const [employeeList, setEmployeeList] = useState([]);
     const [generateModalOpen, setGenerateModalOpen] = useState(false);
-    
+
     const searchParams = useSearchParams();
     const [filters, setFilters] = useState({
         month: searchParams.get("month") || "",
@@ -162,7 +162,6 @@ export default function GenerationPage() {
                             <tr>
                                 <th className="px-6 py-4 font-semibold text-slate-700 w-1/4">Kỳ lương</th>
                                 <th className="px-6 py-4 font-semibold text-slate-700 w-1/4 text-center">Tổng nhân viên</th>
-                                <th className="px-6 py-4 font-semibold text-slate-700 w-1/4 text-center">Đã chốt (khóa)</th>
                                 <th className="px-6 py-4 font-semibold text-slate-700 w-1/4 text-right">Hành động</th>
                             </tr>
                         </thead>
@@ -190,12 +189,6 @@ export default function GenerationPage() {
                                             <div className="inline-flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full">
                                                 <Users className="h-4 w-4 text-slate-500" />
                                                 <span className="font-medium text-slate-700">{period.totalEmployees}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="inline-flex items-center gap-1 bg-emerald-50 px-3 py-1 rounded-full">
-                                                <Lock className="h-4 w-4 text-emerald-600" />
-                                                <span className="font-medium text-emerald-700">{period.lockedEmployees} / {period.totalEmployees}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
