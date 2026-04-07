@@ -16,7 +16,7 @@ import CalendarView from "../components/CalendarView";
 import AttendanceDetailModal from "../components/AttendanceDetailModal";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
-import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search, Eye } from "lucide-react";
+import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search, Eye, Lock, Unlock } from "lucide-react";
 import ProcessedRecordEditModal from "../components/ProcessedRecordEditModal";
 
 const currentDate = new Date();
@@ -161,6 +161,14 @@ export default function DataManagementPage() {
         setConfirmModal({ open: true, data: { count: matrixData.filter(t => !t.isLocked).length }, action: "bulkRecalculate" });
     };
 
+    const handleFinalizeMatrix = () => {
+        setConfirmModal({ open: true, data: null, action: "finalizeMatrix" });
+    };
+
+    const handleUnfinalizeMatrix = () => {
+        setConfirmModal({ open: true, data: null, action: "unfinalizeMatrix" });
+    };
+
     const handleSync = async () => {
         setSyncLoading(true);
         try {
@@ -186,6 +194,24 @@ export default function DataManagementPage() {
                     departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
                 });
                 success(`Đã tính lại ${res?.data?.recalculated || 0} bảng`);
+            }
+            if (action === "finalizeMatrix") {
+                const res = await timesheetsService.finalizeProcessedMatrix({
+                    month: filters.month,
+                    year: filters.year,
+                    departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                    search: search || undefined,
+                });
+                success(`Đã chốt công ${res?.data?.affected || 0} bản ghi`);
+            }
+            if (action === "unfinalizeMatrix") {
+                const res = await timesheetsService.unfinalizeProcessedMatrix({
+                    month: filters.month,
+                    year: filters.year,
+                    departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                    search: search || undefined,
+                });
+                success(`Đã bỏ chốt công ${res?.data?.affected || 0} bản ghi`);
             }
             setConfirmModal({ open: false, data: null, action: null });
             fetchMatrix();
@@ -257,6 +283,10 @@ export default function DataManagementPage() {
 
     const handleCellClick = (row, dayData) => {
         if (!dayData || dayData.attendanceStatus === 'WEEKEND') return;
+        if (dayData.isFinalized) {
+            toastError("Ngày công đã được chốt, không thể chỉnh sửa");
+            return;
+        }
         setCellModal({
             open: true,
             cell: {
@@ -307,6 +337,14 @@ export default function DataManagementPage() {
                     <div className="flex flex-wrap gap-2">
                         <Button variant="outline" onClick={handleSync} loading={syncLoading} className="gap-2 text-teal-700 border-teal-200">
                             <RefreshCw className="h-4 w-4" /> Đồng bộ công
+                        </Button>
+
+                        <Button variant="outline" onClick={handleFinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
+                            <Lock className="h-4 w-4" /> Chốt công
+                        </Button>
+
+                        <Button variant="outline" onClick={handleUnfinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
+                            <Unlock className="h-4 w-4" /> Bỏ chốt
                         </Button>
                         
                         <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
@@ -411,17 +449,21 @@ export default function DataManagementPage() {
                                                     return parts.length === 3 && parseInt(parts[0], 10) === col.dayIndex;
                                                 });
                                                 const cellContent = getDayCellContent(row.dailyDetails, col.dayIndex);
-                                                const isClickable = dayData && dayData.attendanceStatus !== 'WEEKEND';
+                                                const isClickable = dayData && dayData.attendanceStatus !== 'WEEKEND' && !dayData.isFinalized;
                                                 return (
                                                     <td
                                                         key={`${row.id}-${col.id}`}
                                                         onClick={() => isClickable && handleCellClick(row, dayData)}
                                                         className={`px-1 py-2 border-r border-slate-200 text-center font-medium text-xs transition-colors
                                                             ${col.isWeekend ? 'bg-amber-50/50 text-amber-600' : 'text-slate-700'}
+                                                            ${dayData?.isFinalized ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''}
                                                             ${isClickable && !isEmployeeOnly ? 'cursor-pointer hover:bg-indigo-50 hover:text-indigo-700' : ''}
                                                         `}
                                                     >
-                                                        {cellContent}
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            {dayData?.isFinalized && <Lock className="h-3 w-3" />}
+                                                            <span>{cellContent}</span>
+                                                        </div>
                                                     </td>
                                                 );
                                             })}
@@ -472,10 +514,30 @@ export default function DataManagementPage() {
             <ExcuseRequestModal isOpen={excuseModal.open} onClose={closeExcuseModal} mode={excuseModal.mode} date={excuseModal.date} employeeId={excuseModal.employeeId} data={excuseModal.data}
                 onSuccess={handleExcuseSuccess} />
 
-            <ConfirmModal isOpen={confirmModal.open} onClose={() => setConfirmModal({ open: false, data: null, action: null })} onConfirm={handleConfirmAction}
-                title="Tính lại hàng loạt"
-                description="Tính lại tất cả bảng công chưa khóa?"
-                loading={confirmLoading} />
+            <ConfirmModal
+                isOpen={confirmModal.open}
+                onClose={() => setConfirmModal({ open: false, data: null, action: null })}
+                onConfirm={handleConfirmAction}
+                title={
+                    confirmModal.action === "bulkRecalculate"
+                        ? "Tính lại hàng loạt"
+                        : confirmModal.action === "finalizeMatrix"
+                            ? "Chốt công"
+                            : confirmModal.action === "unfinalizeMatrix"
+                                ? "Bỏ chốt công"
+                                : "Xác nhận"
+                }
+                description={
+                    confirmModal.action === "bulkRecalculate"
+                        ? "Tính lại tất cả bảng công chưa khóa?"
+                        : confirmModal.action === "finalizeMatrix"
+                            ? `Chốt công sẽ khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Sau khi chốt, bạn không thể chỉnh sửa từng ngày. Xác nhận?`
+                            : confirmModal.action === "unfinalizeMatrix"
+                                ? `Bỏ chốt sẽ mở khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Xác nhận?`
+                                : "Xác nhận?"
+                }
+                loading={confirmLoading}
+            />
 
             <ProcessedRecordEditModal
                 isOpen={cellModal.open}
