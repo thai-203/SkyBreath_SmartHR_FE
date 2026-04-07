@@ -25,6 +25,7 @@ import {
   X,
   UserCog,
   CalendarCheck,
+  Bell,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -203,6 +204,16 @@ const menuItems = [
     children: [
       { title: "Vai trò", href: "/roles" },
       { title: "Quyền hệ thống", href: "/permissions" },
+    ],
+  },
+  {
+    title: "Thông báo",
+    icon: Bell,
+    href: "/notifications/manual",
+    roles: ["ADMIN", "HR"],
+    children: [
+      { title: "Gửi thông báo", href: "/notifications/manual" },
+      { title: "Lịch sử thông báo", href: "/notifications/history" },
     ],
   },
   {
