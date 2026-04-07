@@ -20,9 +20,15 @@ export const requestsService = {
         return response.data;
     },
 
-    /** Timesheets/Excuses: Danh sách đơn giải trình (request_type_id = 2) */
+    /** Timesheets/Excuses: đơn nhóm đi muộn/về sớm & giải trình chấm công */
     getExcuseRequests: async (params = {}) => {
         const response = await api.get("/requests/excuses", { params });
+        return response.data;
+    },
+
+    /** Timesheets: Bảng tăng ca chi tiết (nhóm đơn OT — request_group_id = 1) */
+    getOvertimeDetailRequests: async (params = {}) => {
+        const response = await api.get("/requests/overtime-detail", { params });
         return response.data;
     },
 
