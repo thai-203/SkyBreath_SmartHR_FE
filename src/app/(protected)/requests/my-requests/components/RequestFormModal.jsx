@@ -5,6 +5,7 @@ import { X, Upload, Trash2, Loader2, FileText, CheckCircle, Clock, XCircle, Rota
 import { requestsService } from "@/services/requests.service";
 import { requestTypesService } from "@/services/request-types.service";
 import { requestGroupsService } from "@/services/request-groups.service";
+import { overtimeTypesService } from "@/services/overtime-types.service";
 import { employeesService } from "@/services/employees.service";
 import { authService } from "@/services/auth.service";
 import { useToast } from "@/components/common/Toast";
@@ -19,6 +20,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
     const [requestTypes, setRequestTypes] = useState([]);
     const [requestGroups, setRequestGroups] = useState([]);
     const [employees, setEmployees] = useState([]);
+    const [overtimeTypes, setOvertimeTypes] = useState([]);
     const [workflowPreview, setWorkflowPreview] = useState([]);
     const [attachments, setAttachments] = useState([]);
     
@@ -32,6 +34,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
         employeeId: employeeId || "",
         requestGroupId: "",
         requestTypeId: "",
+        overtimeTypeId: "",
         startDate: new Date().toISOString().slice(0, 10),
         endDate: new Date().toISOString().slice(0, 10),
         startTime: "",
@@ -42,6 +45,9 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
     });
 
     const [policy, setPolicy] = useState(null);
+    const [quotaStatus, setQuotaStatus] = useState(null); // { hasQuota, maxQuantity, usedQuantity, remainingQuantity, unit, trackingCycle }
+    const [quotaLoading, setQuotaLoading] = useState(false);
+    const [requestedQty, setRequestedQty] = useState(0); // số ngày/giờ đang yêu cầu
     const [errors, setErrors] = useState({});
 
     // Init data
@@ -63,6 +69,11 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
             setEmployees(arr.filter(Item => !Item.isDeleted));
         });
 
+        overtimeTypesService.getAll().then((res) => {
+            const arr = res?.data || res?.items || res || [];
+            setOvertimeTypes(arr);
+        }).catch(console.error);
+
         // Set default employeeId
         authService.getCurrentEmployeeByUserId().then(emp => {
             if (emp?.id) {
@@ -83,6 +94,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                         employeeId: data.employeeId || data.employee?.id || prev.employeeId,
                         requestGroupId: data.requestGroupId || data.requestGroup?.id || data.requestType?.requestGroupId || "",
                         requestTypeId: data.requestTypeId || data.requestType?.id || "",
+                        overtimeTypeId: data.overtimeTypeId || data.overtimeType?.id || "",
                         startDate: data.startDate || new Date().toISOString().slice(0, 10),
                         endDate: data.endDate || new Date().toISOString().slice(0, 10),
                         startTime: data.startTime || "",
@@ -120,10 +132,73 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                     isWorkedTime: type.policy.isWorkedTime ?? false,
                     unit: type.policy.unit ?? "",
                 }));
+            } else {
+                setPolicy(null);
             }
             loadWorkflowPreview(form.requestTypeId, form.employeeId);
+
+            // Lấy thông tin quota
+            setQuotaLoading(true);
+            requestsService.getQuotaStatus(form.requestTypeId, form.employeeId, savedRequestId || null)
+                .then(res => setQuotaStatus(res?.data || null))
+                .catch(() => setQuotaStatus(null))
+                .finally(() => setQuotaLoading(false));
+        } else {
+            setQuotaStatus(null);
         }
     }, [form.requestTypeId, form.employeeId, requestTypes, loadWorkflowPreview]);
+
+    // Tính số ngày/giờ đang yêu cầu khi startDate/endDate thay đổi
+    useEffect(() => {
+        if (!form.startDate || !form.endDate || !quotaStatus?.hasQuota) {
+            setRequestedQty(0);
+            return;
+        }
+        const start = new Date(form.startDate);
+        const end = new Date(form.endDate);
+        if (start > end) { setRequestedQty(0); return; }
+
+        // Tính trên FE: đây là ước tính calendar days (BE sẽ validate chính xác theo shift)
+        // FE dùng để hiển thị cảnh báo real-time
+        // Helper tính ước lượng ngày làm việc (bỏ qua T7, CN trên FE)
+        const getEstimatedWorkingDays = (d1, d2) => {
+            let count = 0;
+            const cur = new Date(d1);
+            cur.setHours(0,0,0,0);
+            const endD = new Date(d2);
+            endD.setHours(23,59,59,999);
+            while (cur <= endD) {
+                const day = cur.getDay();
+                if (day !== 0 && day !== 6) count++; // JS getDay: 0=Sun, 6=Sat
+                cur.setDate(cur.getDate() + 1);
+            }
+            return count;
+        };
+
+        const unit = quotaStatus.unit;
+        if (unit === 'DAY') {
+            setRequestedQty(getEstimatedWorkingDays(start, end));
+        } else if (unit === 'HALF_DAY') {
+            setRequestedQty(getEstimatedWorkingDays(start, end) * 2);
+        } else if (unit === 'HOUR') {
+            if (form.startTime && form.endTime) {
+                const startD = new Date(form.startDate);
+                const endD = new Date(form.endDate);
+                const [startH, startM] = form.startTime.split(':').map(Number);
+                const [endH, endM] = form.endTime.split(':').map(Number);
+                
+                startD.setHours(startH, startM, 0, 0);
+                endD.setHours(endH, endM, 0, 0);
+                
+                const diff = (endD - startD) / (1000 * 60 * 60);
+                setRequestedQty(diff > 0 ? Number(diff.toFixed(2)) : 0);
+            } else {
+                setRequestedQty(getEstimatedWorkingDays(start, end) * 8);
+            }
+        } else {
+            setRequestedQty(1);
+        }
+    }, [form.startDate, form.endDate, form.startTime, form.endTime, quotaStatus]);
 
     const validate = () => {
         const e = {};
@@ -133,6 +208,11 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
         if (!form.endDate) e.endDate = "Vui lòng chọn đến ngày";
         if (form.startDate && form.endDate && form.startDate > form.endDate) {
             e.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
+        }
+        const selectedGroup = requestGroups.find((g) => g.id === parseInt(form.requestGroupId));
+        const isOvertimeGroup = selectedGroup && (/overtime|tăng ca/i.test(selectedGroup.code || '') || /overtime|tăng ca/i.test(selectedGroup.name || ''));
+        if (isOvertimeGroup && !form.overtimeTypeId) {
+            e.overtimeTypeId = "Vui lòng chọn loại tăng ca";
         }
         setErrors(e);
         return Object.keys(e).length === 0;
@@ -202,6 +282,16 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
 
     const selectedType = requestTypes.find((t) => t.id === parseInt(form.requestTypeId));
 
+    // Quota logic
+    const unitLabel = { DAY: 'ngày', HOUR: 'giờ', HALF_DAY: 'nửa ngày', TIME: 'lần' };
+    const cycleLabel = { YEAR: 'năm', MONTH: 'tháng', WEEK: 'tuần', DAY: 'hôm nay' };
+    const quotaExceeded = quotaStatus?.hasQuota && requestedQty > quotaStatus.remainingQuantity;
+    const quotaWarning = quotaStatus?.hasQuota && requestedQty > 0 && requestedQty > quotaStatus.remainingQuantity / 2 && !quotaExceeded;
+    const canSubmit = !quotaExceeded;
+
+    const selectedGroupForUI = requestGroups.find((g) => g.id === parseInt(form.requestGroupId));
+    const isOvertimeGroupUI = selectedGroupForUI ? (/overtime|tăng ca/i.test(selectedGroupForUI.code || '') || /overtime|tăng ca/i.test(selectedGroupForUI.name || '')) : false;
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* Backdrop */}
@@ -220,15 +310,15 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                         )}
                         <button
                             onClick={handleSaveDraft}
-                            disabled={submitting}
-                            className="px-4 py-2 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                            disabled={submitting || !canSubmit}
+                            className="px-4 py-2 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Lưu nháp
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={submitting}
-                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            disabled={submitting || !canSubmit}
+                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                             Gửi duyệt
@@ -326,6 +416,70 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                                     </label>
                                 </div>
                             </div>
+
+                            {isOvertimeGroupUI && (
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            Loại tăng ca <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            value={form.overtimeTypeId}
+                                            onChange={(e) => setForm((p) => ({ ...p, overtimeTypeId: e.target.value }))}
+                                            className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                                        >
+                                            <option value="">-- Chọn loại tăng ca --</option>
+                                            {overtimeTypes.map((t) => (
+                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                        {errors.overtimeTypeId && <p className="text-xs text-red-500 mt-1">{errors.overtimeTypeId}</p>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Quota Banner — sau khi chọn loại đơn */}
+                            {quotaLoading && (
+                                <div className="flex items-center gap-2 text-xs text-slate-400">
+                                    <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                    Đang kiểm tra hạn mức...
+                                </div>
+                            )}
+                            {!quotaLoading && quotaStatus?.hasQuota && (
+                                <div className={`rounded-xl px-4 py-3 text-sm border ${
+                                    quotaExceeded
+                                        ? 'bg-red-50 border-red-200 text-red-700'
+                                        : quotaWarning
+                                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                        : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                }`}>
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-base leading-none mt-0.5">
+                                            {quotaExceeded ? '❌' : quotaWarning ? '⚠️' : '✅'}
+                                        </span>
+                                        <div className="flex-1">
+                                            <p className="font-semibold">
+                                                Đã dùng {quotaStatus.usedQuantity} / {quotaStatus.maxQuantity} {unitLabel[quotaStatus.unit] || quotaStatus.unit} trong {cycleLabel[quotaStatus.trackingCycle] || quotaStatus.trackingCycle} này
+                                            </p>
+                                            {quotaStatus.remainingQuantity > 0 ? (
+                                                <p className="text-xs mt-0.5 opacity-80">
+                                                    Còn lại: <strong>{quotaStatus.remainingQuantity} {unitLabel[quotaStatus.unit]}</strong>
+                                                    {requestedQty > 0 && (
+                                                        <span> • Đang yêu cầu: <strong>{requestedQty} {unitLabel[quotaStatus.unit]}</strong></span>
+                                                    )}
+                                                </p>
+                                            ) : (
+                                                <p className="text-xs mt-0.5 opacity-80">Bạn đã sử dụng hết hạn mức trong {cycleLabel[quotaStatus.trackingCycle]}. Vui lòng tạo đơn nghỉ không tính công nếu muốn tiếp tục.</p>
+                                            )}
+                                            {quotaExceeded && requestedQty > 0 && (
+                                                <p className="text-xs mt-1 font-semibold">
+                                                    ⛔ Yêu cầu {requestedQty} {unitLabel[quotaStatus.unit]} nhưng chỉ còn {quotaStatus.remainingQuantity} {unitLabel[quotaStatus.unit]}. Vui lòng điều chỉnh thời gian hoặc tách đơn.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Thời gian: Từ giờ, Từ ngày, Đến giờ, Đến ngày */}
                             <div className="grid grid-cols-4 gap-3">

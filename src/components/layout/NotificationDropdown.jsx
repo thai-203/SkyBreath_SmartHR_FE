@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, CheckCheck, Filter, X } from "lucide-react";
+import { Bell, Check, CheckCheck, X } from "lucide-react";
 import { useSocket } from "../providers/SocketProvider";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,11 @@ function timeAgo(dateStr) {
     return date.toLocaleDateString("vi-VN");
 }
 
+function stripHtml(html) {
+    if (!html) return "";
+    return html.replace(/<[^>]*>?/gm, '');
+}
+
 const FILTER_OPTIONS = [
     { id: "all", label: "Tất cả" },
     { id: "unread", label: "Chưa đọc" },
@@ -29,10 +34,11 @@ const FILTER_OPTIONS = [
 
 export default function NotificationDropdown() {
     const router = useRouter();
-    const { notifications, unreadCount, markAsRead, markAllAsRead, fetchNotifications } = useSocket() || {};
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useSocket() || {};
     const [open, setOpen] = useState(false);
     const [filter, setFilter] = useState("all");
     const dropdownRef = useRef(null);
+    const [selectedNotification, setSelectedNotification] = useState(null);
 
     // Đóng dropdown khi click bên ngoài
     useEffect(() => {
@@ -57,11 +63,14 @@ export default function NotificationDropdown() {
         if (!notification.isRead && markAsRead) {
             await markAsRead(notification.id);
         }
-        // Chuyển hướng
+        // Hành động
+        setOpen(false);
         if (notification.link) {
             router.push(notification.link);
+        } else {
+            // Không có link thì mở modal để đọc chi tiết (vd thông báo thủ công)
+            setSelectedNotification(notification);
         }
-        setOpen(false);
     };
 
     const handleMarkAllRead = async () => {
@@ -169,7 +178,7 @@ export default function NotificationDropdown() {
                                             {n.title}
                                         </p>
                                         <p className="text-[12px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
-                                            {n.message}
+                                            {stripHtml(n.message)}
                                         </p>
                                         <p className="text-[11px] text-slate-400 mt-1">
                                             {timeAgo(n.createdAt)}
@@ -185,6 +194,47 @@ export default function NotificationDropdown() {
                                 </button>
                             ))
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Modal hiển thị chi tiết Thông báo thủ công (không có link) */}
+            {selectedNotification && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl relative flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between border-b px-6 py-4">
+                            <h2 className="text-lg font-bold text-slate-800">Chi tiết thông báo</h2>
+                            <button
+                                onClick={() => setSelectedNotification(null)}
+                                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto">
+                            <h3 className="mb-2 text-xl font-bold text-slate-900">{selectedNotification.title}</h3>
+                            <div className="mb-6 flex items-center gap-2 text-sm text-slate-500">
+                                <span className="rounded bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-600">
+                                    {selectedNotification.notificationType}
+                                </span>
+                                <span>•</span>
+                                <span>{new Date(selectedNotification.createdAt).toLocaleString("vi-VN")}</span>
+                            </div>
+                            <div 
+                                className="prose prose-sm prose-slate max-w-none 
+                                    [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 
+                                    [&_a]:text-indigo-600 [&_a]:underline"
+                                dangerouslySetInnerHTML={{ __html: selectedNotification.message }}
+                            />
+                        </div>
+                        <div className="border-t px-6 py-4 text-right">
+                            <button
+                                onClick={() => setSelectedNotification(null)}
+                                className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                            >
+                                Đóng
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
