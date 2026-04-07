@@ -82,6 +82,7 @@ const menuItems = [
       // { title: "Quản lý dữ liệu", href: "/timesheets/data", roles: ["ADMIN", "HR", "EMPLOYEE"] },
       // { title: "Chốt công", href: "/timesheets/locking", roles: ["ADMIN", "HR"] },
       { title: "Đơn giải trình", href: "/timesheets/excuses", roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { title: "Bảng tăng ca chi tiết", href: "/timesheets/overtime-detail", roles: ["ADMIN", "HR", "EMPLOYEE"] },
       { title: "Lịch sử thao tác", href: "/timesheets/history", roles: ["ADMIN", "HR"] },
     ],
   },
