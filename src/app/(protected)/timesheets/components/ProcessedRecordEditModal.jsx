@@ -54,6 +54,12 @@ export default function ProcessedRecordEditModal({ isOpen, onClose, cell, canEdi
         return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     };
 
+    const formatShiftTime = (val) => {
+        if (!val) return null;
+        const s = String(val);
+        return s.length >= 5 ? s.slice(0, 5) : s;
+    };
+
     const statusInfo = STATUS_LABELS[cell.attendanceStatus] || { label: cell.attendanceStatus || "—", color: "bg-slate-100 text-slate-600" };
     const parsedValue = parseFloat(editValue);
     const isValueInvalid = isNaN(parsedValue) || parsedValue < 0 || parsedValue > 1;
@@ -129,6 +135,16 @@ export default function ProcessedRecordEditModal({ isOpen, onClose, cell, canEdi
                                 </p>
                                 <p className="text-slate-800 font-semibold text-base">{formatTime(cell.checkOut)}</p>
                             </div>
+                        </div>
+
+                        {/* Shift time */}
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-center justify-between">
+                            <span className="text-sm text-slate-600 font-medium">Giờ ca</span>
+                            <span className="text-slate-800 font-semibold">
+                                {formatShiftTime(cell.shiftStartTime || cell.shift_start_time) && formatShiftTime(cell.shiftEndTime || cell.shift_end_time)
+                                    ? `${formatShiftTime(cell.shiftStartTime || cell.shift_start_time)} – ${formatShiftTime(cell.shiftEndTime || cell.shift_end_time)}`
+                                    : "08:00 – 17:00"}
+                            </span>
                         </div>
 
                         {/* Late / Early */}
