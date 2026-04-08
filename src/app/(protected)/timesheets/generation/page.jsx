@@ -28,6 +28,7 @@ export default function GenerationPage() {
     const [filters, setFilters] = useState({
         month: searchParams.get("month") || "",
         year: parseInt(searchParams.get("year") || currentDate.getFullYear()),
+        departmentId: searchParams.get("departmentId") || "",
     });
 
     const router = useRouter();
@@ -55,6 +56,8 @@ export default function GenerationPage() {
             const res = await timesheetsService.getPeriods({
                 month: filters.month ? parseInt(filters.month) : undefined,
                 year: filters.year,
+                groupByDepartment: true,
+                departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
             });
             setPeriods(res?.data || res || []);
         } catch (err) {
@@ -92,6 +95,7 @@ export default function GenerationPage() {
         const params = new URLSearchParams();
         if (f.month) params.set("month", f.month);
         if (f.year) params.set("year", f.year);
+        if (f.departmentId) params.set("departmentId", f.departmentId);
         const qs = params.toString();
         router.replace(`/timesheets/generation${qs ? `?${qs}` : ''}`, { scroll: false });
     }, [router]);
@@ -103,7 +107,7 @@ export default function GenerationPage() {
     };
 
     const handleClearFilters = () => {
-        const defaultF = { month: "", year: currentDate.getFullYear() };
+        const defaultF = { month: "", year: currentDate.getFullYear(), departmentId: "" };
         setFilters(defaultF);
         syncURL(defaultF);
     };
@@ -150,6 +154,16 @@ export default function GenerationPage() {
                         options={Array.from({ length: 5 }, (_, i) => ({ value: currentDate.getFullYear() - 2 + i, label: `Năm ${currentDate.getFullYear() - 2 + i}` }))}
                     />
                 </div>
+                <div className="w-56">
+                    <Select
+                        value={filters.departmentId}
+                        onChange={(e) => handleFilterChange('departmentId', e.target.value)}
+                        options={[
+                            { value: "", label: "Tất cả phòng ban" },
+                            ...departments.map(d => ({ value: d.id?.toString(), label: d.departmentName }))
+                        ]}
+                    />
+                </div>
                 <button onClick={handleClearFilters} className="text-slate-400 hover:text-rose-500 p-2" title="Xóa bộ lọc">
                     <FilterX className="h-5 w-5" />
                 </button>
@@ -161,6 +175,7 @@ export default function GenerationPage() {
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th className="px-6 py-4 font-semibold text-slate-700 w-1/4">Kỳ lương</th>
+                                <th className="px-6 py-4 font-semibold text-slate-700 w-1/4">Phòng ban</th>
                                 <th className="px-6 py-4 font-semibold text-slate-700 w-1/4 text-center">Tổng nhân viên</th>
                                 <th className="px-6 py-4 font-semibold text-slate-700 w-1/4 text-right">Hành động</th>
                             </tr>
@@ -176,13 +191,18 @@ export default function GenerationPage() {
                                 </tr>
                             ) : (
                                 periods.map((period, idx) => (
-                                    <tr key={`${period.year}-${period.month}`} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                                    <tr key={`${period.year}-${period.month}-${period.departmentId ?? 'none'}`} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">
                                                     <Calendar className="h-5 w-5" />
                                                 </div>
                                                 <span className="font-medium text-slate-900 text-base">Tháng {period.month}/{period.year}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm text-slate-700">
+                                                {period.departmentName || "—"}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -192,7 +212,7 @@ export default function GenerationPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <Link href={`/timesheets/data?month=${period.month}&year=${period.year}`}>
+                                            <Link href={`/timesheets/data?month=${period.month}&year=${period.year}${period.departmentId ? `&departmentId=${period.departmentId}` : ''}`}>
                                                 <Button variant="ghost" className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 gap-1">
                                                     Xem chi tiết <ChevronRight className="h-4 w-4" />
                                                 </Button>
