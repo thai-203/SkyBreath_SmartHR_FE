@@ -535,16 +535,26 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                         </h3>
 
                         <div className="space-y-2">
-                            {attachments.map((file, idx) => (
-                                <div key={idx} className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
-                                    <FileText className="w-4 h-4 text-blue-500 shrink-0" />
-                                    <span className="text-sm text-slate-700 flex-1 truncate">{file.name}</span>
-                                    <span className="text-xs text-slate-400">{(file.size / 1024).toFixed(0)} KB</span>
-                                    <button onClick={() => removeAttachment(idx)} className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                            {attachments.map((file, idx) => {
+                                const isImage = file.type?.startsWith('image/') || file.url || file.name?.match(/\.(jpg|jpeg|png|gif)$/i);
+                                const previewUrl = file instanceof File ? URL.createObjectURL(file) : (file.url || null);
+                                return (
+                                <div key={idx} className="flex flex-col gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                                    <div className="flex items-center gap-3 px-1">
+                                        <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                                        <span className="text-sm text-slate-700 flex-1 truncate">{file.name || 'document'}</span>
+                                        {file.size && <span className="text-xs text-slate-400">{(file.size / 1024).toFixed(0)} KB</span>}
+                                        <button onClick={() => removeAttachment(idx)} className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded">
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    {isImage && previewUrl && (
+                                        <div className="mt-1 rounded overflow-hidden max-w-full sm:max-w-[300px] border border-slate-200 bg-white">
+                                            <img src={previewUrl} alt={file.name || 'preview'} className="w-full h-auto object-contain max-h-[200px]" />
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
+                            )})}
 
                             <label className="flex items-center gap-2 text-sm text-blue-600 cursor-pointer hover:text-blue-700 w-fit">
                                 <Upload className="w-4 h-4" />
