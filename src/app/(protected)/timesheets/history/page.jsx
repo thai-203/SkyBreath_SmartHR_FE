@@ -17,7 +17,19 @@ const ACTION_TYPES = [
     { value: "UPDATE", label: "Chỉnh sửa" },
     { value: "DELETE", label: "Xóa" },
     { value: "EXPORT", label: "Xuất Excel" },
+    { value: "SYNC_ATTENDANCE", label: "Đồng bộ công" },
+    { value: "FINALIZE", label: "Chốt công (ma trận)" },
+    { value: "UNFINALIZE", label: "Bỏ chốt công" },
 ];
+
+/** Khớp với targetTable backend (action-logs) */
+const TIMESHEET_HISTORY_TARGET_TABLES = "timesheets,processed_attendance_records";
+
+const targetTableLabel = (table) => {
+    if (table === "timesheets") return "Bảng công";
+    if (table === "processed_attendance_records") return "Công đã xử lý";
+    return table || "—";
+};
 
 const getActionTypeLabel = (actionType) => {
     const found = ACTION_TYPES.find(a => a.value === actionType);
@@ -32,6 +44,9 @@ const getActionTypeColor = (actionType) => {
         'UPDATE': 'bg-blue-100 text-blue-700',
         'DELETE': 'bg-rose-100 text-rose-700',
         'EXPORT': 'bg-purple-100 text-purple-700',
+        'SYNC_ATTENDANCE': 'bg-cyan-100 text-cyan-800',
+        'FINALIZE': 'bg-violet-100 text-violet-800',
+        'UNFINALIZE': 'bg-orange-100 text-orange-800',
     };
     return colors[actionType] || 'bg-slate-100 text-slate-600';
 };
@@ -59,6 +74,7 @@ export default function ActionHistoryPage() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [totalPages, setTotalPages] = useState(0);
+    const [totalItems, setTotalItems] = useState(0);
     const [page, setPage] = useState(initialPage);
 
     const [draft, setDraft] = useState({ ...initialFilters });
@@ -82,7 +98,7 @@ export default function ActionHistoryPage() {
         setLoading(true);
         try {
             const params = {
-                targetTable: 'timesheets',
+                targetTable: TIMESHEET_HISTORY_TARGET_TABLES,
                 page,
                 limit: PAGE_SIZE,
                 sortOrder: 'DESC',
@@ -95,6 +111,7 @@ export default function ActionHistoryPage() {
             const res = await auditService.getAll(params);
             setLogs(res?.data?.data || []);
             setTotalPages(res?.data?.meta?.totalPages || 0);
+            setTotalItems(res?.data?.meta?.totalItems ?? 0);
         } catch (err) {
             console.error("Error fetching logs:", err);
             const msg = err?.response?.data?.message;
@@ -200,7 +217,9 @@ export default function ActionHistoryPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">Lịch sử thao tác</h1>
-                        <p className="text-sm text-slate-500">Theo dõi mọi thay đổi trên bảng chấm công</p>
+                        <p className="text-sm text-slate-500">
+                            Nhật ký thao tác trên bảng công và dữ liệu công đã xử lý (đồng bộ, chỉnh sửa, chốt công…)
+                        </p>
                     </div>
                 </div>
                 <Button variant="outline" onClick={handleExportExcel} className="gap-2">
@@ -250,20 +269,21 @@ export default function ActionHistoryPage() {
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-44">Thời gian</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-36">Người thao tác</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-36">Hành động</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-40">Bảng dữ liệu</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Mô tả</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-24">Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
                             {loading ? (
-                                <tr><td colSpan="5" className="px-4 py-12 text-center text-slate-500">
+                                <tr><td colSpan="6" className="px-4 py-12 text-center text-slate-500">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent"></div>
                                         Đang tải...
                                     </div>
                                 </td></tr>
                             ) : logs.length === 0 ? (
-                                <tr><td colSpan="5" className="px-4 py-12 text-center text-slate-400">Chưa có lịch sử thao tác nào.</td></tr>
+                                <tr><td colSpan="6" className="px-4 py-12 text-center text-slate-400">Chưa có lịch sử thao tác nào.</td></tr>
                             ) : (
                                 logs.map((log) => (
                                     <tr key={log.id} className="hover:bg-slate-50 transition-colors">
@@ -279,6 +299,11 @@ export default function ActionHistoryPage() {
                                         <td className="px-4 py-3 whitespace-nowrap text-sm">
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${getActionTypeColor(log.actionType)}`}>
                                                 {getActionTypeLabel(log.actionType)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-600">
+                                            <span className="font-mono bg-slate-50 border border-slate-200 rounded px-2 py-0.5">
+                                                {targetTableLabel(log.targetTable)}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-600 max-w-md">
@@ -297,7 +322,7 @@ export default function ActionHistoryPage() {
                 {/* Common Pagination  */}
                 <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50">
                     <span className="text-sm text-slate-500">
-                        Hiển thị {logs.length} / {totalPages * PAGE_SIZE > 0 ? `tổng cộng` : '0'} bản ghi
+                        Trang {page} / {totalPages || 1} — {totalItems} bản ghi
                     </span>
                     <Pagination
                         currentPage={page}
