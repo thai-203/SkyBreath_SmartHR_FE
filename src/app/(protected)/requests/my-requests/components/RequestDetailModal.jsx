@@ -172,19 +172,28 @@ export default function RequestDetailModal({ isOpen, request: initialRequest, on
                                 <div>
                                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Tài liệu đính kèm</p>
                                     <div className="space-y-2">
-                                        {attachments.map((att) => (
-                                            <a
-                                                key={att.id}
-                                                href={`/${att.filePath}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-colors"
-                                            >
-                                                <FileText className="w-4 h-4 text-blue-500" />
-                                                <span className="text-sm text-slate-700 flex-1 truncate">{att.fileName}</span>
-                                                <Download className="w-4 h-4 text-slate-400" />
-                                            </a>
-                                        ))}
+                                        {attachments.map((att) => {
+                                            const isImage = att.fileName?.match(/\.(jpg|jpeg|png|gif)$/i) || att.filePath?.match(/\.(jpg|jpeg|png|gif)$/i);
+                                            const fileUrl = att.filePath.startsWith('http') ? att.filePath : `http://localhost:3000/${att.filePath}`;
+                                            return (
+                                            <div key={att.id} className="flex flex-col gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 hover:bg-blue-50 transition-colors">
+                                                <a
+                                                    href={fileUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="flex items-center gap-3 px-1"
+                                                >
+                                                    <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                                                    <span className="text-sm text-slate-700 flex-1 truncate hover:underline">{att.fileName}</span>
+                                                    <Download className="w-4 h-4 text-slate-400" />
+                                                </a>
+                                                {isImage && (
+                                                    <div className="mt-1 rounded overflow-hidden max-w-full sm:max-w-[400px] border border-slate-200 bg-white">
+                                                        <img src={fileUrl} alt={att.fileName} className="w-full h-auto object-contain max-h-[300px]" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )})}
                                     </div>
                                 </div>
                             )}
