@@ -11,14 +11,14 @@ import {
 } from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
 import { Label } from "@/components/common/Label";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { authService } from "@/services";
 import { useToast } from "@/components/common/Toast";
 import { validate, required, email, minLength } from "@/lib/validation";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const { error: toastError, success: toastSuccess } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -217,5 +217,19 @@ export default function ForgotPasswordPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-sm text-slate-500">
+          Đang tải...
+        </div>
+      }
+    >
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }
