@@ -121,8 +121,8 @@ export default function ContractsPage() {
 
   const fetchJobGradesList = async () => {
     try {
-      const response = await jobGradesService.getAll();
-      const items = Array.isArray(response.data) ? response.data : [];
+      const response = await jobGradesService.getList();
+      const items = Array.isArray(response?.data) ? response.data : [];
       setJobGradesList(
         items.map((e) => ({
           value: e.id,
