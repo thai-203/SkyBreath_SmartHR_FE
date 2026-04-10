@@ -1,51 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-    Clock,
-    Filter,
-    AlertCircle,
-    CheckCircle2,
-    XCircle,
-    Clock8,
-    FileEdit,
-    User,
-    ChevronLeft,
-    ChevronRight,
-    Search,
-    Loader2
-} from "lucide-react";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from "@/components/ui/card";
+import { AlertCircle, CheckCircle2, XCircle, Clock8, Search } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/common/Select";
 import { Input } from "@/components/common/Input";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/common/Toast";
 import { authService } from "@/services";
-import { timesheetsService } from "@/services/timesheets.service";
-import ExcuseRequestModal from "../components/ExcuseRequestModal";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { requestsService } from "@/services/requests.service";
+import RequestDetailModal from "@/app/(protected)/requests/my-requests/components/RequestDetailModal";
+import { departmentsService } from "@/services/departments.service";
 
 export default function ExcuseRequestsPage() {
     const searchParams = useSearchParams();
     const { success, error: toastError } = useToast();
-    const user = authService.getCurrentUser();
     const isHR = authService.hasAnyRole(['ADMIN', 'HR']);
 
     const currentDate = new Date();
@@ -55,64 +27,60 @@ export default function ExcuseRequestsPage() {
     const [searchTerm, setSearchTerm] = useState("");
 
     const [loading, setLoading] = useState(false);
+    const [departments, setDepartments] = useState([]);
     const [records, setRecords] = useState([]);
-
-    // Modal state
-    const [excuseModal, setExcuseModal] = useState({
-        open: false,
-        mode: 'view',
-        date: '',
-        employeeId: null,
-        data: null
-    });
+    const [page, setPage] = useState(1);
+    const [limit] = useState(20);
+    const [total, setTotal] = useState(0);
+    const [selectedRequest, setSelectedRequest] = useState(null);
 
     const handleReset = () => {
         setMonth(currentDate.getMonth() + 1);
         setYear(currentDate.getFullYear());
         setDepartmentId("");
         setSearchTerm("");
+        setPage(1);
     };
 
-    const fetchData = async () => {
+    useEffect(() => {
+        const fetchDeps = async () => {
+            try {
+                const res = await departmentsService.getAll();
+                setDepartments(res?.data || []);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        if (isHR) fetchDeps();
+    }, [isHR]);
+
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const params = { month, year };
-            if (isHR && departmentId) params.departmentId = departmentId;
-
-            const res = await timesheetsService.getLateEarlyRecords(params);
-            setRecords(res?.data || []);
+            const params = {
+                month,
+                year,
+                page,
+                limit,
+                status: "APPROVED",
+                requestTypeId: 2,
+                ...(isHR && departmentId ? { departmentId } : {}),
+                ...(searchTerm ? { search: searchTerm } : {}),
+            };
+            const res = await requestsService.getExcuseRequests(params);
+            setRecords(res?.data?.items || []);
+            setTotal(res?.data?.total || 0);
         } catch (err) {
             console.error("Error fetching excuse records:", err);
             toastError("Lỗi khi tải danh sách giải trình");
         } finally {
             setLoading(false);
         }
-    };
+    }, [month, year, departmentId, searchTerm, page, limit, isHR, toastError]);
 
     useEffect(() => {
         fetchData();
-    }, [month, year, departmentId]);
-
-    const handleOpenSubmit = (record) => {
-        setExcuseModal({
-            open: true,
-            mode: 'create',
-            date: record.date,
-            employeeId: user.employeeId || record.employee?.id,
-            data: null
-        });
-    };
-
-    const handleViewExcuse = (record) => {
-        setExcuseModal({
-            open: true,
-            mode: 'view',
-            date: record.date,
-            employeeId: record.employee?.id,
-            data: record.excuseRequest,
-            canEdit: isHR && record.excuseRequest?.status === 'PENDING'
-        });
-    };
+    }, [fetchData]);
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -127,15 +95,9 @@ export default function ExcuseRequestsPage() {
         }
     };
 
-    const filteredRecords = records.filter(r => {
-        if (!searchTerm) return true;
-        const search = searchTerm.toLowerCase();
-        return (
-            r.employee?.fullName?.toLowerCase().includes(search) ||
-            r.employee?.employeeCode?.toLowerCase().includes(search) ||
-            r.date.includes(search)
-        );
-    });
+    const totalPages = Math.ceil(total / limit);
+    const startItem = total === 0 ? 0 : (page - 1) * limit + 1;
+    const endItem = Math.min(page * limit, total);
 
     return (
         <div className="p-6 space-y-6">
@@ -144,8 +106,8 @@ export default function ExcuseRequestsPage() {
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Đơn giải trình</h1>
                     <p className="text-slate-500 mt-1">
                         {isHR
-                            ? "Quản lý và phê duyệt các đơn giải trình đi muộn/về sớm."
-                            : "Danh sách các ngày đi muộn/về sớm cần giải trình."}
+                            ? "Quản lý và phê duyệt các đơn giải trình đi muộn/về sớm. Chỉ hiển thị đơn đã duyệt."
+                            : "Danh sách các ngày đi muộn/về sớm cần giải trình (chỉ đơn đã duyệt)."}
                     </p>
                 </div>
             </div>
@@ -171,10 +133,20 @@ export default function ExcuseRequestsPage() {
                         </div>
                         {isHR && (
                             <div className="w-64">
+                                <Select
+                                    placeholder="Phòng ban"
+                                    value={departmentId}
+                                    onChange={(e) => { setDepartmentId(e.target.value); setPage(1); }}
+                                    options={departments.map(d => ({ value: d.id, label: d.departmentName }))}
+                                />
+                            </div>
+                        )}
+                        {isHR && (
+                            <div className="w-64">
                                 <Input
                                     placeholder="Tìm kiếm nhân viên, mã số..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                                     icon={<Search className="w-4 h-4 text-slate-400" />}
                                 />
                             </div>
@@ -190,12 +162,10 @@ export default function ExcuseRequestsPage() {
                 <Table>
                     <TableHeader className="bg-slate-50/50">
                         <TableRow>
+                            <TableHead>Mã đơn</TableHead>
                             {isHR && <TableHead>Nhân viên</TableHead>}
-                            <TableHead>Ngày</TableHead>
-                            <TableHead>Ca làm việc</TableHead>
-                            <TableHead>Vào / Ra</TableHead>
-                            <TableHead>Đi muộn</TableHead>
-                            <TableHead>Về sớm</TableHead>
+                            <TableHead>Thời gian</TableHead>
+                            <TableHead>Mô tả</TableHead>
                             <TableHead>Trạng thái</TableHead>
                             <TableHead className="text-right">Thao tác</TableHead>
                         </TableRow>
@@ -203,7 +173,7 @@ export default function ExcuseRequestsPage() {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={isHR ? 8 : 7} className="h-48 text-center px-0">
+                                <TableCell colSpan={isHR ? 6 : 5} className="h-48 text-center px-0">
                                     <div className="flex flex-col items-center justify-center w-full gap-3">
                                         <div className="relative">
                                             <div className="w-10 h-10 border-4 border-indigo-100 rounded-full"></div>
@@ -213,9 +183,9 @@ export default function ExcuseRequestsPage() {
                                     </div>
                                 </TableCell>
                             </TableRow>
-                        ) : filteredRecords.length === 0 ? (
+                        ) : records.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={isHR ? 8 : 7} className="h-48 text-center px-0">
+                                <TableCell colSpan={isHR ? 6 : 5} className="h-48 text-center px-0">
                                     <div className="flex flex-col items-center justify-center w-full gap-3 opacity-60">
                                         <div className="p-4 bg-slate-50 rounded-full border border-dashed border-slate-200">
                                             <AlertCircle className="w-8 h-8 text-slate-400" />
@@ -225,13 +195,16 @@ export default function ExcuseRequestsPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredRecords.map((record, idx) => (
-                                <TableRow key={idx} className="group hover:bg-slate-50/80 transition-colors">
+                            records.map((record) => (
+                                <TableRow key={record.id} className="group hover:bg-slate-50/80 transition-colors">
+                                    <TableCell className="font-mono text-xs text-indigo-600 font-semibold whitespace-nowrap">
+                                        {record.requestCode || `#${record.id}`}
+                                    </TableCell>
                                     {isHR && (
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <div className="h-9 w-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shadow-sm">
-                                                    {record.employee?.fullName?.charAt(0)}
+                                                    {record.employee?.fullName?.charAt(0) || "?"}
                                                 </div>
                                                 <div>
                                                     <p className="font-semibold text-slate-900 leading-none">{record.employee?.fullName}</p>
@@ -240,55 +213,21 @@ export default function ExcuseRequestsPage() {
                                             </div>
                                         </TableCell>
                                     )}
-                                    <TableCell className="font-medium text-slate-700 whitespace-nowrap">{record.formattedDate || record.date}</TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-sm font-semibold text-slate-800">{record.shiftName || "Hành chính"}</span>
-                                            <span className="text-[11px] text-slate-500 font-medium">{record.shiftStartTime} - {record.shiftEndTime}</span>
-                                        </div>
+                                    <TableCell className="text-xs text-slate-600 whitespace-nowrap">
+                                        {record.startDate || "—"} {record.startTime ? `(${record.startTime})` : ""} → {record.endDate || "—"} {record.endTime ? `(${record.endTime})` : ""}
                                     </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className={cn("text-sm transition-colors", record.lateMinutes > 0 ? "text-rose-600 font-bold" : "text-slate-600 font-medium")}>
-                                                {record.checkIn || "--:--"}
-                                            </span>
-                                            <span className={cn("text-sm transition-colors", record.earlyLeaveMinutes > 0 ? "text-rose-600 font-bold" : "text-slate-600 font-medium")}>
-                                                {record.checkOut || "--:--"}
-                                            </span>
-                                        </div>
+                                    <TableCell className="text-sm text-slate-700">
+                                        {record.description || <span className="text-slate-400 italic">—</span>}
                                     </TableCell>
-                                    <TableCell>
-                                        {record.lateMinutes > 0 ? (
-                                            <span className="px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded text-xs font-bold border border-rose-100">{record.lateMinutes}p</span>
-                                        ) : <span className="text-slate-300">-</span>}
-                                    </TableCell>
-                                    <TableCell>
-                                        {record.earlyLeaveMinutes > 0 ? (
-                                            <span className="px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded text-xs font-bold border border-rose-100">{record.earlyLeaveMinutes}p</span>
-                                        ) : <span className="text-slate-300">-</span>}
-                                    </TableCell>
-                                    <TableCell>{getStatusBadge(record.excuseRequest?.status)}</TableCell>
+                                    <TableCell>{getStatusBadge(record.status)}</TableCell>
                                     <TableCell className="text-right">
-                                        {record.excuseRequest ? (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="h-8 gap-1.5 border-slate-200 text-slate-600 shadow-none hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                                                onClick={() => handleViewExcuse(record)}
-                                            >
-                                                <Search className="w-3.5 h-3.5" />
-                                                Chi tiết
-                                            </Button>
-                                        ) : !isHR && (
-                                            <Button
-                                                size="sm"
-                                                className="h-8 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200 transition-all font-semibold"
-                                                onClick={() => handleOpenSubmit(record)}
-                                            >
-                                                <FileEdit className="w-3.5 h-3.5" />
-                                                Gửi giải trình
-                                            </Button>
-                                        )}
+                                        <button
+                                            type="button"
+                                            className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline px-2 py-1 rounded bg-blue-50 hover:bg-blue-100"
+                                            onClick={() => setSelectedRequest(record)}
+                                        >
+                                            Xem chi tiết
+                                        </button>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -297,17 +236,40 @@ export default function ExcuseRequestsPage() {
                 </Table>
             </Card>
 
-            {/* Reuse Modal */}
-            <ExcuseRequestModal
-                isOpen={excuseModal.open}
-                onClose={() => setExcuseModal(prev => ({ ...prev, open: false }))}
-                onSuccess={fetchData}
-                mode={excuseModal.mode}
-                date={excuseModal.date}
-                employeeId={excuseModal.employeeId}
-                data={excuseModal.data}
-                canEdit={excuseModal.canEdit}
-            />
+            {total > 0 && (
+                <div className="flex items-center justify-between px-2">
+                    <p className="text-xs text-slate-500">
+                        Hiển thị {startItem}–{endItem} / {total} đơn
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button
+                            disabled={page === 1}
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-40"
+                        >
+                            Trước
+                        </button>
+                        <span className="text-sm text-slate-600">{page} / {totalPages || 1}</span>
+                        <button
+                            disabled={page >= totalPages}
+                            onClick={() => setPage(p => p + 1)}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-40"
+                        >
+                            Sau
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {selectedRequest && (
+                <RequestDetailModal
+                    isOpen={!!selectedRequest}
+                    request={selectedRequest}
+                    onClose={() => setSelectedRequest(null)}
+                    onRefresh={fetchData}
+                    canApprove={isHR}
+                />
+            )}
         </div>
     );
 }

@@ -72,19 +72,32 @@ export default function RequestTypePolicyModal({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>
-                            Số lượng tối đa ({POLICY_UNIT_LABELS[policyData.unit] || policyData.unit})
-                            <span className="text-red-500 ml-1">*</span>
-                        </Label>
+                        <div className="flex items-center justify-between">
+                            <Label>
+                                Số lượng tối đa ({POLICY_UNIT_LABELS[policyData.unit] || policyData.unit})
+                                {!policyData.isUnlimited && <span className="text-red-500 ml-1">*</span>}
+                            </Label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="isUnlimited"
+                                    checked={policyData.isUnlimited || false}
+                                    onChange={handleChange}
+                                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <span className="text-xs font-medium text-emerald-700">Không giới hạn</span>
+                            </label>
+                        </div>
                         <Input
                             type="number"
                             name="maxQuantity"
-                            value={policyData.maxQuantity}
+                            value={policyData.isUnlimited ? "" : policyData.maxQuantity}
                             onChange={handleChange}
                             min={0}
-                            placeholder="0"
+                            placeholder={policyData.isUnlimited ? "Vô hạn" : "0"}
+                            disabled={policyData.isUnlimited}
                         />
-                        {errors?.maxQuantity && (
+                        {errors?.maxQuantity && !policyData.isUnlimited && (
                             <p className="text-sm font-medium text-red-500">{errors.maxQuantity}</p>
                         )}
                     </div>

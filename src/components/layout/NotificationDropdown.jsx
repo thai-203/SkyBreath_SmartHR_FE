@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Bell, Check, CheckCheck, Filter, X } from "lucide-react";
+import { Bell, Check, CheckCheck, X, ExternalLink, Clock, Tag } from "lucide-react";
 import { useSocket } from "../providers/SocketProvider";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,17 @@ function timeAgo(dateStr) {
     return date.toLocaleDateString("vi-VN");
 }
 
+function stripHtml(html) {
+    if (!html) return "";
+    try {
+        const tmp = document.createElement("DIV");
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || "";
+    } catch(e) {
+        return html.replace(/<[^>]*>?/gm, '');
+    }
+}
+
 const FILTER_OPTIONS = [
     { id: "all", label: "Tất cả" },
     { id: "unread", label: "Chưa đọc" },
@@ -29,10 +41,11 @@ const FILTER_OPTIONS = [
 
 export default function NotificationDropdown() {
     const router = useRouter();
-    const { notifications, unreadCount, markAsRead, markAllAsRead, fetchNotifications } = useSocket() || {};
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useSocket() || {};
     const [open, setOpen] = useState(false);
     const [filter, setFilter] = useState("all");
     const dropdownRef = useRef(null);
+    const [selectedNotification, setSelectedNotification] = useState(null);
 
     // Đóng dropdown khi click bên ngoài
     useEffect(() => {
@@ -41,8 +54,17 @@ export default function NotificationDropdown() {
                 setOpen(false);
             }
         };
+        const handleOpenModal = (e) => {
+            setSelectedNotification(e.detail);
+        };
+        
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        window.addEventListener("open-notification-modal", handleOpenModal);
+        
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            window.removeEventListener("open-notification-modal", handleOpenModal);
+        };
     }, []);
 
     // Lọc thông báo
@@ -57,11 +79,9 @@ export default function NotificationDropdown() {
         if (!notification.isRead && markAsRead) {
             await markAsRead(notification.id);
         }
-        // Chuyển hướng
-        if (notification.link) {
-            router.push(notification.link);
-        }
+        // Luôn mở popup modal để đọc chi tiết đầy đủ
         setOpen(false);
+        setSelectedNotification(notification);
     };
 
     const handleMarkAllRead = async () => {
@@ -71,6 +91,7 @@ export default function NotificationDropdown() {
     };
 
     return (
+        <>
         <div className="relative" ref={dropdownRef}>
             {/* Bell button */}
             <button
@@ -169,7 +190,7 @@ export default function NotificationDropdown() {
                                             {n.title}
                                         </p>
                                         <p className="text-[12px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
-                                            {n.message}
+                                            {stripHtml(n.message)}
                                         </p>
                                         <p className="text-[11px] text-slate-400 mt-1">
                                             {timeAgo(n.createdAt)}
@@ -188,6 +209,86 @@ export default function NotificationDropdown() {
                     </div>
                 </div>
             )}
+
         </div>
+
+        {/* Modal chi tiết thông báo - render ra ngoài body bằng Portal */}
+        {selectedNotification && typeof document !== 'undefined' && createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={() => setSelectedNotification(null)}>
+                <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl relative flex flex-col max-h-[85vh] animate-in zoom-in-95 fade-in duration-200" onClick={(e) => e.stopPropagation()}>
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 bg-gradient-to-r from-slate-50 to-blue-50/40 rounded-t-2xl shrink-0">
+                        <div className="flex items-center gap-2">
+                            <Bell className="w-4 h-4 text-blue-500" />
+                            <h2 className="text-sm font-bold text-slate-800">Chi tiết thông báo</h2>
+                        </div>
+                        <button
+                            onClick={() => setSelectedNotification(null)}
+                            className="rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    {/* Body */}
+                    <div className="px-5 py-4 overflow-y-auto flex-1">
+                        <h3 className="mb-2 text-base font-bold text-slate-900 leading-snug">{selectedNotification.title}</h3>
+                        
+                        <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">
+                                <Tag className="w-2.5 h-2.5" />
+                                {selectedNotification.sourceType || selectedNotification.notificationType}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                <Clock className="w-2.5 h-2.5" />
+                                {new Date(selectedNotification.createdAt).toLocaleString("vi-VN")}
+                            </span>
+                        </div>
+
+                        <div className="border-t border-slate-100 pt-4">
+                            <div 
+                                className="text-[13px] leading-relaxed text-slate-700 max-w-none
+                                    [&_p]:mb-2 [&_p]:leading-relaxed
+                                    [&_strong]:font-semibold [&_strong]:text-slate-800
+                                    [&_em]:italic [&_em]:text-slate-600
+                                    [&_ul]:list-disc [&_ul]:ml-4 [&_ul]:mb-2
+                                    [&_ol]:list-decimal [&_ol]:ml-4 [&_ol]:mb-2
+                                    [&_li]:mb-0.5
+                                    [&_a]:text-indigo-600 [&_a]:underline
+                                    [&_h1]:text-sm [&_h1]:font-bold [&_h1]:mb-1
+                                    [&_h2]:text-[13px] [&_h2]:font-bold [&_h2]:mb-1
+                                    [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:mb-1
+                                    [&_blockquote]:border-l-2 [&_blockquote]:border-slate-200 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-slate-500"
+                                dangerouslySetInnerHTML={{ __html: selectedNotification.message }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-end gap-2 bg-slate-50/50 rounded-b-2xl shrink-0">
+                        {selectedNotification.link && (
+                            <button
+                                onClick={() => {
+                                    setSelectedNotification(null);
+                                    router.push(selectedNotification.link);
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+                            >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                Đi tới trang liên quan
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setSelectedNotification(null)}
+                            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                        >
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )}
+        </>
     );
 }

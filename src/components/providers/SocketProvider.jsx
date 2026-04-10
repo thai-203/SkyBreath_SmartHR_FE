@@ -76,9 +76,25 @@ export function SocketProvider({ children }) {
             setUnreadCount((prev) => prev + 1);
 
             // Hiển thị toast
-            toast.info(data.title, {
-                description: data.message,
+            toast(data.title, {
+                description: (
+                    <div 
+                        className="line-clamp-2 text-sm mt-1 text-slate-600 [&_p]:m-0" 
+                        dangerouslySetInnerHTML={{ __html: data.message }} 
+                    />
+                ),
                 duration: 5000,
+                action: {
+                    label: "Xem",
+                    onClick: () => {
+                        markAsRead(data.id);
+                        if (data.link) {
+                            window.location.href = data.link;
+                        } else {
+                            window.dispatchEvent(new CustomEvent("open-notification-modal", { detail: data }));
+                        }
+                    }
+                }
             });
 
             // Dispatch custom event cho các trang lắng nghe

@@ -163,12 +163,8 @@ export default function ContractFormModal({
   }, [employeeList, searchTerm]);
 
   const filteredJobGrades = useMemo(() => {
-    if (!formData.departmentId) return [];
-    return jobGradesList.filter(
-      (grade) =>
-        String(grade.data?.departmentId) === String(formData.departmentId),
-    );
-  }, [jobGradesList, formData.departmentId]);
+    return jobGradesList;
+  }, [jobGradesList]);
 
   const selectedJobGradeData = useMemo(() => {
     const grade = jobGradesList.find(
@@ -183,7 +179,6 @@ export default function ContractFormModal({
 
     if (field === "departmentId") {
       newData.positionId = "";
-      newData.jobGradeId = "";
     }
 
     if (field === "contractType") {
@@ -516,7 +511,6 @@ export default function ContractFormModal({
                 </Label>
                 <Select
                   value={formData.jobGradeId || ""}
-                  disabled={!formData.departmentId}
                   options={filteredJobGrades}
                   onChange={(e) =>
                     handleInputChange("jobGradeId", e.target.value)
