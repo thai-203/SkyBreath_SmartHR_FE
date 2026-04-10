@@ -37,7 +37,6 @@ export default function OvertimeDetailPage() {
     const [year, setYear] = useState(parseInt(searchParams.get("year")) || currentDate.getFullYear());
     const [departmentId, setDepartmentId] = useState(searchParams.get("departmentId") || "");
     const [searchTerm, setSearchTerm] = useState("");
-    const [status, setStatus] = useState(searchParams.get("status") || "");
 
     const [loading, setLoading] = useState(false);
     const [departments, setDepartments] = useState([]);
@@ -52,7 +51,6 @@ export default function OvertimeDetailPage() {
         setYear(currentDate.getFullYear());
         setDepartmentId("");
         setSearchTerm("");
-        setStatus("");
         setPage(1);
     };
 
@@ -76,9 +74,9 @@ export default function OvertimeDetailPage() {
                 year,
                 page,
                 limit,
+                status: "APPROVED",
                 ...(isHR && departmentId ? { departmentId } : {}),
                 ...(searchTerm ? { search: searchTerm } : {}),
-                ...(status ? { status } : {}),
             };
             const res = await requestsService.getOvertimeDetailRequests(params);
             setRecords(res?.data?.items || []);
@@ -89,7 +87,7 @@ export default function OvertimeDetailPage() {
         } finally {
             setLoading(false);
         }
-    }, [month, year, departmentId, searchTerm, status, page, limit, isHR, toastError]);
+    }, [month, year, departmentId, searchTerm, page, limit, isHR, toastError]);
 
     useEffect(() => {
         fetchData();
@@ -139,8 +137,8 @@ export default function OvertimeDetailPage() {
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Bảng tăng ca chi tiết</h1>
                     <p className="text-slate-500 mt-1">
                         {isHR
-                            ? "Theo dõi từng dòng đăng ký tăng ca (theo ngày làm trong tháng)."
-                            : "Các dòng tăng ca của bạn trong kỳ đã chọn."}
+                            ? "Theo dõi từng dòng đăng ký tăng ca (theo ngày làm trong tháng). Chỉ hiển thị đơn đã duyệt."
+                            : "Các dòng tăng ca của bạn trong kỳ đã chọn (chỉ đơn đã duyệt)."}
                     </p>
                 </div>
             </div>
@@ -196,24 +194,6 @@ export default function OvertimeDetailPage() {
                                 />
                             </div>
                         )}
-                        <div className="w-40">
-                            <Select
-                                placeholder="Trạng thái"
-                                value={status}
-                                onChange={(e) => {
-                                    setStatus(e.target.value);
-                                    setPage(1);
-                                }}
-                                options={[
-                                    { value: "DRAFT", label: "Nháp" },
-                                    { value: "PENDING", label: "Chờ duyệt" },
-                                    { value: "APPROVED", label: "Đã duyệt" },
-                                    { value: "REJECTED", label: "Từ chối" },
-                                    { value: "CANCELLED", label: "Đã hủy" },
-                                    { value: "REVOKED", label: "Thu hồi" },
-                                ]}
-                            />
-                        </div>
                         <Button
                             variant="ghost"
                             onClick={handleReset}

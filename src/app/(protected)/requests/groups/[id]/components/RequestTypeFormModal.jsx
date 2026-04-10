@@ -109,22 +109,35 @@ export default function RequestTypeFormModal({
                                     onChange={handlePolicyChange}
                                     className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm"
                                 >
-                                    <option value="DAY">Cả Ngày</option>
+                                    <option value="DAY">Ngày</option>
                                     <option value="HOUR">Giờ</option>
-                                    <option value="MINUTE">Phút</option>
                                     <option value="TIME">Số lần</option>
                                 </select>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Số lượng tối đa ({formData.policy.unit}) <span className="text-red-500">*</span></Label>
+                                <div className="flex items-center justify-between">
+                                    <Label>Số lượng tối đa ({formData.policy.unit}) {!formData.policy.isUnlimited && <span className="text-red-500">*</span>}</Label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            name="isUnlimited"
+                                            checked={formData.policy.isUnlimited || false}
+                                            onChange={handlePolicyChange}
+                                            className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                        />
+                                        <span className="text-xs font-medium text-emerald-700">Không giới hạn</span>
+                                    </label>
+                                </div>
                                 <Input
                                     type="number"
                                     name="maxQuantity"
-                                    value={formData.policy.maxQuantity}
+                                    value={formData.policy.isUnlimited ? "" : formData.policy.maxQuantity}
                                     onChange={handlePolicyChange}
+                                    placeholder={formData.policy.isUnlimited ? "Vô hạn" : "0"}
+                                    disabled={formData.policy.isUnlimited}
                                 />
-                                {errors.maxQuantity && <p className="text-sm font-medium text-red-500">{errors.maxQuantity}</p>}
+                                {errors.maxQuantity && !formData.policy.isUnlimited && <p className="text-sm font-medium text-red-500">{errors.maxQuantity}</p>}
                             </div>
                             
                             <div className="space-y-2 flex flex-col justify-center mt-6">

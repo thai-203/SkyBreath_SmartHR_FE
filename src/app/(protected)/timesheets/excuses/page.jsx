@@ -25,7 +25,6 @@ export default function ExcuseRequestsPage() {
     const [year, setYear] = useState(parseInt(searchParams.get("year")) || currentDate.getFullYear());
     const [departmentId, setDepartmentId] = useState(searchParams.get("departmentId") || "");
     const [searchTerm, setSearchTerm] = useState("");
-    const [status, setStatus] = useState(searchParams.get("status") || "");
 
     const [loading, setLoading] = useState(false);
     const [departments, setDepartments] = useState([]);
@@ -40,7 +39,6 @@ export default function ExcuseRequestsPage() {
         setYear(currentDate.getFullYear());
         setDepartmentId("");
         setSearchTerm("");
-        setStatus("");
         setPage(1);
     };
 
@@ -64,10 +62,10 @@ export default function ExcuseRequestsPage() {
                 year,
                 page,
                 limit,
+                status: "APPROVED",
                 requestTypeId: 2,
                 ...(isHR && departmentId ? { departmentId } : {}),
                 ...(searchTerm ? { search: searchTerm } : {}),
-                ...(status ? { status } : {}),
             };
             const res = await requestsService.getExcuseRequests(params);
             setRecords(res?.data?.items || []);
@@ -78,7 +76,7 @@ export default function ExcuseRequestsPage() {
         } finally {
             setLoading(false);
         }
-    }, [month, year, departmentId, searchTerm, status, page, limit, isHR, toastError]);
+    }, [month, year, departmentId, searchTerm, page, limit, isHR, toastError]);
 
     useEffect(() => {
         fetchData();
@@ -108,8 +106,8 @@ export default function ExcuseRequestsPage() {
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Đơn giải trình</h1>
                     <p className="text-slate-500 mt-1">
                         {isHR
-                            ? "Quản lý và phê duyệt các đơn giải trình đi muộn/về sớm."
-                            : "Danh sách các ngày đi muộn/về sớm cần giải trình."}
+                            ? "Quản lý và phê duyệt các đơn giải trình đi muộn/về sớm. Chỉ hiển thị đơn đã duyệt."
+                            : "Danh sách các ngày đi muộn/về sớm cần giải trình (chỉ đơn đã duyệt)."}
                     </p>
                 </div>
             </div>
@@ -153,20 +151,6 @@ export default function ExcuseRequestsPage() {
                                 />
                             </div>
                         )}
-                        <div className="w-40">
-                            <Select
-                                placeholder="Trạng thái"
-                                value={status}
-                                onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-                                options={[
-                                    { value: "DRAFT", label: "Nháp" },
-                                    { value: "PENDING", label: "Chờ duyệt" },
-                                    { value: "APPROVED", label: "Đã duyệt" },
-                                    { value: "REJECTED", label: "Từ chối" },
-                                    { value: "CANCELLED", label: "Đã hủy" },
-                                ]}
-                            />
-                        </div>
                         <Button variant="ghost" onClick={handleReset} className="text-slate-500 hover:text-rose-500 hover:bg-rose-50 px-3 h-10">
                             Xóa lọc
                         </Button>

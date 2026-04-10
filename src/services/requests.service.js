@@ -46,6 +46,20 @@ export const requestsService = {
         return response.data;
     },
 
+    /** Kiểm tra hạn mức sử dụng của nhân viên cho loại đơn */
+    getQuotaStatus: async (requestTypeId, employeeId, excludeRequestId = null) => {
+        const params = { requestTypeId, employeeId };
+        if (excludeRequestId) params.excludeRequestId = excludeRequestId;
+        const response = await api.get("/requests/quota-status", { params });
+        return response.data;
+    },
+
+    /** Ước tính số ngày/giờ xin phép dựa trên ca làm việc */
+    estimateQuantity: async (params = {}) => {
+        const response = await api.get("/requests/estimate-quantity", { params });
+        return response.data;
+    },
+
     // ─── Mutations ──────────────────────────────────────────────────────
     /** UC-REQ-02: Lưu nháp */
     saveDraft: async (data) => {

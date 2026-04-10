@@ -16,7 +16,7 @@ import CalendarView from "../components/CalendarView";
 import AttendanceDetailModal from "../components/AttendanceDetailModal";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
 import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
-import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search, Eye } from "lucide-react";
+import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search, Eye, Lock, Unlock } from "lucide-react";
 import ProcessedRecordEditModal from "../components/ProcessedRecordEditModal";
 
 const currentDate = new Date();
@@ -60,6 +60,7 @@ export default function DataManagementPage() {
     const [syncLoading, setSyncLoading] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [cellModal, setCellModal] = useState({ open: false, cell: null });
+    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState(new Set());
 
     const { success, error: toastError } = useToast();
 
@@ -161,18 +162,61 @@ export default function DataManagementPage() {
         setConfirmModal({ open: true, data: { count: matrixData.filter(t => !t.isLocked).length }, action: "bulkRecalculate" });
     };
 
+    const handleFinalizeMatrix = () => {
+        setConfirmModal({ open: true, data: null, action: "finalizeMatrix" });
+    };
+
+    const handleUnfinalizeMatrix = () => {
+        setConfirmModal({ open: true, data: null, action: "unfinalizeMatrix" });
+    };
+
     const handleSync = async () => {
+        const ids = Array.from(selectedEmployeeIds);
+        if (ids.length === 0) {
+            toastError("Vui lòng chọn ít nhất 1 nhân viên để đồng bộ");
+            return;
+        }
         setSyncLoading(true);
         try {
             const res = await timesheetsService.syncAttendance({
                 month: filters.month,
                 year: filters.year,
-                departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                employeeIds: ids,
             });
             success(`Đã đồng bộ ${res?.data?.syncedRecords || 0} bản ghi`);
+            setSelectedEmployeeIds(new Set());
             fetchMatrix();
         } catch (err) { toastError("Lỗi khi đồng bộ công"); }
         finally { setSyncLoading(false); }
+    };
+
+    const toggleSelectAllOnPage = (checked) => {
+        if (checked) {
+            setSelectedEmployeeIds(prev => {
+                const next = new Set(prev);
+                for (const row of matrixData) {
+                    if (row?.id) next.add(row.id);
+                }
+                return next;
+            });
+            return;
+        }
+        setSelectedEmployeeIds(prev => {
+            const next = new Set(prev);
+            for (const row of matrixData) {
+                if (row?.id) next.delete(row.id);
+            }
+            return next;
+        });
+    };
+
+    const toggleSelectRow = (employeeId, checked) => {
+        setSelectedEmployeeIds(prev => {
+            const next = new Set(prev);
+            if (checked) next.add(employeeId);
+            else next.delete(employeeId);
+            return next;
+        });
     };
 
     const handleConfirmAction = async () => {
@@ -186,6 +230,24 @@ export default function DataManagementPage() {
                     departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
                 });
                 success(`Đã tính lại ${res?.data?.recalculated || 0} bảng`);
+            }
+            if (action === "finalizeMatrix") {
+                const res = await timesheetsService.finalizeProcessedMatrix({
+                    month: filters.month,
+                    year: filters.year,
+                    departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                    search: search || undefined,
+                });
+                success(`Đã chốt công ${res?.data?.affected || 0} bản ghi`);
+            }
+            if (action === "unfinalizeMatrix") {
+                const res = await timesheetsService.unfinalizeProcessedMatrix({
+                    month: filters.month,
+                    year: filters.year,
+                    departmentId: filters.departmentId ? parseInt(filters.departmentId) : undefined,
+                    search: search || undefined,
+                });
+                success(`Đã bỏ chốt công ${res?.data?.affected || 0} bản ghi`);
             }
             setConfirmModal({ open: false, data: null, action: null });
             fetchMatrix();
@@ -257,6 +319,10 @@ export default function DataManagementPage() {
 
     const handleCellClick = (row, dayData) => {
         if (!dayData || dayData.attendanceStatus === 'WEEKEND') return;
+        if (dayData.isFinalized) {
+            toastError("Ngày công đã được chốt, không thể chỉnh sửa");
+            return;
+        }
         setCellModal({
             open: true,
             cell: {
@@ -305,15 +371,24 @@ export default function DataManagementPage() {
                 </div>
                 {!isEmployeeOnly && (
                     <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" onClick={handleSync} loading={syncLoading} className="gap-2 text-teal-700 border-teal-200">
-                            <RefreshCw className="h-4 w-4" /> Đồng bộ công
+                        <Button
+                            variant="outline"
+                            onClick={handleSync}
+                            loading={syncLoading}
+                            className="gap-2 text-teal-700 border-teal-200"
+                            disabled={selectedEmployeeIds.size === 0}
+                        >
+                            <RefreshCw className="h-4 w-4" /> Đồng bộ ({selectedEmployeeIds.size})
                         </Button>
-                        <Button variant="outline" onClick={handleBulkRecalculate} className="gap-2 text-amber-600 border-amber-200">
-                            <RefreshCw className="h-4 w-4" /> Tính lại tất cả
+
+                        <Button variant="outline" onClick={handleFinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
+                            <Lock className="h-4 w-4" /> Chốt công
                         </Button>
-                        <Button variant="outline" onClick={handleExportSummary} className="gap-2">
-                            <FileSpreadsheet className="h-4 w-4" /> Xuất tổng hợp
+
+                        <Button variant="outline" onClick={handleUnfinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
+                            <Unlock className="h-4 w-4" /> Bỏ chốt
                         </Button>
+                        
                         <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
                             <Download className="h-4 w-4" /> Xuất chi tiết
                         </Button>
@@ -323,36 +398,14 @@ export default function DataManagementPage() {
 
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
                 <div className="flex flex-wrap gap-3 items-center flex-1">
-                    <div className="w-32">
-                        <Select hidePlaceholder value={filters.month} onChange={(e) => handleFilterChange('month', parseInt(e.target.value))}
-                            options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `Tháng ${i + 1}` }))} />
-                    </div>
-                    <div className="w-24">
-                        <Select hidePlaceholder value={filters.year} onChange={(e) => handleFilterChange('year', parseInt(e.target.value))}
-                            options={Array.from({ length: 5 }, (_, i) => ({ value: currentDate.getFullYear() - 2 + i, label: `${currentDate.getFullYear() - 2 + i}` }))} />
-                    </div>
-                    {!isEmployeeOnly && (
-                        <>
-                            <div className="w-48">
-                                <Select placeholder="Phòng ban" value={filters.departmentId} onChange={(e) => handleFilterChange('departmentId', e.target.value)}
-                                    options={departments.map(d => ({ value: d.id, label: d.departmentName }))} />
-                            </div>
-                            <div className="w-32">
-                                <Select placeholder="Trạng thái" value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}
-                                    options={[{ value: "unlocked", label: "Đang mở" }, { value: "locked", label: "Đã khóa" }]} />
-                            </div>
-                        </>
-                    )}
-                    <button onClick={handleClearFilters} className="text-slate-400 hover:text-rose-500 p-2" title="Xóa bộ lọc">
-                        <FilterX className="h-5 w-5" />
-                    </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <div className="relative">
+                <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input placeholder="Tìm nhân viên..." value={search} onChange={(e) => { setSearch(e.target.value); setPagination(p => ({ ...p, pageIndex: 0 })); }} className="pl-9 w-full sm:w-64" />
                     </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border">
                         <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
                             <LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Ma trận</span>
@@ -368,11 +421,19 @@ export default function DataManagementPage() {
                         <table className="w-full text-sm text-left border-collapse" style={{ minWidth: "1500px" }}>
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-0 bg-slate-50 z-10 whitespace-nowrap text-center">STT</th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[45px] bg-slate-50 z-10 whitespace-nowrap">Họ tên</th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[195px] bg-slate-50 z-10 whitespace-nowrap">Mã NS</th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-slate-50 z-10 whitespace-nowrap">Chức danh</th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[405px] bg-slate-50 z-10 whitespace-nowrap text-center">Thao tác</th>
+                                    <th className="px-2 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-0 bg-slate-50 z-20 whitespace-nowrap text-center">
+                                        <input
+                                            type="checkbox"
+                                            aria-label="Chọn tất cả nhân viên trong trang"
+                                            checked={matrixData.length > 0 && matrixData.every(r => selectedEmployeeIds.has(r.id))}
+                                            onChange={(e) => toggleSelectAllOnPage(e.target.checked)}
+                                        />
+                                    </th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[45px] bg-slate-50 z-10 whitespace-nowrap text-center">STT</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[90px] bg-slate-50 z-10 whitespace-nowrap">Họ tên</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[240px] bg-slate-50 z-10 whitespace-nowrap">Mã NS</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[330px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-slate-50 z-10 whitespace-nowrap">Chức danh</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[450px] bg-slate-50 z-10 whitespace-nowrap text-center">Thao tác</th>
 
                                     {dayColumns.map(col => (
                                         <th key={col.id} className={`px-1 py-1 border-r border-slate-200 font-medium text-center text-[10px] min-w-[50px] ${col.isWeekend ? 'bg-amber-50 text-amber-700' : 'text-slate-600'}`}>
@@ -388,17 +449,25 @@ export default function DataManagementPage() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan={dayColumns.length + 5} className="p-8 text-center text-slate-500">Đang tải dữ liệu ma trận...</td></tr>
+                                    <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Đang tải dữ liệu ma trận...</td></tr>
                                 ) : matrixData.length === 0 ? (
-                                    <tr><td colSpan={dayColumns.length + 5} className="p-8 text-center text-slate-500">Không có dữ liệu bảng công cho kỳ này</td></tr>
+                                    <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Không có dữ liệu bảng công cho kỳ này</td></tr>
                                 ) : (
                                     matrixData.map((row, idx) => (
                                         <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-0 bg-white group-hover:bg-slate-50 z-10 font-medium text-center">{pagination.pageIndex * pagination.pageSize + idx + 1}</td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-medium text-slate-800" style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.fullName}</td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[195px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-mono text-xs">{row.employeeCode}</td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[285px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[405px] bg-white group-hover:bg-slate-50 z-10 text-center">
+                                            <td className="px-2 py-2 border-r border-slate-200 sticky left-0 bg-white group-hover:bg-slate-50 z-20 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    aria-label={`Chọn ${row.fullName}`}
+                                                    checked={selectedEmployeeIds.has(row.id)}
+                                                    onChange={(e) => toggleSelectRow(row.id, e.target.checked)}
+                                                />
+                                            </td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 font-medium text-center">{pagination.pageIndex * pagination.pageSize + idx + 1}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[90px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-medium text-slate-800" style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.fullName}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[240px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-mono text-xs">{row.employeeCode}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[330px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[450px] bg-white group-hover:bg-slate-50 z-10 text-center">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleViewAttendanceDetailFromMatrix(row)}
@@ -416,17 +485,21 @@ export default function DataManagementPage() {
                                                     return parts.length === 3 && parseInt(parts[0], 10) === col.dayIndex;
                                                 });
                                                 const cellContent = getDayCellContent(row.dailyDetails, col.dayIndex);
-                                                const isClickable = dayData && dayData.attendanceStatus !== 'WEEKEND';
+                                                const isClickable = dayData && dayData.attendanceStatus !== 'WEEKEND' && !dayData.isFinalized;
                                                 return (
                                                     <td
                                                         key={`${row.id}-${col.id}`}
                                                         onClick={() => isClickable && handleCellClick(row, dayData)}
                                                         className={`px-1 py-2 border-r border-slate-200 text-center font-medium text-xs transition-colors
                                                             ${col.isWeekend ? 'bg-amber-50/50 text-amber-600' : 'text-slate-700'}
+                                                            ${dayData?.isFinalized ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''}
                                                             ${isClickable && !isEmployeeOnly ? 'cursor-pointer hover:bg-indigo-50 hover:text-indigo-700' : ''}
                                                         `}
                                                     >
-                                                        {cellContent}
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            {dayData?.isFinalized && <Lock className="h-3 w-3" />}
+                                                            <span>{cellContent}</span>
+                                                        </div>
                                                     </td>
                                                 );
                                             })}
@@ -477,10 +550,30 @@ export default function DataManagementPage() {
             <ExcuseRequestModal isOpen={excuseModal.open} onClose={closeExcuseModal} mode={excuseModal.mode} date={excuseModal.date} employeeId={excuseModal.employeeId} data={excuseModal.data}
                 onSuccess={handleExcuseSuccess} />
 
-            <ConfirmModal isOpen={confirmModal.open} onClose={() => setConfirmModal({ open: false, data: null, action: null })} onConfirm={handleConfirmAction}
-                title="Tính lại hàng loạt"
-                description="Tính lại tất cả bảng công chưa khóa?"
-                loading={confirmLoading} />
+            <ConfirmModal
+                isOpen={confirmModal.open}
+                onClose={() => setConfirmModal({ open: false, data: null, action: null })}
+                onConfirm={handleConfirmAction}
+                title={
+                    confirmModal.action === "bulkRecalculate"
+                        ? "Tính lại hàng loạt"
+                        : confirmModal.action === "finalizeMatrix"
+                            ? "Chốt công"
+                            : confirmModal.action === "unfinalizeMatrix"
+                                ? "Bỏ chốt công"
+                                : "Xác nhận"
+                }
+                description={
+                    confirmModal.action === "bulkRecalculate"
+                        ? "Tính lại tất cả bảng công chưa khóa?"
+                        : confirmModal.action === "finalizeMatrix"
+                            ? `Chốt công sẽ khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Sau khi chốt, bạn không thể chỉnh sửa từng ngày. Xác nhận?`
+                            : confirmModal.action === "unfinalizeMatrix"
+                                ? `Bỏ chốt sẽ mở khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Xác nhận?`
+                                : "Xác nhận?"
+                }
+                loading={confirmLoading}
+            />
 
             <ProcessedRecordEditModal
                 isOpen={cellModal.open}
