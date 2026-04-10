@@ -67,14 +67,13 @@ export default function AssignmentsPage() {
   const [formLoading, setFormLoading] = useState(false);
 
   const [employeeOptions, setEmployeeOptions] = useState([]);
-  const [employeeList, setEmployeeList] = useState([]); // full objects for tree
+  const [employeeList, setEmployeeList] = useState([]);
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [departmentList, setDepartmentList] = useState([]);
   const [shiftOptions, setShiftOptions] = useState([]);
 
   const fetchOptions = useCallback(async () => {
     try {
-      // need full employee objects (including departmentId) to show tree
       const [empAllRes, deptRes, shiftRes] = await Promise.all([
         employeesService.getAll({ page: 1, limit: 1000 }),
         departmentsService.getList(),
@@ -142,6 +141,7 @@ export default function AssignmentsPage() {
     setFormData(initialData);
     setIsFormOpen(true);
   };
+
   const handleEdit = (item) => {
     setSelected(item);
     setFormData({
@@ -158,6 +158,7 @@ export default function AssignmentsPage() {
     });
     setIsFormOpen(true);
   };
+
   const handleDelete = (item) => {
     setSelected(item);
     setIsDeleteOpen(true);
@@ -169,11 +170,9 @@ export default function AssignmentsPage() {
   };
 
   const submitForm = async () => {
-    if (!formData.assignmentName || !formData.assignmentName.trim()) {
+    if (!formData.assignmentName?.trim()) {
       return error("Vui lòng nhập tên bản phân ca");
     }
-
-    // client-side sanity checks before hitting the API
     if (
       (!formData.shiftIds || formData.shiftIds.length === 0) &&
       !formData.shiftId
@@ -203,19 +202,17 @@ export default function AssignmentsPage() {
     setFormLoading(true);
     try {
       const payload = normalizeAssignmentPayload(formData);
-
       if (selected) {
         await shiftAssignmentsService.update(selected.id, payload);
         success("Cập nhật phân ca thành công");
       } else {
-        // send payload to create route -- service will handle employees or departments arrays
         await shiftAssignmentsService.assignToEmployee(payload);
         success("Phân ca thành công");
       }
       setIsFormOpen(false);
       fetchData();
     } catch (err) {
-      error(err.response?.data?.message || "Lỗi");
+      error(err.response?.data?.message || "Lỗi xử lý");
     } finally {
       setFormLoading(false);
     }
@@ -229,7 +226,7 @@ export default function AssignmentsPage() {
       setIsDeleteOpen(false);
       fetchData();
     } catch (err) {
-      error(err.response?.data?.message || "Lỗi");
+      error(err.response?.data?.message || "Lỗi hủy phân ca");
     } finally {
       setFormLoading(false);
     }
@@ -238,58 +235,70 @@ export default function AssignmentsPage() {
   return (
     <div className="space-y-4">
       <PageTitle title="Quản lý phân ca" />
+
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full md:max-w-md">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm tên bảng, ca làm, phòng ban, đối tượng"
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none ring-0 transition focus:border-blue-500"
-            />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-1">
+            <div className="relative w-full lg:max-w-xs">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                size={18}
+              />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm tên bảng, ca, phòng ban..."
+                className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 bg-white">
+                <Filter size={16} className="text-slate-400" />
+                <select
+                  value={departmentFilter}
+                  onChange={(e) => setDepartmentFilter(e.target.value)}
+                  className="h-10 bg-transparent text-sm outline-none min-w-[140px]"
+                >
+                  <option value="">Tất cả phòng ban</option>
+                  {departmentOptions.map((dept) => (
+                    <option key={dept.value} value={dept.value}>
+                      {dept.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 px-3 bg-white">
+                <select
+                  value={shiftFilter}
+                  onChange={(e) => setShiftFilter(e.target.value)}
+                  className="h-10 bg-transparent text-sm outline-none min-w-[140px]"
+                >
+                  <option value="">Tất cả ca làm</option>
+                  {shiftOptions.map((shift) => (
+                    <option key={shift.value} value={shift.value}>
+                      {shift.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3">
-              <Filter size={16} className="text-slate-400" />
-              <select
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="h-10 bg-transparent text-sm outline-none"
-              >
-                <option value="">Tất cả phòng ban</option>
-                {departmentOptions.map((dept) => (
-                  <option key={dept.value} value={dept.value}>
-                    {dept.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="rounded-lg border border-slate-200 px-3">
-              <select
-                value={shiftFilter}
-                onChange={(e) => setShiftFilter(e.target.value)}
-                className="h-10 bg-transparent text-sm outline-none"
-              >
-                <option value="">Tất cả ca làm</option>
-                {shiftOptions.map((shift) => (
-                  <option key={shift.value} value={shift.value}>
-                    {shift.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+
+          {/* Right Section: Action Button */}
+          <div className="flex shrink-0">
+            <Button
+              onClick={handleCreate}
+              icon={<Plus size={18} />}
+              className="w-full sm:w-auto shadow-sm"
+            >
+              Phân ca
+            </Button>
           </div>
         </div>
       </div>
-      <div className="flex justify-end">
-        <Button onClick={handleCreate} icon={<Plus />}>
-          Phân ca
-        </Button>
-      </div>
+
       <AssignmentTable
         data={data}
         loading={loading}
@@ -300,6 +309,7 @@ export default function AssignmentsPage() {
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
+
       <AssignmentFormModal
         open={isFormOpen}
         loading={formLoading}
@@ -314,12 +324,14 @@ export default function AssignmentsPage() {
         onClose={() => setIsFormOpen(false)}
         onSubmit={submitForm}
       />
+
       <AssignmentDeleteModal
         open={isDeleteOpen}
         loading={formLoading}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={confirmDelete}
       />
+
       <AssignmentDetailModal
         open={isDetailOpen}
         data={selected}
