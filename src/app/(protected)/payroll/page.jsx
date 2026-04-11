@@ -166,6 +166,9 @@ export default function PayrollPage() {
             } else if (action === "lock") {
                 await payrollService.lock(payroll.id);
                 success("Bảng lương đã được khóa");
+            } else if (action === "unlock") {
+                await payrollService.unlock(payroll.id);
+                success("Bảng lương đã được mở khóa");
             } else if (action === "sendPayslips") {
                 const res = await payrollService.sendPayslips(payroll.id);
                 success(`Đã gửi ${res?.data?.sent || 0}/${res?.data?.total || 0} phiếu lương`);
@@ -241,7 +244,7 @@ export default function PayrollPage() {
     }, []);
 
     const handleCalculateCallback = useCallback((p) => handleCalculate(p), [handleCalculate]);
-    const openApprovalCallback = useCallback((type) => openApprovalModal(selectedPayroll, type), [selectedPayroll, openApprovalModal]);
+    const openApprovalCallback = useCallback((p, type) => openApprovalModal(p, type), [openApprovalModal]);
     const handleEditDetailCallback = useCallback((d) => setDetailEditModal({ open: true, data: d }), []);
 
     // ─────────────────────────────────────────────────────────
@@ -272,6 +275,16 @@ export default function PayrollPage() {
                     onSubmit={handleEditDetail}
                     loading={editLoading}
                     detail={detailEditModal.data}
+                />
+
+                {/* ApprovalModal must be here too — detail view early-returns before the list view's modal */}
+                <ApprovalModal
+                    isOpen={approvalModal.open}
+                    onClose={() => setApprovalModal({ open: false, payroll: null, action: null })}
+                    onConfirm={handleApprovalAction}
+                    loading={actionLoading}
+                    action={approvalModal.action}
+                    payroll={approvalModal.payroll}
                 />
             </div>
         );
@@ -343,6 +356,7 @@ export default function PayrollPage() {
                 onApprove={(p) => openApprovalModal(p, "approve")}
                 onReject={(p) => openApprovalModal(p, "reject")}
                 onLock={(p) => openApprovalModal(p, "lock")}
+                onUnlock={(p) => openApprovalModal(p, "unlock")}
                 onSendPayslips={(p) => openApprovalModal(p, "sendPayslips")}
                 onExportSummary={handleExportSummary}
                 onExportPayslips={handleExportPayslips}

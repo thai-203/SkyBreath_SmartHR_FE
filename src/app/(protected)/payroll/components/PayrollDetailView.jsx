@@ -25,8 +25,10 @@ import {
     Plus,
     RefreshCw,
     Search,
+    Send,
     Settings,
     Trash2,
+    Unlock,
     Upload,
     User
 } from "lucide-react";
@@ -485,14 +487,33 @@ const PayrollDetailView = React.memo(({
                                 )
                             )}
 
-                            {!isEditingHeader && (
+                             {!isEditingHeader && (
                                 <>
+                                    {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && (
+                                        <Button
+                                            onClick={() => onApproval(payroll, "submit")}
+                                            className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-100"
+                                        >
+                                            <Send className="h-3.5 w-3.5" /> Gửi phê duyệt
+                                        </Button>
+                                    )}
+
                                     {payroll?.payrollStatus === "APPROVED" && authService.hasPermission("PAYROLL_LOCK") && (
                                         <Button
-                                            onClick={() => onApproval("lock")}
+                                            onClick={() => onApproval(payroll, "lock")}
                                             className="gap-2 bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-200"
                                         >
                                             <Lock className="h-3.5 w-3.5" /> Chốt bảng lương
+                                        </Button>
+                                    )}
+
+                                    {payroll?.payrollStatus === "LOCKED" && authService.hasPermission("PAYROLL_LOCK") && (
+                                        <Button
+                                            onClick={() => onApproval(payroll, "unlock")}
+                                            variant="outline"
+                                            className="gap-2 text-amber-600 border-amber-200 hover:bg-amber-50"
+                                        >
+                                            <Unlock className="h-3.5 w-3.5" /> Mở khóa bảng lương
                                         </Button>
                                     )}
 
@@ -500,14 +521,14 @@ const PayrollDetailView = React.memo(({
                                         <>
                                             <Button
                                                 variant="outline"
-                                                onClick={() => onApproval("approve")}
+                                                onClick={() => onApproval(payroll, "approve")}
                                                 className="gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
                                             >
                                                 <CheckCircle2 className="h-3.5 w-3.5" /> Duyệt cấp 1
                                             </Button>
                                             <Button
                                                 variant="outline"
-                                                onClick={() => onApproval("approve")}
+                                                onClick={() => onApproval(payroll, "approve")}
                                                 className="gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 disabled:opacity-50"
                                                 disabled
                                             >
