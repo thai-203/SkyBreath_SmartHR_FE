@@ -20,8 +20,8 @@ import { Select } from "@/components/common/Select";
 import { Label } from "@/components/common/Label";
 
 const SALARY_POLICY = {
-  DEFAULT_KPI_RATIO: 0.2, // Gợi ý KPI 20%
-  MAX_KPI_RATIO: 0.5, // Tối đa 50%
+  DEFAULT_KPI_RATIO: 0.2,
+  MAX_KPI_RATIO: 0.5,
   LIMITS: {
     lunchAllowance: 1000000,
     fuelAllowance: 2000000,
@@ -42,7 +42,7 @@ export default function ContractFormModal({
   departmentsList = [],
   loading,
   mode = "create",
-  selectedContract = null, // used when editing so we can show the current employee name
+  selectedContract = null,
 }) {
   const [activeTab, setActiveTab] = useState("general");
   const [searchTerm, setSearchTerm] = useState("");
@@ -124,9 +124,6 @@ export default function ContractFormModal({
   // --- EFFECTS ---
   useEffect(() => {
     if (isOpen) {
-      // if editing, the dropdown is disabled and employeeList might exclude the
-      // current employee (because we filter out those with active contracts).
-      // fall back to selectedContract if present so the name still displays.
       if (mode === "edit" && selectedContract) {
         setSearchTerm(
           selectedContract.employee?.fullName ||
@@ -166,12 +163,8 @@ export default function ContractFormModal({
   }, [employeeList, searchTerm]);
 
   const filteredJobGrades = useMemo(() => {
-    if (!formData.departmentId) return [];
-    return jobGradesList.filter(
-      (grade) =>
-        String(grade.data?.departmentId) === String(formData.departmentId),
-    );
-  }, [jobGradesList, formData.departmentId]);
+    return jobGradesList;
+  }, [jobGradesList]);
 
   const selectedJobGradeData = useMemo(() => {
     const grade = jobGradesList.find(
@@ -186,7 +179,6 @@ export default function ContractFormModal({
 
     if (field === "departmentId") {
       newData.positionId = "";
-      newData.jobGradeId = "";
     }
 
     if (field === "contractType") {
@@ -216,12 +208,29 @@ export default function ContractFormModal({
 
   const handleSelectEmployee = (emp) => {
     const empData = emp.data || {};
+
+    const departmentId =
+      empData.departmentId ||
+      empData.department?.id ||
+      empData.department?.value ||
+      "";
+    const positionId =
+      empData.positionId ||
+      empData.position?.id ||
+      empData.position?.value ||
+      "";
+    const jobGradeId =
+      empData.jobGradeId ||
+      empData.jobGrade?.id ||
+      empData.jobGrade?.value ||
+      "";
+
     onFormChange({
       ...formData,
       employeeId: emp.value,
-      departmentId: empData.departmentId || formData.departmentId || "",
-      positionId: empData.positionId || formData.positionId || "",
-      jobGradeId: empData.jobGradeId || formData.jobGradeId || "",
+      departmentId,
+      positionId,
+      jobGradeId,
     });
     setSearchTerm(emp.label);
     setIsDropdownOpen(false);
@@ -502,7 +511,6 @@ export default function ContractFormModal({
                 </Label>
                 <Select
                   value={formData.jobGradeId || ""}
-                  disabled={!formData.departmentId}
                   options={filteredJobGrades}
                   onChange={(e) =>
                     handleInputChange("jobGradeId", e.target.value)

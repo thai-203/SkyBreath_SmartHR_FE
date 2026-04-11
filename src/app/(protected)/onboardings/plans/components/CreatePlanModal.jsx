@@ -309,7 +309,7 @@ export default function CreatePlanModal({
       success(
         `Đã áp dụng mẫu lộ trình cho ${selectedEmp.position?.positionName}`,
       );
-    } else if (tasks.length === 0) {
+    } else {
       const defaultTask = {
         id: Date.now(),
         category: "Asset",
@@ -318,6 +318,8 @@ export default function CreatePlanModal({
         isMandatory: true,
         estimatedDays: 1,
       };
+      // Always reset tasks when switching to an employee without template
+      // to avoid keeping tasks from a previously selected employee.
       setTasks(calculateAutoDueDates([defaultTask], formData.startDate));
     }
   };

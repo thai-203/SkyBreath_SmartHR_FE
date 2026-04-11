@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
 import { Lock, Unlock, Pencil, X, Check, FileText, PlusCircle } from "lucide-react";
+import RequestDetailModal from "@/app/(protected)/requests/my-requests/components/RequestDetailModal";
 
 const dayStatusColors = {
     PRESENT: "bg-emerald-50 text-emerald-700",
     ABSENT: "bg-rose-50 text-rose-700",
+    INCOMPLETE: "bg-yellow-50 text-yellow-700",
     WEEKEND: "bg-slate-100 text-slate-500",
     HOLIDAY: "bg-blue-50 text-blue-700",
     LEAVE: "bg-purple-50 text-purple-700",
@@ -17,6 +19,7 @@ const dayStatusColors = {
 const dayStatusLabels = {
     PRESENT: "Có mặt",
     ABSENT: "Vắng",
+    INCOMPLETE: "Thiếu chấm công",
     WEEKEND: "Cuối tuần",
     HOLIDAY: "Nghỉ lễ",
     LEAVE: "Nghỉ phép có lương",
@@ -28,6 +31,7 @@ const attendanceStatusColors = {
     LATE: "bg-amber-50 text-amber-500",
     EARLY_LEAVE: "bg-orange-50 text-orange-500",
     LATE_AND_EARLY_LEAVE: "bg-rose-50 text-rose-500",
+    INCOMPLETE: "bg-yellow-50 text-yellow-700",
 };
 
 const attendanceStatusLabels = {
@@ -35,6 +39,7 @@ const attendanceStatusLabels = {
     LATE: "Đi trễ",
     EARLY_LEAVE: "Về sớm",
     LATE_AND_EARLY_LEAVE: "Trễ & Về sớm",
+    INCOMPLETE: "Thiếu chấm công",
 };
 
 export default function AttendanceDetailModal({
@@ -52,12 +57,14 @@ export default function AttendanceDetailModal({
     const [editData, setEditData] = useState(null);
     const [saving, setSaving] = useState(false);
     const [locking, setLocking] = useState(false);
+    const [selectedRequestId, setSelectedRequestId] = useState(null);
 
     // Reset edit mode when modal opens/closes or data changes
     useEffect(() => {
         if (!isOpen) {
             setEditMode(false);
             setEditData(null);
+            setSelectedRequestId(null);
         }
     }, [isOpen]);
 
@@ -134,105 +141,18 @@ export default function AttendanceDetailModal({
                         <span className="font-medium">Kỳ:</span>{" "}
                         Tháng {timesheet?.month}/{timesheet?.year}
                     </p>
-                    {timesheet?.shiftName && (
-                        <p className="text-sm text-slate-600">
-                            <span className="font-medium">Ca:</span>{" "}
-                            {timesheet.shiftName}
-                            {timesheet.shiftStartTime && timesheet.shiftEndTime && (
-                                <span className="ml-1 text-slate-400">({timesheet.shiftStartTime} – {timesheet.shiftEndTime})</span>
-                            )}
-                        </p>
-                    )}
                     {/* Lock status badge */}
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        isLocked ? "bg-rose-50 text-rose-600 border border-rose-200" : "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                    }`}>
-                        {isLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                        {isLocked ? "Đã khóa" : "Đang mở"}
-                    </span>
+
                 </div>
 
                 {/* Action buttons (HR only) */}
-                {canEdit && (
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        {!isLocked && !editMode && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-1.5 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                                onClick={() => setEditMode(true)}
-                            >
-                                <Pencil className="h-3.5 w-3.5" />
-                                Chỉnh sửa
-                            </Button>
-                        )}
-                        {editMode && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-1.5 text-slate-500 border-slate-200"
-                                onClick={() => setEditMode(false)}
-                                disabled={saving}
-                            >
-                                <X className="h-3.5 w-3.5" />
-                                Hủy
-                            </Button>
-                        )}
-                        {!isLocked && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                loading={locking}
-                                onClick={handleLockSubmit}
-                                className="gap-1.5 text-rose-600 border-rose-200 hover:bg-rose-50"
-                            >
-                                <Lock className="h-3.5 w-3.5" />
-                                Khóa
-                            </Button>
-                        )}
-                    </div>
-                )}
             </div>
 
             {/* Inline edit form (shown when editMode = true) */}
             {editMode && editData && (
                 <div className="mb-4 p-4 border border-indigo-200 bg-indigo-50/50 rounded-lg">
                     <p className="text-sm font-medium text-indigo-800 mb-3">Chỉnh sửa tổng hợp tháng</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                        <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">Ngày công</label>
-                            <input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={editData.totalWorkingDays}
-                                onChange={e => { const v = parseFloat(e.target.value); setEditData(d => ({ ...d, totalWorkingDays: isNaN(v) ? '' : Math.max(0, v) })); }}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">Giờ công</label>
-                            <input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={editData.totalWorkingHours}
-                                onChange={e => { const v = parseFloat(e.target.value); setEditData(d => ({ ...d, totalWorkingHours: isNaN(v) ? '' : Math.max(0, v) })); }}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">Giờ OT</label>
-                            <input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={editData.overtimeHours}
-                                onChange={e => { const v = parseFloat(e.target.value); setEditData(d => ({ ...d, overtimeHours: isNaN(v) ? '' : Math.max(0, v) })); }}
-                            />
-                        </div>
-                    </div>
+
                     <div className="mb-3">
                         <label className="block text-xs font-medium text-slate-600 mb-1">
                             Lý do chỉnh sửa <span className="text-slate-400 font-normal">(tùy chọn)</span>
@@ -255,20 +175,6 @@ export default function AttendanceDetailModal({
             )}
 
             {/* Totals summary row */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                    <p className="text-xs text-slate-500 mb-0.5">Ngày công</p>
-                    <p className="text-lg font-bold text-slate-800">{timesheet?.totalWorkingDays ?? 0}</p>
-                </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                    <p className="text-xs text-slate-500 mb-0.5">Giờ công</p>
-                    <p className="text-lg font-bold text-slate-800">{timesheet?.totalWorkingHours ?? 0}</p>
-                </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                    <p className="text-xs text-slate-500 mb-0.5">Giờ OT</p>
-                    <p className="text-lg font-bold text-blue-600">{timesheet?.overtimeHours ?? 0}</p>
-                </div>
-            </div>
 
             {/* Daily Details Table */}
             <div className="max-h-[45vh] overflow-y-auto rounded-lg border border-slate-200">
@@ -293,11 +199,10 @@ export default function AttendanceDetailModal({
                         {(dailyDetails || []).map((day, idx) => (
                             <tr
                                 key={idx}
-                                className={`border-b border-slate-100 ${
-                                    day.status === "WEEKEND" || day.status === "HOLIDAY"
-                                        ? "bg-slate-50/50"
-                                        : ""
-                                }`}
+                                className={`border-b border-slate-100 ${day.status === "WEEKEND" || day.status === "HOLIDAY"
+                                    ? "bg-slate-50/50"
+                                    : ""
+                                    }`}
                             >
                                 <td className="px-3 py-2 text-slate-700 whitespace-nowrap">{day.date}</td>
                                 <td className="px-3 py-2 text-slate-500">{day.dayOfWeek}</td>
@@ -337,21 +242,33 @@ export default function AttendanceDetailModal({
                                             </span>
                                         )}
                                         {day.excuseRequest ? (
-                                            <button 
-                                              onClick={() => onViewExcuse?.(day.excuseRequest, day.date)}
-                                              className="flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-800 font-medium mt-0.5"
-                                              title="Xem đơn giải trình"
+                                            <button
+                                                onClick={() => onViewExcuse?.(day.excuseRequest, day.date)}
+                                                className="flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-800 font-medium mt-0.5"
+                                                title="Xem đơn giải trình"
                                             >
                                                 <FileText className="h-3 w-3" />
                                                 <span className="underline">
                                                     Đơn {day.excuseRequest.status === 'APPROVED' ? '(Đã duyệt)' : day.excuseRequest.status === 'REJECTED' ? '(Từ chối)' : '(Chờ duyệt)'}
                                                 </span>
                                             </button>
-                                        ) : (!canEdit && (day.lateMinutes > 0 || day.earlyLeaveMinutes > 0)) ? (
-                                            <button 
-                                              onClick={() => onCreateExcuse?.(day.date)}
-                                              className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-600 font-medium mt-0.5"
-                                              title="Gửi đơn giải trình (xin miễn đi muộn/về sớm)"
+                                        ) : null}
+
+                                        {day.requestId ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedRequestId(day.requestId)}
+                                                className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium"
+                                                title="Xem đơn từ liên kết"
+                                            >
+                                                <FileText className="h-3 w-3" />
+                                                <span className="underline">Đơn từ</span>
+                                            </button>
+                                        ) : (!canEdit && (day.lateMinutes > 0 || day.earlyLeaveMinutes > 0 || day.status === 'INCOMPLETE')) ? (
+                                            <button
+                                                onClick={() => onCreateExcuse?.(day.date)}
+                                                className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-600 font-medium mt-0.5"
+                                                title="Gửi đơn giải trình (xin miễn đi muộn/về sớm)"
                                             >
                                                 <PlusCircle className="h-3 w-3" />
                                                 <span className="underline">Gửi giải trình</span>
@@ -364,6 +281,12 @@ export default function AttendanceDetailModal({
                     </tbody>
                 </table>
             </div>
+
+            <RequestDetailModal
+                isOpen={!!selectedRequestId}
+                request={selectedRequestId ? { id: selectedRequestId } : null}
+                onClose={() => setSelectedRequestId(null)}
+            />
         </Modal>
     );
 }

@@ -121,8 +121,8 @@ export default function ContractsPage() {
 
   const fetchJobGradesList = async () => {
     try {
-      const response = await jobGradesService.getAll();
-      const items = Array.isArray(response.data) ? response.data : [];
+      const response = await jobGradesService.getList();
+      const items = Array.isArray(response?.data) ? response.data : [];
       setJobGradesList(
         items.map((e) => ({
           value: e.id,
@@ -173,6 +173,30 @@ export default function ContractsPage() {
       }
     } catch (err) {
       console.error("Không tìm thấy thông tin lương cho nhân viên này:", err);
+    }
+  };
+
+  const fetchEmployeeDetailById = async (empId) => {
+    if (!empId) return;
+    try {
+      const response = await employeesService.getById(empId);
+      const employee = response.data || response;
+
+      if (employee) {
+        setFormData((prev) => ({
+          ...prev,
+          departmentId:
+            employee.departmentId ||
+            employee.department?.id ||
+            prev.departmentId,
+          positionId:
+            employee.positionId || employee.position?.id || prev.positionId,
+          jobGradeId:
+            employee.jobGradeId || employee.jobGrade?.id || prev.jobGradeId,
+        }));
+      }
+    } catch (err) {
+      console.error("Không thể lấy chi tiết nhân viên:", err);
     }
   };
 
@@ -228,6 +252,7 @@ export default function ContractsPage() {
   useEffect(() => {
     if (isCreateOpen || isEditOpen) {
       if (formData.employeeId) {
+        fetchEmployeeDetailById(formData.employeeId);
         fetchSalaryByEmployeeId(formData.employeeId);
       }
     }

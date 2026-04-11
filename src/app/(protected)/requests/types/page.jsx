@@ -163,11 +163,17 @@ export default function RequestTypesPage() {
 
     // ─── Policy Modal ────────────────────────────────────────────────
     const handleOpenPolicy = (typeItem) => {
+        let isUnlim = false;
+        if (typeItem.policy && typeItem.policy.maxQuantity !== undefined && typeItem.policy.maxQuantity !== null) {
+            isUnlim = parseFloat(typeItem.policy.maxQuantity) === 0;
+        }
+
         setPolicyData({
             trackingCycle: typeItem.policy?.trackingCycle || TRACKING_CYCLES.MONTH,
             unit: typeItem.policy?.unit || POLICY_UNITS.DAY,
             maxQuantity: typeItem.policy?.maxQuantity ?? 0,
             isWorkedTime: typeItem.policy?.isWorkedTime ?? false,
+            isUnlimited: isUnlim,
         });
         setPolicyErrors({});
         setPolicyModal({ open: true, data: typeItem });

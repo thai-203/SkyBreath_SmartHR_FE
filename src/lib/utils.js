@@ -34,4 +34,30 @@ export function formatDate(date, format = "datetime") {
   return formatter.format(dateObj);
 }
 
+const RAW_API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
+export function resolveAssetUrl(assetPath) {
+  if (!assetPath) return null;
+
+  const value = String(assetPath).trim();
+  if (!value) return null;
+
+  const valueWithoutLeadingSlash = value.replace(/^\/+/, "");
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  if (/^https?:\/\//i.test(valueWithoutLeadingSlash)) {
+    return valueWithoutLeadingSlash;
+  }
+
+  if (value.startsWith("//")) {
+    return `https:${value}`;
+  }
+
+  const backendBaseUrl = RAW_API_BASE_URL.replace(/\/api\/v\d+\/?$/, "");
+  const normalizedPath = valueWithoutLeadingSlash;
+  return `${backendBaseUrl}/${normalizedPath}`;
+}

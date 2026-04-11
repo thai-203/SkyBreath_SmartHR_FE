@@ -20,6 +20,18 @@ export const requestsService = {
         return response.data;
     },
 
+    /** Timesheets/Excuses: đơn nhóm đi muộn/về sớm & giải trình chấm công */
+    getExcuseRequests: async (params = {}) => {
+        const response = await api.get("/requests/excuses", { params });
+        return response.data;
+    },
+
+    /** Timesheets: Bảng tăng ca chi tiết (nhóm đơn OT — request_group_id = 1) */
+    getOvertimeDetailRequests: async (params = {}) => {
+        const response = await api.get("/requests/overtime-detail", { params });
+        return response.data;
+    },
+
     /** UC-REQ-06: Chi tiết đơn */
     getById: async (id) => {
         const response = await api.get(`/requests/${id}`);
@@ -31,6 +43,20 @@ export const requestsService = {
         const response = await api.get("/requests/workflow-preview", {
             params: { requestTypeId, employeeId },
         });
+        return response.data;
+    },
+
+    /** Kiểm tra hạn mức sử dụng của nhân viên cho loại đơn */
+    getQuotaStatus: async (requestTypeId, employeeId, excludeRequestId = null) => {
+        const params = { requestTypeId, employeeId };
+        if (excludeRequestId) params.excludeRequestId = excludeRequestId;
+        const response = await api.get("/requests/quota-status", { params });
+        return response.data;
+    },
+
+    /** Ước tính số ngày/giờ xin phép dựa trên ca làm việc */
+    estimateQuantity: async (params = {}) => {
+        const response = await api.get("/requests/estimate-quantity", { params });
         return response.data;
     },
 
