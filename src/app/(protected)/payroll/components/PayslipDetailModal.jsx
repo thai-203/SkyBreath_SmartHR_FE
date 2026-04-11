@@ -1,0 +1,198 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { X, ChevronLeft, ChevronRight, Save, RotateCcw, Printer, Smartphone } from "lucide-react";
+import { Button } from "@/components/common/Button";
+
+/**
+ * Premium Payslip Detail Modal (Phiếu chi tiết lương)
+ * - Line-by-line breakdown of earnings and working days.
+ * - Previous/Next navigation through the employee list.
+ * - Editable notes (Ghi chú) field.
+ */
+
+const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(parseFloat(n || 0)));
+
+export default function PayslipDetailModal({ 
+    detail, 
+    currentIndex, 
+    totalCount, 
+    onOpen,
+    onClose, 
+    onPrev, 
+    onNext, 
+    onSaveNote 
+}) {
+    const [note, setNote] = useState(detail?.note || "");
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => { setNote(detail?.note || ""); }, [detail]);
+
+    if (!detail) return null;
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        await onSaveNote(detail.id, note);
+        setIsSaving(false);
+    };
+
+    const employee = detail.employee || {};
+    const deptName = employee.department?.departmentName || "CTCP CẤP THOÁT NƯỚC SA PA";
+
+    // --- Dynamic Sub-totals ---
+    const totalAgreement = (parseFloat(detail.baseSalary) || 0) + (parseFloat(detail.p1Amount) || 0) + (parseFloat(detail.p21Amount) || 0) + (parseFloat(detail.p22Amount) || 0) + (parseFloat(detail.probationAmount) || 0);
+    const totalDays = (parseFloat(detail.officialDays) || 0) + (parseFloat(detail.probationDays) || 0) + (parseFloat(detail.businessTripDays) || 0) + (parseFloat(detail.benefitLeaveDays) || 0) + (parseFloat(detail.annualLeaveDays) || 0) + (parseFloat(detail.holidayDays) || 0);
+    
+    // 3.1 calculation: (P1 / Standard) * (Official + Holiday + Paid Leave)
+    const paidDays = (parseFloat(detail.officialDays) || 0) + (parseFloat(detail.holidayDays) || 0) + (parseFloat(detail.benefitLeaveDays) || 0) + (parseFloat(detail.annualLeaveDays) || 0);
+    const dailyPay = detail.standardDays > 0 ? (parseFloat(detail.p1Amount) || 0) / parseFloat(detail.standardDays) : 0;
+    const workdaySalary = dailyPay * paidDays;
+
+    const totalActualEarnings = workdaySalary + (parseFloat(detail.p21Amount) || 0) + (parseFloat(detail.p22Amount) || 0) + (parseFloat(detail.overtimePay) || 0);
+    const totalDeductions = (parseFloat(detail.insuranceDeduction) || 0) + (parseFloat(detail.taxDeduction) || 0) + (parseFloat(detail.penalty) || 0) + (parseFloat(detail.deduction) || 0);
+
+    const rows = [
+        { stt: "1", label: "Thu nhập thỏa thuận", value: totalAgreement, isHeader: true },
+        { stt: "1.1", label: "Lương cơ bản (đóng BHXH)", value: detail.baseSalary, formula: "Hợp đồng" },
+        { stt: "1.2", label: "Lương vị trí (P1)", value: detail.p1Amount, formula: "Phân bổ P1" },
+        { stt: "1.3", label: "Thưởng hiệu quả công việc (P2.1)", value: detail.p21Amount, formula: "Phân bổ P2.1" },
+        { stt: "1.4", label: "Khoán công việc (P2.2)", value: detail.p22Amount, formula: "Phân bổ P2.2" },
+        { stt: "1.5", label: "Lương trong thời gian thử việc", value: detail.probationAmount, formula: "85% Lương" },
+        
+        { stt: "2", label: "Ngày công", value: totalDays, isHeader: true, isDays: true },
+        { stt: "2.1", label: "Ngày công chuẩn", value: detail.standardDays, formula: "Hệ thống", isDays: true },
+        { stt: "2.2", label: "Ngày công đi làm chính thức", value: detail.officialDays, formula: "Máy chấm công", isDays: true },
+        { stt: "2.3", label: "Ngày công đi làm thử việc", value: detail.probationDays, formula: "Máy chấm công", isDays: true },
+        { stt: "2.4", label: "Ngày công đi công tác", value: detail.businessTripDays, formula: "Đơn từ", isDays: true },
+        { stt: "2.5", label: "Ngày công nghỉ phép", value: (parseFloat(detail.benefitLeaveDays) || 0) + (parseFloat(detail.annualLeaveDays) || 0), formula: "Đơn từ", isDays: true },
+        { stt: "2.6", label: "Ngày công nghỉ lễ", value: detail.holidayDays, formula: "Lịch lễ", isDays: true },
+        { stt: "2.7", label: "Ngày công nghỉ không lương", value: detail.unpaidLeaveDays, formula: "Đơn từ", isDays: true },
+        
+        { stt: "I", label: "TỔNG THU NHẬP TRONG THÁNG", value: totalActualEarnings, isSummary: true },
+        
+        { stt: "3", label: "Lương, thưởng thực tế hưởng", value: totalActualEarnings, isHeader: true },
+        { stt: "3.1", label: "Lương theo ngày công", value: workdaySalary, formula: "P1 / Chuẩn * Công" },
+        { stt: "3.2", label: "Thưởng hiệu quả công việc (P2.1)", value: detail.p21Amount, formula: "Đạt KPI" },
+        { stt: "3.3", label: "Khoán công việc (P2.2)", value: detail.p22Amount, formula: "Sản phẩm" },
+        { stt: "3.4", label: "Tiền lương làm thêm giờ (OT)", value: detail.overtimePay, formula: "Bảng OT" },
+        
+        { stt: "4", label: "Các khoản trừ", value: totalDeductions, isHeader: true },
+        { stt: "4.1", label: "Bảo hiểm (Công ty đóng thay NV)", value: detail.insuranceDeduction, formula: "10.5% * Base" },
+        { stt: "4.2", label: "Thuế TNCN (Công ty đóng thay NV)", value: detail.taxDeduction, formula: "Biểu thuế" },
+        { stt: "4.3", label: "Các khoản trừ khác (Phạt/Deduction)", value: (parseFloat(detail.penalty) || 0) + (parseFloat(detail.deduction) || 0), formula: "Phát sinh" },
+        
+        { stt: "NET", label: "THỰC LĨNH (Hợp đồng Net)", value: totalActualEarnings - (parseFloat(detail.penalty) || 0) - (parseFloat(detail.deduction) || 0), isSummary: true, color: "bg-emerald-600 shadow-xl shadow-emerald-100" },
+    ];
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-500">
+                
+                {/* Header Section */}
+                <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-gradient-to-r from-white to-slate-50/50">
+                    <div className="space-y-1">
+                        <h2 className="text-xl font-black text-indigo-900 uppercase tracking-tight">{deptName}</h2>
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm text-slate-500 mt-2">
+                            <p>Họ tên (Full name): <span className="font-bold text-slate-800">{employee.fullName}</span></p>
+                            <p>Phòng ban (Department): <span className="font-bold text-slate-800">{employee.department?.departmentName}</span></p>
+                            <p>Chức danh (Title): <span className="font-bold text-slate-800">{employee.position?.positionName}</span></p>
+                            <p>STK: <span className="font-bold text-slate-800">Bank • Chuyển khoản</span></p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-end gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+                                <button onClick={onPrev} className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all text-slate-400 hover:text-indigo-600">
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <span className="text-[12px] font-black px-2 text-slate-600 tracking-widest">{currentIndex + 1}/{totalCount}</span>
+                                <button onClick={onNext} className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all text-slate-400 hover:text-indigo-600">
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
+                            </div>
+                            <button onClick={onClose} className="p-2 hover:bg-rose-50 hover:text-rose-600 rounded-full transition-all text-slate-400">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="text-right">
+                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Phiếu chi tiết lương</h3>
+                            <p className="text-[12px] text-slate-400 font-bold uppercase">Tháng 01/2026 • Ngày chi trả: 01/02/2026</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Form Actions */}
+                <div className="px-6 py-3 bg-white border-b border-slate-50 flex items-center justify-end gap-3">
+                    <Button variant="outline" size="sm" onClick={onClose} className="h-9 gap-2 border-slate-200">Hủy</Button>
+                    <Button size="sm" onClick={handleSave} loading={isSaving} className="h-9 gap-2 bg-indigo-600 shadow-lg shadow-indigo-100">
+                        <Save className="h-4 w-4" /> Lưu
+                    </Button>
+                </div>
+
+                {/* Main Content (Table) */}
+                <div className="flex-1 overflow-y-auto p-6 scroller-thick">
+                    <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <table className="w-full text-sm border-collapse">
+                            <thead>
+                                <tr className="bg-[#1e40af] text-white text-[10px] font-black uppercase tracking-widest">
+                                    <th className="px-4 py-3 w-16 text-center border-r border-white/20">STT</th>
+                                    <th className="px-4 py-3 text-left border-r border-white/20">Chi tiêu</th>
+                                    <th className="px-4 py-3 text-center border-r border-white/20">Cách tính</th>
+                                    <th className="px-4 py-3 w-[150px] text-right border-r border-white/20">Số tiền</th>
+                                    <th className="px-4 py-3 w-[250px] text-left">Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {rows.map((row) => (
+                                    <tr 
+                                        key={row.stt} 
+                                        className={`transition-colors text-[12px] ${
+                                            row.isHeader ? 'bg-slate-50' : 
+                                            row.isSummary ? (row.color || 'bg-blue-500') + ' text-white' : 
+                                            'hover:bg-slate-50/50'
+                                        }`}
+                                    >
+                                        <td className={`px-4 py-2.5 text-center font-bold border-r ${row.isSummary ? 'border-white/10' : 'border-slate-100'}`}>{row.stt}</td>
+                                        <td className={`px-4 py-2.5 ${row.isHeader || row.isSummary ? 'font-black' : 'text-slate-700'} border-r ${row.isSummary ? 'border-white/10' : 'border-slate-100'}`}>{row.label}</td>
+                                        <td className={`px-4 py-2.5 text-center italic border-r ${row.isSummary ? 'border-white/10' : 'border-slate-100'} ${row.isSummary ? 'text-white/70' : 'text-slate-400'}`}>
+                                            {row.formula || ""}
+                                        </td>
+                                        <td className={`px-4 py-2.5 text-right font-black border-r ${row.isSummary ? 'border-white/10' : 'border-slate-100'}`}>
+                                            {row.isDays ? row.value : fmt(row.value)}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            {!row.isHeader && !row.isSummary ? (
+                                                <div className="flex group">
+                                                    <textarea 
+                                                        className="w-full bg-transparent border-none text-[11px] p-1.5 focus:ring-1 focus:ring-indigo-100 focus:bg-white rounded transition-all resize-none italic outline-none group-hover:bg-slate-50"
+                                                        placeholder="Nhập mô tả..."
+                                                        defaultValue={row.stt === "1.1" ? note : ""} // Just for POC on primary row
+                                                        onChange={(e) => row.stt === "1.1" && setNote(e.target.value)}
+                                                        rows={1}
+                                                    />
+                                                </div>
+                                            ) : null}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-8 flex justify-between items-end border-t border-slate-100 pt-8 italic text-slate-400 text-xs">
+                        <div className="space-y-1">
+                            <p>Người tạo: <span className="font-bold">Hệ thống SmartHR</span></p>
+                            <p>Ngày in: <span className="font-bold">{new Date().toLocaleDateString('vi-VN')}</span></p>
+                        </div>
+                        <div className="flex gap-4">
+                            <Button variant="ghost" className="gap-2 text-[11px] h-8"><Printer className="h-3.5 w-3.5" /> In phiếu</Button>
+                            <Button variant="ghost" className="gap-2 text-[11px] h-8"><Smartphone className="h-3.5 w-3.5" /> Gửi Mobile</Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

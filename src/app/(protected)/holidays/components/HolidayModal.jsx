@@ -242,8 +242,8 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
                     }
 
                     const compDate = new Date(cd.date + "T00:00:00");
-                    if (compDate < today) {
-                        toastError(`Tại ngày làm bù thứ ${i + 1}: Ngày làm bù không được chọn trong quá khứ.`);
+                    if (isNaN(compDate.getTime()) || compDate < today) {
+                        toastError(`Tại ngày làm bù thứ ${i + 1}: Ngày làm bù không được chọn trong quá khứ hoặc không hợp lệ.`);
                         return;
                     }
 

@@ -42,6 +42,12 @@ export default function ApprovalModal({ isOpen, onClose, onConfirm, loading, act
             confirmText: "Khóa",
             confirmClass: "bg-slate-800 hover:bg-slate-900",
         },
+        unlock: {
+            title: "Mở khóa bảng lương",
+            desc: `Bảng lương sẽ được mở khóa để có thể chỉnh sửa lại dữ liệu.`,
+            confirmText: "Mở khóa",
+            confirmClass: "bg-amber-600 hover:bg-amber-700",
+        },
         sendPayslips: {
             title: "Gửi phiếu lương",
             desc: `Hệ thống sẽ gửi email phiếu lương đến tất cả nhân viên trong kỳ lương này.`,

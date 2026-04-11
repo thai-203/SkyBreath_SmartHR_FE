@@ -31,6 +31,11 @@ export const timesheetsService = {
         return response.data;
     },
 
+    getSummaryMatrix: async (params = {}) => {
+        const response = await api.get("/timesheets/summary-matrix", { params });
+        return response.data;
+    },
+
     addEmployee: async (data) => {
         const response = await api.post("/timesheets/add-employee", data);
         return response.data;

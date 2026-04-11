@@ -28,6 +28,7 @@ export default function PayrollTable({
     onApprove,
     onReject,
     onLock,
+    onUnlock,
     onSendPayslips,
     onExportSummary,
     onExportPayslips,
@@ -138,7 +139,7 @@ export default function PayrollTable({
                                                                 ⚡ Tính toán tự động
                                                             </button>
                                                         )}
-                                                        {isDraft && authService.hasPermission("PAYROLL_APPROVE") && (
+                                                        {isDraft && authService.hasPermission("PAYROLL_UPDATE") && (
                                                             <button onClick={() => { onSubmit(payroll); setOpenMenu(null); }} className="w-full text-left px-4 py-2 text-sm hover:bg-blue-50 text-blue-700">
                                                                 📤 Gửi phê duyệt
                                                             </button>
@@ -159,9 +160,14 @@ export default function PayrollTable({
                                                             </button>
                                                         )}
                                                         {isLocked && authService.hasPermission("PAYROLL_LOCK") && (
-                                                            <button onClick={() => { onSendPayslips(payroll); setOpenMenu(null); }} className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 text-indigo-700">
-                                                                📧 Gửi phiếu lương
-                                                            </button>
+                                                            <>
+                                                                <button onClick={() => { onSendPayslips(payroll); setOpenMenu(null); }} className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 text-indigo-700">
+                                                                    📧 Gửi phiếu lương
+                                                                </button>
+                                                                <button onClick={() => { onUnlock(payroll); setOpenMenu(null); }} className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50 text-amber-700">
+                                                                    🔓 Mở khóa bảng lương
+                                                                </button>
+                                                            </>
                                                         )}
                                                         {authService.hasPermission("PAYROLL_EXPORT") && (
                                                             <>
