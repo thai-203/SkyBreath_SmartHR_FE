@@ -240,6 +240,12 @@ const menuItems = [
     href: "/ai-configurations",
     roles: ["ADMIN"],
   },
+  {
+    title: "AI Prompts",
+    icon: FileText,
+    href: "/ai-prompts",
+    roles: ["ADMIN"],
+  },
 ];
 
 function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose, user }) {
