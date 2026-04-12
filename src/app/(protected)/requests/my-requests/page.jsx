@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, RefreshCw, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, RefreshCw, FileText } from "lucide-react";
 import { requestsService } from "@/services/requests.service";
 import { useToast } from "@/components/common/Toast";
 import RequestFormModal from "./components/RequestFormModal";
@@ -9,6 +9,7 @@ import RequestStatusBadge from "./components/RequestStatusBadge";
 import RequestDetailModal from "./components/RequestDetailModal";
 import { Button } from "@/components/common/Button";
 import { ConfirmModal } from "@/components/common/Modal";
+import { Pagination } from "@/components/common/Pagination";
 
 const STATUS_OPTIONS = [
     { value: "", label: "Tất cả trạng thái" },
@@ -25,7 +26,7 @@ export default function MyRequestsPage() {
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
-    const limit = 20;
+    const limit = 10;
 
     const [filters, setFilters] = useState({ status: "" });
     const [showForm, setShowForm] = useState(false);
@@ -82,8 +83,6 @@ export default function MyRequestsPage() {
     };
 
     const totalPages = Math.ceil(total / limit);
-    const startItem = (page - 1) * limit + 1;
-    const endItem = Math.min(page * limit, total);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 p-6">
@@ -186,32 +185,16 @@ export default function MyRequestsPage() {
                 </div>
 
                 {/* Pagination */}
-                {total > 0 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50/50">
-                        <p className="text-xs text-slate-500">
-                            Hiển thị {startItem}–{endItem} / {total} đơn
-                        </p>
-                        <div className="flex items-center gap-1">
-                            <button
-                                disabled={page === 1}
-                                onClick={() => setPage((p) => p - 1)}
-                                className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <ChevronLeft className="w-4 h-4" />
-                            </button>
-                            <span className="text-xs px-3 text-slate-600">
-                                {page} / {totalPages}
-                            </span>
-                            <button
-                                disabled={page >= totalPages}
-                                onClick={() => setPage((p) => p + 1)}
-                                className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <ChevronRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-                )}
+                <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+                    <p className="text-sm text-slate-500">
+                        Hiển thị {requests.length} / Trang {page} của {totalPages}
+                    </p>
+                    <Pagination
+                        currentPage={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                    />
+                </div>
             </div>
 
             {/* Modals */}
