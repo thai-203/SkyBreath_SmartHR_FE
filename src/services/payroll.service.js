@@ -73,6 +73,11 @@ export const payrollService = {
         return response.data;
     },
 
+    unlock: async (id) => {
+        const response = await api.post(`/payroll/${id}/unlock`);
+        return response.data;
+    },
+
     // UC30 - Send payslips by email
     sendPayslips: async (id) => {
         const response = await api.post(`/payroll/${id}/send-payslips`);

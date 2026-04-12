@@ -2,9 +2,8 @@
 
 import { Button } from "@/components/common/Button";
 import { authService } from "@/services/auth.service";
-import { timesheetsService } from "@/services/timesheets.service";
 import { payrollService } from "@/services/payroll.service";
-import { toast } from "sonner";
+import { timesheetsService } from "@/services/timesheets.service";
 import {
     Building,
     Calendar,
@@ -26,13 +25,20 @@ import {
     Plus,
     RefreshCw,
     Search,
+    Send,
     Settings,
     Trash2,
+    Unlock,
     Upload,
     User
 } from "lucide-react";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import PayrollDetailTable from "./PayrollDetailTable";
+import SalaryDetailTable from "./SalaryDetailTable";
+import SalarySummaryTable from "./SalarySummaryTable";
+import PayrollSlipTable from "./PayrollSlipTable";
+
 
 const SummaryField = ({ label, value, icon: Icon, editable, isEditingHeader, type = "text", name, onChange }) => (
     <div className="space-y-1.5">
@@ -102,7 +108,7 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                         <th rowSpan={3} className="px-4 py-3 text-left border-r border-slate-200 sticky left-[120px] bg-slate-50 z-10 min-w-[150px]">Tên nhân sự</th>
                         <th rowSpan={3} className="px-3 py-3 text-left border-r border-slate-200 min-w-[120px]">Chức danh</th>
                         <th rowSpan={3} className="px-4 py-3 text-left border-r border-slate-200 min-w-[140px]">Phòng ban</th>
-                        <th colSpan={17} className="px-2 py-2 text-center border-r border-slate-200">Chi tiết tăng ca</th>
+                        <th colSpan={12} className="px-2 py-2 text-center border-r border-slate-200">Chi tiết tăng ca</th>
                         <th colSpan={3} className="px-2 py-2 text-center">Tổng</th>
                     </tr>
                     <tr className="border-t border-slate-200">
@@ -112,59 +118,59 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                         <th colSpan={2} className="px-1 py-1.5 text-center border-r border-slate-100">Đêm cuối tuần</th>
                         <th colSpan={2} className="px-1 py-1.5 text-center border-r border-slate-100">Ngày lễ tết</th>
                         <th colSpan={2} className="px-1 py-1.5 text-center border-r border-slate-100">Đêm lễ tết</th>
-                        <th colSpan={2} className="px-1 py-1.5 text-center border-r border-slate-100">Ngày nghỉ bù</th>
-                        <th colSpan={2} className="px-1 py-1.5 text-center border-r border-slate-100">Đêm nghỉ bù</th>
-                        <th className="px-1 py-1.5 text-center border-r border-slate-200">Công ăn OT</th>
-                        <th className="px-1 py-1.5 text-center border-r border-slate-100">Giá giớ</th>
-                        <th className="px-1 py-1.5 text-center border-r border-slate-100">Phụ cấp ăn</th>
+                        <th className="px-1 py-1.5 text-center border-r border-slate-100">Giá giờ</th>
+                        <th className="px-1 py-1.5 text-center border-r border-slate-100">Giờ OT</th>
                         <th className="px-1 py-1.5 text-center">Lương OT</th>
                     </tr>
                     <tr className="border-t border-slate-200 text-[9px] text-slate-400">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                            <React.Fragment key={i}>
-                                <th className="px-1 py-1 text-center border-r border-slate-100">Giờ</th>
-                                <th className="px-1 py-1 text-center border-r border-slate-100">Giá/Tỉ lệ</th>
-                            </React.Fragment>
-                        ))}
-                        <th className="px-1 py-1 text-center border-r border-slate-200">Số công</th>
+                        <th className="px-1 py-1 text-center border-r border-slate-100">Giờ</th><th className="px-1 py-1 text-center border-r border-slate-100">Tỉ lệ</th>
+                        <th className="px-1 py-1 text-center border-r border-slate-100">Giờ</th><th className="px-1 py-1 text-center border-r border-slate-100">Tỉ lệ</th>
+                        <th className="px-1 py-1 text-center border-r border-slate-100">Giờ</th><th className="px-1 py-1 text-center border-r border-slate-100">Tỉ lệ</th>
+                        <th className="px-1 py-1 text-center border-r border-slate-100">Giờ</th><th className="px-1 py-1 text-center border-r border-slate-100">Tỉ lệ</th>
+                        <th className="px-1 py-1 text-center border-r border-slate-100">Giờ</th><th className="px-1 py-1 text-center border-r border-slate-100">Tỉ lệ</th>
+                        <th className="px-1 py-1 text-center border-r border-slate-100">Giờ</th><th className="px-1 py-1 text-center border-r border-slate-100">Tỉ lệ</th>
                         <th className="px-1 py-1 text-center border-r border-slate-100">VND/h</th>
-                        <th className="px-1 py-1 text-center border-r border-slate-100">VND</th>
+                        <th className="px-1 py-1 text-center border-r border-slate-100">Tổng h</th>
                         <th className="px-1 py-1 text-center">Tổng tiền</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                     {timesheets.length === 0 ? (
                         <tr>
-                            <td colSpan={25} className="px-4 py-12 text-center text-slate-400 italic bg-slate-50/20">Chưa tìm thấy dữ liệu tăng ca.</td>
+                            <td colSpan={20} className="px-4 py-12 text-center text-slate-400 italic bg-slate-50/20">Chưa tìm thấy dữ liệu tăng ca.</td>
                         </tr>
                     ) : (
                         timesheets.map((ts, idx) => {
-                            const detail = payrollDetails.find(d => d.employeeId === ts.employeeId);
-                            const hourlyRate = (detail?.baseSalary || 0) / 208;
+                            const detail = payrollDetails.find(d => d.employeeId === ts.id);
+                            const hourlyRate = (detail?.baseSalary || 0) / (ts.standardDays || 26) / 8;
                             return (
                                 <tr key={ts.id} className="hover:bg-slate-50/50 transition-colors group">
                                     <td className="px-2 py-3 text-center text-slate-400 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10">{idx + 1}</td>
-                                    <td className="px-3 py-3 border-r border-slate-50 text-slate-600 font-medium sticky left-[40px] bg-white group-hover:bg-slate-50/50 z-10">{ts.employee?.employeeCode}</td>
-                                    <td className="px-4 py-3 border-r border-slate-200 font-bold text-slate-800 sticky left-[120px] bg-white group-hover:bg-slate-50/50 z-10">{ts.employee?.fullName}</td>
-                                    <td className="px-3 py-3 border-r border-slate-50 text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">{ts.employee?.position?.positionName || "—"}</td>
-                                    <td className="px-4 py-3 border-r border-slate-100 text-slate-500 whitespace-nowrap font-medium">{ts.employee?.department?.departmentName || "—"}</td>
-                                    
-                                    {/* Categorized OT (Mapped to total as weekday fallback) */}
-                                    <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">{ts.overtimeHours || 0}</td>
+                                    <td className="px-3 py-3 border-r border-slate-50 text-slate-600 font-medium sticky left-[40px] bg-white group-hover:bg-slate-50/50 z-10">{ts.employeeCode}</td>
+                                    <td className="px-4 py-3 border-r border-slate-200 font-bold text-slate-800 sticky left-[120px] bg-white group-hover:bg-slate-50/50 z-10">{ts.fullName}</td>
+                                    <td className="px-3 py-3 border-r border-slate-50 text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">{ts.positionName || "—"}</td>
+                                    <td className="px-4 py-3 border-r border-slate-100 text-slate-500 whitespace-nowrap font-medium">{ts.departmentName || "—"}</td>
+
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">{ts.otWeekday || 0}</td>
                                     <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-300">1.5</td>
-                                    
-                                    {/* Placeholders for deep breakdown */}
-                                    {Array.from({ length: 7 }).map((_, i) => (
-                                        <React.Fragment key={i}>
-                                            <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-200 font-mono">0</td>
-                                            <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-200">—</td>
-                                        </React.Fragment>
-                                    ))}
-                                    <td className="px-2 py-3 text-center border-r border-slate-100 text-slate-200">0</td>
-                                    
-                                    {/* Totals */}
+
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">{ts.otWeekdayNight || 0}</td>
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-300">2.1</td>
+
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">{ts.otWeekend || 0}</td>
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-300">2.0</td>
+
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">{ts.otWeekendNight || 0}</td>
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-300">2.7</td>
+
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">{ts.otHoliday || 0}</td>
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-300">3.0</td>
+
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">{ts.otHolidayNight || 0}</td>
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-300">3.9</td>
+
                                     <td className="px-2 py-3 text-right border-r border-slate-50 text-slate-500 font-medium">{fmt(hourlyRate)}</td>
-                                    <td className="px-2 py-3 text-right border-r border-slate-50 text-slate-200">0</td>
+                                    <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600">{ts.totalOtHours || 0}</td>
                                     <td className="px-3 py-3 text-right font-bold text-emerald-600 bg-emerald-50/30 whitespace-nowrap">{fmt(detail?.overtimePay || 0)}</td>
                                 </tr>
                             );
@@ -252,38 +258,38 @@ const PayrollDetailView = React.memo(({
     const filteredTimesheetData = useMemo(() => {
         if (!timesheetData) return [];
         if (!tsSearch.trim()) return timesheetData;
-        
+
         const term = tsSearch.toLowerCase();
-        return timesheetData.filter(item => 
-            item.employee?.fullName?.toLowerCase().includes(term) ||
-            item.employee?.employeeCode?.toLowerCase().includes(term) ||
-            item.employee?.department?.departmentName?.toLowerCase().includes(term)
+        return timesheetData.filter(item =>
+            item.fullName?.toLowerCase().includes(term) ||
+            item.employeeCode?.toLowerCase().includes(term) ||
+            item.departmentName?.toLowerCase().includes(term)
         );
     }, [timesheetData, tsSearch]);
 
     const filteredOvertimeData = useMemo(() => {
         if (!timesheetData) return [];
         if (!otSearch.trim()) return timesheetData;
-        
+
         const term = otSearch.toLowerCase();
-        return timesheetData.filter(item => 
-            item.employee?.fullName?.toLowerCase().includes(term) ||
-            item.employee?.employeeCode?.toLowerCase().includes(term)
+        return timesheetData.filter(item =>
+            item.fullName?.toLowerCase().includes(term) ||
+            item.employeeCode?.toLowerCase().includes(term)
         );
     }, [timesheetData, otSearch]);
 
     const groupedTimesheetData = useMemo(() => {
         if (!filteredTimesheetData) return [];
-        
+
         const groups = {};
         filteredTimesheetData.forEach(item => {
-            const deptName = item.employee?.department?.departmentName || "Khác";
+            const deptName = item.departmentName || "Khác";
             if (!groups[deptName]) {
                 groups[deptName] = [];
             }
             groups[deptName].push(item);
         });
-        
+
         return Object.keys(groups).map(dept => ({
             departmentName: dept,
             items: groups[dept]
@@ -306,7 +312,7 @@ const PayrollDetailView = React.memo(({
             const fetchTs = async () => {
                 setTimesheetLoading(true);
                 try {
-                    const res = await timesheetsService.getAll({
+                    const res = await timesheetsService.getSummaryMatrix({
                         month: payroll.payrollMonth,
                         year: payroll.payrollYear,
                         limit: 1000
@@ -380,7 +386,7 @@ const PayrollDetailView = React.memo(({
             if (res.success) {
                 toast.success("Import dữ liệu thành công!");
                 // Trigger refresh by back-and-forth or simple state change
-                window.location.reload(); 
+                window.location.reload();
             } else {
                 toast.error(res.message || "Lỗi khi import file");
             }
@@ -409,11 +415,11 @@ const PayrollDetailView = React.memo(({
     return (
         <div className="space-y-6 animate-in fade-in duration-500 relative pb-20">
             {/* Hidden Input for Import */}
-            <input 
-                type="file" 
-                id="excel-import-input" 
-                hidden 
-                accept=".xlsx, .xls" 
+            <input
+                type="file"
+                id="excel-import-input"
+                hidden
+                accept=".xlsx, .xls"
                 onChange={handleImportExcel}
             />
 
@@ -481,14 +487,33 @@ const PayrollDetailView = React.memo(({
                                 )
                             )}
 
-                            {!isEditingHeader && (
+                             {!isEditingHeader && (
                                 <>
+                                    {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && (
+                                        <Button
+                                            onClick={() => onApproval(payroll, "submit")}
+                                            className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-100"
+                                        >
+                                            <Send className="h-3.5 w-3.5" /> Gửi phê duyệt
+                                        </Button>
+                                    )}
+
                                     {payroll?.payrollStatus === "APPROVED" && authService.hasPermission("PAYROLL_LOCK") && (
                                         <Button
-                                            onClick={() => onApproval("lock")}
+                                            onClick={() => onApproval(payroll, "lock")}
                                             className="gap-2 bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-200"
                                         >
                                             <Lock className="h-3.5 w-3.5" /> Chốt bảng lương
+                                        </Button>
+                                    )}
+
+                                    {payroll?.payrollStatus === "LOCKED" && authService.hasPermission("PAYROLL_LOCK") && (
+                                        <Button
+                                            onClick={() => onApproval(payroll, "unlock")}
+                                            variant="outline"
+                                            className="gap-2 text-amber-600 border-amber-200 hover:bg-amber-50"
+                                        >
+                                            <Unlock className="h-3.5 w-3.5" /> Mở khóa bảng lương
                                         </Button>
                                     )}
 
@@ -496,14 +521,14 @@ const PayrollDetailView = React.memo(({
                                         <>
                                             <Button
                                                 variant="outline"
-                                                onClick={() => onApproval("approve")}
+                                                onClick={() => onApproval(payroll, "approve")}
                                                 className="gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
                                             >
                                                 <CheckCircle2 className="h-3.5 w-3.5" /> Duyệt cấp 1
                                             </Button>
                                             <Button
                                                 variant="outline"
-                                                onClick={() => onApproval("approve")}
+                                                onClick={() => onApproval(payroll, "approve")}
                                                 className="gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 disabled:opacity-50"
                                                 disabled
                                             >
@@ -591,8 +616,8 @@ const PayrollDetailView = React.memo(({
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`px-6 py-4 text-sm font-bold transition-all relative whitespace-nowrap ${activeTab === tab.id
-                                ? "text-indigo-600 border-b-4 border-indigo-600"
-                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                            ? "text-indigo-600 border-b-4 border-indigo-600"
+                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                             }`}
                     >
                         {tab.label}
@@ -622,12 +647,21 @@ const PayrollDetailView = React.memo(({
                                 <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
                                     <Plus className="h-3 w-3" /> Thêm nhân sự
                                 </button>
-                                <button 
+                                <button
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
                                     onClick={() => handleRefreshSection("timesheet")}
                                 >
-                                    <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} /> Cập nhật chấm công
+                                    <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} /> Làm mới bảng
                                 </button>
+                                {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && (
+                                    <button
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors shadow-sm"
+                                        onClick={() => onCalculate(payroll)}
+                                        disabled={actionLoading}
+                                    >
+                                        <RefreshCw className={`h-3 w-3 ${actionLoading ? 'animate-spin' : ''}`} /> Cập nhật lại & Tính lương
+                                    </button>
+                                )}
                                 <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
                                     <Upload className="h-3 w-3" /> Import
                                 </button>
@@ -653,7 +687,7 @@ const PayrollDetailView = React.memo(({
                                 </div>
                                 <div className="relative w-full sm:w-[300px]">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Tìm kiếm theo tên, mã NV..."
                                         className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm shadow-slate-100"
@@ -674,12 +708,11 @@ const PayrollDetailView = React.memo(({
                                     <div className={`overflow-x-auto max-h-[600px] ${isRefreshing ? 'opacity-50 pointer-events-none' : ''} transition-opacity duration-300`}>
                                         <table className="w-full text-[12px] border-collapse min-w-[2000px]">
                                             <colgroup>
-                                                <col style={{ width: "50px" }} />
-                                                <col style={{ width: "120px" }} />
-                                                <col style={{ width: "200px" }} />
-                                                <col style={{ width: "150px" }} />
+                                                <col style={{ width: "40px" }} />
+                                                <col style={{ width: "80px" }} />
                                                 <col style={{ width: "180px" }} />
-                                                <col style={{ width: "100px" }} />
+                                                <col style={{ width: "160px" }} />
+                                                <col style={{ width: "90px" }} />
                                                 <col style={{ width: "140px" }} />
                                                 <col style={{ width: "120px" }} />
                                                 <col style={{ width: "120px" }} />
@@ -699,12 +732,11 @@ const PayrollDetailView = React.memo(({
                                             <thead className="sticky top-0 z-30 shadow-sm">
                                                 <tr className="bg-slate-50 text-slate-600 font-bold divide-x divide-slate-200 border-b border-slate-200 uppercase text-[10px]">
                                                     <th rowSpan={2} className="sticky left-0 bg-slate-50 z-40 px-2 py-3 text-center border-r border-slate-200">STT</th>
-                                                    <th rowSpan={2} className="sticky left-[50px] bg-slate-50 z-40 px-3 py-3 border-r border-slate-200">Mã nhân sự</th>
-                                                    <th rowSpan={2} className="sticky left-[170px] bg-slate-50 z-40 px-3 py-3 border-r border-slate-200">Tên nhân sự</th>
-                                                    <th rowSpan={2} className="px-3 py-3 bg-slate-50">Chức danh</th>
-                                                    <th rowSpan={2} className="px-3 py-3 bg-slate-50">Nhóm nhân sự</th>
+                                                    <th rowSpan={2} className="sticky left-[40px] bg-slate-50 z-40 px-3 py-3 border-r border-slate-200">Mã nhân sự</th>
+                                                    <th rowSpan={2} className="sticky left-[120px] bg-slate-50 z-40 px-3 py-3 border-r border-slate-200">Tên nhân sự</th>
+                                                    <th rowSpan={2} className="sticky left-[300px] bg-slate-50 z-40 px-3 py-3 border-r border-slate-200 text-center">Chức danh</th>
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Số lương chuẩn</th>
-                                                    <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Tổng công trong tháng</th>
+                                                    <th className="px-3 py-3 text-center bg-slate-50 min-w-[150px]">Tổng công trong tháng</th>
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Ngày công chính thức</th>
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Ngày công thử việc</th>
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[120px]">Công tác hoặc đi học</th>
@@ -715,27 +747,27 @@ const PayrollDetailView = React.memo(({
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Công đêm chính thức</th>
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Công đêm thử việc</th>
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Nghỉ chờ việc</th>
-                                                    <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Tổng công ăn</th>
+                                                    <th className="px-3 py-3 text-center bg-slate-50 min-w-[100px]">Tổng cộng ăn</th>
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[120px]">Ngày phép đã dùng</th>
                                                     <th className="px-3 py-3 text-center bg-slate-50 min-w-[80px]">Phép tồn</th>
                                                     <th rowSpan={2} className="sticky right-0 bg-slate-50 z-40 px-2 py-3 border-l border-slate-200"></th>
                                                 </tr>
                                                 <tr className="bg-slate-50/90 text-[10px] text-slate-400 font-medium divide-x divide-slate-200 border-b border-slate-200">
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">1</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 italic text-[9px] border-r">=(3+4+5+6+7+8)</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">3</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">4</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">5</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">6</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">7</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">8</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">9</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">10</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">11</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">12</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">13</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r">14</th>
-                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold">15</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-red-500">1</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 italic text-[9px] border-r text-blue-600">=(3+4+5+6+7+8)</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-blue-500">3</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-blue-500">4</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-blue-500">5</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-blue-500">6</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-blue-500">7</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-blue-500">8</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-blue-500">9</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-emerald-600">10</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-emerald-600">11</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-slate-600">12</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-slate-900">13</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold border-r text-blue-500">14</th>
+                                                    <th className="px-2 py-1 text-center bg-slate-50/90 font-bold text-blue-500">15</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-200">
@@ -753,11 +785,11 @@ const PayrollDetailView = React.memo(({
                                                     return (
                                                         <React.Fragment key={group.departmentName}>
                                                             {/* Department Header Row */}
-                                                            <tr 
+                                                            <tr
                                                                 className="bg-slate-50/80 font-bold text-indigo-700 cursor-pointer hover:bg-slate-100 transition-colors"
                                                                 onClick={() => toggleGroup(group.departmentName)}
                                                             >
-                                                                <td colSpan={6} className="sticky left-0 bg-slate-50/80 z-10 px-4 py-2 border-r border-slate-200">
+                                                                <td colSpan={4} className="sticky left-0 bg-slate-50 z-20 px-4 py-2 border-r border-slate-200">
                                                                     <div className="flex items-center gap-2">
                                                                         {isCollapsed ? (
                                                                             <ChevronRight className="h-4 w-4 text-slate-400" />
@@ -771,42 +803,41 @@ const PayrollDetailView = React.memo(({
                                                                 </td>
                                                                 <td colSpan={15} className="bg-slate-50/80"></td>
                                                             </tr>
-                                                            
+
                                                             {/* Employee Rows */}
                                                             {!isCollapsed && group.items.map((item, idx) => {
-                                                                const detail = payroll?.details?.find(d => d.employeeId === item.employeeId);
+                                                                const detail = payroll?.details?.find(d => d.employeeId === item.id);
                                                                 return (
-                                                                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors divide-x divide-slate-100 group">
-                                                                    <td className="sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 px-2 py-2.5 text-center text-slate-400 border-r border-slate-100 italic">{idx + 1}</td>
-                                                                    <td className="sticky left-[50px] bg-white group-hover:bg-slate-50/50 z-10 px-3 py-2.5 font-bold text-slate-700 border-r border-slate-100">{item.employee?.employeeCode || "—"}</td>
-                                                                    <td className="sticky left-[170px] bg-white group-hover:bg-slate-50/50 z-10 px-3 py-2.5 font-medium text-slate-900 border-r border-slate-100">{item.employee?.fullName || "—"}</td>
-                                                                    <td className="px-3 py-2.5 text-slate-500">{item.employee?.position || "—"}</td>
-                                                                    <td className="px-3 py-2.5 text-slate-500">{item.employee?.jobGroup || "—"}</td>
-                                                                    <td className="px-3 py-2.5 text-center font-semibold text-slate-600">{detail?.standardDays || item.standardDays || 26}</td>
-                                                                    <td className="px-3 py-2.5 text-center">
-                                                                        <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-bold">
-                                                                            {item.totalWorkingDays || 0}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="px-3 py-2.5 text-center font-semibold text-emerald-600">{detail?.officialDays || item.officialDays || item.totalWorkingDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-slate-600">{detail?.probationDays || item.probationDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-slate-600 text-xs">{detail?.businessTripDays || item.businessTripDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-slate-600 font-medium">{detail?.holidayDays || item.holidayDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-slate-600 italic">{detail?.benefitLeaveDays || item.benefitLeaveDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-slate-600 italic">{detail?.annualLeaveDays || item.annualLeaveDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-red-500 font-bold">-{detail?.unpaidLeaveDays || item.unpaidLeaveDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-indigo-500 font-medium">{detail?.nightShiftOfficialDays || item.nightShiftOfficialDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-indigo-400">{detail?.nightShiftProbationDays || item.nightShiftProbationDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-slate-400 italic">{detail?.waitingDays || item.waitingDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-slate-800 font-bold bg-slate-50/50">{detail?.mealCount || item.mealCount || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-emerald-600">{detail?.usedLeaveDays || item.usedLeaveDays || 0}</td>
-                                                                    <td className="px-3 py-2.5 text-center text-blue-600 font-extrabold">{detail?.remainingLeaveDays || item.remainingLeaveDays || 0}</td>
-                                                                    <td className="sticky right-0 bg-white group-hover:bg-slate-50/50 z-10 px-2 py-2.5 border-l border-slate-100 text-center">
-                                                                        <button className="p-1.5 text-red-100 hover:text-red-500 transition-colors">
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
+                                                                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors divide-x divide-slate-100 group">
+                                                                        <td className="sticky left-0 bg-white group-hover:bg-slate-100 z-10 px-2 py-2.5 text-center text-slate-400 border-r border-slate-100 italic">{idx + 1}</td>
+                                                                        <td className="sticky left-[40px] bg-white group-hover:bg-slate-100 z-10 px-3 py-2.5 font-bold text-slate-700 border-r border-slate-100">{item.employeeCode || "—"}</td>
+                                                                        <td className="sticky left-[120px] bg-white group-hover:bg-slate-100 z-10 px-3 py-2.5 font-medium text-slate-900 border-r border-slate-100">{item.fullName || "—"}</td>
+                                                                        <td className="sticky left-[300px] bg-white group-hover:bg-slate-100 z-10 px-3 py-2.5 text-slate-500 border-r border-slate-100">{item.positionName || "—"}</td>
+                                                                        <td className="px-3 py-2.5 text-center font-semibold text-slate-600">{detail?.standardDays || item.standardDays || 26}</td>
+                                                                        <td className="px-3 py-2.5 text-center">
+                                                                            <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-bold">
+                                                                                {item.totalMonthlyDays || 0}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-3 py-2.5 text-center font-semibold text-emerald-600">{detail?.officialDays || item.officialDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-slate-600">{detail?.probationDays || item.probationDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-slate-600 text-xs">{detail?.businessTripDays || item.businessTripDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-slate-600 font-medium">{detail?.holidayDays || item.holidayDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-slate-600 italic">{detail?.benefitLeaveDays || item.benefitLeaveDays || item.paidLeaveDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-slate-600 italic">{detail?.annualLeaveDays || item.annualLeaveDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-red-500 font-bold">-{detail?.unpaidLeaveDays || item.unpaidLeaveDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-emerald-600 font-medium">{detail?.nightShiftOfficialDays || item.nightShiftOfficialDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-emerald-500">{detail?.nightShiftProbationDays || item.nightShiftProbationDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-slate-400 italic">{detail?.waitingDays || item.waitingDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-slate-800 font-bold bg-slate-50/50">{detail?.mealCount || item.mealCount || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-indigo-600">{detail?.usedLeaveDays || item.usedLeaveDays || 0}</td>
+                                                                        <td className="px-3 py-2.5 text-center text-indigo-600 font-extrabold">{detail?.remainingLeaveDays || item.remainingLeaveDays || 0}</td>
+                                                                        <td className="sticky right-0 bg-white group-hover:bg-slate-100 z-10 px-2 py-2.5 border-l border-slate-100 text-center">
+                                                                            <button className="p-1.5 text-red-100 hover:text-red-500 transition-colors">
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
                                                                 );
                                                             })}
                                                         </React.Fragment>
@@ -833,6 +864,15 @@ const PayrollDetailView = React.memo(({
                                 <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
                                     <Upload className="h-3 w-3" /> Import
                                 </button>
+                                {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && (
+                                    <button
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors shadow-sm"
+                                        onClick={() => onCalculate(payroll)}
+                                        disabled={actionLoading}
+                                    >
+                                        <RefreshCw className={`h-3 w-3 ${actionLoading ? 'animate-spin' : ''}`} /> Cập nhật lại & Tính lương
+                                    </button>
+                                )}
                                 <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-slate-800 text-white hover:bg-slate-700 transition-colors">
                                     <Download className="h-3 w-3" /> Xuất Excel
                                 </button>
@@ -856,7 +896,7 @@ const PayrollDetailView = React.memo(({
                                 </div>
                                 <div className="relative w-full sm:w-[300px]">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Tìm kiếm nhân sự tăng ca..."
                                         className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm shadow-slate-100"
@@ -866,8 +906,8 @@ const PayrollDetailView = React.memo(({
                                 </div>
                             </div>
 
-                            <OvertimeMatrixTable 
-                                timesheets={filteredOvertimeData} 
+                            <OvertimeMatrixTable
+                                timesheets={filteredOvertimeData}
                                 payrollDetails={payroll?.details || []}
                                 loading={timesheetLoading}
                             />
@@ -884,7 +924,7 @@ const PayrollDetailView = React.memo(({
                                 <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
                                     <Pencil className="h-3 w-3" /> Chỉnh sửa
                                 </button>
-                                <button 
+                                <button
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
                                     onClick={handleAddInputRow}
                                 >
@@ -897,8 +937,8 @@ const PayrollDetailView = React.memo(({
                                     <Download className="h-3 w-3" /> Xuất Excel
                                 </button>
                                 <div className="ml-auto flex items-center gap-1">
-                                    <button 
-                                        className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" 
+                                    <button
+                                        className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                                         title="Làm mới"
                                         onClick={() => handleRefreshSection("input")}
                                     >
@@ -917,7 +957,7 @@ const PayrollDetailView = React.memo(({
                                 </div>
                                 <div className="relative w-full sm:w-[300px]">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Tìm kiếm nội dung nhập liệu..."
                                         className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm shadow-slate-100"
@@ -941,16 +981,16 @@ const PayrollDetailView = React.memo(({
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {inputRows.length > 0 ? inputRows.filter(r => 
-                                            r.employeeCode.includes(inputSearch) || 
+                                        {inputRows.length > 0 ? inputRows.filter(r =>
+                                            r.employeeCode.includes(inputSearch) ||
                                             r.fullName.toLowerCase().includes(inputSearch.toLowerCase()) ||
                                             r.item.toLowerCase().includes(inputSearch.toLowerCase())
                                         ).map((row, idx) => (
                                             <tr key={row.id} className="hover:bg-slate-50/50 transition-colors animate-in fade-in slide-in-from-left-2 duration-300">
                                                 <td className="px-3 py-2 text-center text-slate-400">{idx + 1}</td>
                                                 <td className="px-3 py-2">
-                                                    <input 
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1 font-bold text-slate-700" 
+                                                    <input
+                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1 font-bold text-slate-700"
                                                         placeholder="Mã NV"
                                                         value={row.employeeCode}
                                                         onChange={(e) => {
@@ -961,8 +1001,8 @@ const PayrollDetailView = React.memo(({
                                                     />
                                                 </td>
                                                 <td className="px-3 py-2">
-                                                    <input 
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1" 
+                                                    <input
+                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1"
                                                         placeholder="Họ tên"
                                                         value={row.fullName}
                                                         onChange={(e) => {
@@ -973,7 +1013,7 @@ const PayrollDetailView = React.memo(({
                                                     />
                                                 </td>
                                                 <td className="px-3 py-2">
-                                                    <select 
+                                                    <select
                                                         className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1"
                                                         value={row.item}
                                                         onChange={(e) => {
@@ -990,9 +1030,9 @@ const PayrollDetailView = React.memo(({
                                                     </select>
                                                 </td>
                                                 <td className="px-3 py-2">
-                                                    <input 
+                                                    <input
                                                         type="number"
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1 text-right text-emerald-600 font-bold" 
+                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1 text-right text-emerald-600 font-bold"
                                                         placeholder="0"
                                                         value={row.amount}
                                                         onChange={(e) => {
@@ -1003,8 +1043,8 @@ const PayrollDetailView = React.memo(({
                                                     />
                                                 </td>
                                                 <td className="px-3 py-2 text-slate-500">
-                                                    <input 
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1" 
+                                                    <input
+                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1"
                                                         placeholder="Ghi chú..."
                                                         value={row.note}
                                                         onChange={(e) => {
@@ -1015,7 +1055,7 @@ const PayrollDetailView = React.memo(({
                                                     />
                                                 </td>
                                                 <td className="px-3 py-2 text-center">
-                                                    <button 
+                                                    <button
                                                         className="p-1 px-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                                         onClick={() => setInputRows(prev => prev.filter(r => r.id !== row.id))}
                                                     >
@@ -1088,34 +1128,29 @@ const PayrollDetailView = React.memo(({
                                 </Button>
                             </div>
                         </div>
-                        <PayrollDetailTable
+                        <SalaryDetailTable
                             details={payroll?.details || []}
                             loading={detailLoading}
                             canEdit={canEdit && authService.hasPermission("PAYROLL_UPDATE")}
-                            onEdit={onEditDetail}
+                            onUpdateDetail={onEditDetail}
                         />
                     </div>
                 )}
 
                 {activeTab === "summary" && (
-                    <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
-                        <FileSpreadsheet className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                        <h3 className="font-bold text-slate-900 text-lg">Tổng hợp chi phí lương</h3>
-                        <p className="text-slate-500 text-sm max-w-sm mx-auto mt-2 italic">Báo cáo tóm tắt về quỹ lương, bảo hiểm và các loại thuế thu nhập sẽ được hiển thị tại đây.</p>
-                    </div>
+                    <SalarySummaryTable 
+                        details={payroll?.details || []} 
+                        unitName={payroll?.unitName || "CTCP cấp thoát nước Sa Pa"} 
+                    />
                 )}
 
                 {activeTab === "slips" && (
-                    <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
-                        <Mail className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                        <h3 className="font-bold text-slate-900 text-lg">Phát hành phiếu lương</h3>
-                        <p className="text-slate-500 text-sm max-w-sm mx-auto mt-2 italic">Sau khi bảng lương được Chốt, bạn có thể gửi phiếu lương cho toàn thể nhân sự qua Email.</p>
-                        {payroll?.payrollStatus === "LOCKED" && (
-                            <Button className="mt-8 gap-2 bg-indigo-600 shadow-lg shadow-indigo-100">
-                                <Mail className="h-4 w-4" /> Gửi email đồng loạt
-                            </Button>
-                        )}
-                    </div>
+                    <PayrollSlipTable 
+                        details={payroll?.details || []} 
+                        onSendEmail={(ids) => toast.success(`Đã xếp lịch gửi ${ids.length} phiếu lương vào hàng đợi!`)}
+                        onRecalculate={() => onCalculate(payroll)}
+                        onUpdateDetail={onEditDetail}
+                    />
                 )}
             </div>
         </div>
