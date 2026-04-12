@@ -67,6 +67,14 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
         employeesService.getAll({ limit: 500 }).then((res) => {
             const arr = res?.data?.data || res?.data?.items || res?.items || [];
             setEmployees(arr.filter(Item => !Item.isDeleted));
+        }).catch((err) => {
+            // Nếu 403 (không có quyền EMPLOYEE_READ) → chỉ lấy thông tin chính mình
+            console.warn("Không có quyền load danh sách NV, fallback lấy thông tin cá nhân");
+            authService.getCurrentEmployeeByUserId().then(emp => {
+                if (emp?.id) {
+                    setEmployees([{ id: emp.id, fullName: emp.fullName || emp.name || 'Tôi' }]);
+                }
+            }).catch(() => {});
         });
 
         overtimeTypesService.getAll().then((res) => {
@@ -216,6 +224,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
             setSavedRequestId(newId);
             success("Lưu nháp thành công");
             onSuccess?.();
+            onClose();
         } catch (err) {
             toastError(err?.response?.data?.message || "Lưu nháp thất bại");
         } finally {
