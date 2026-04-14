@@ -2,11 +2,19 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Clock, Image as ImageIcon, UserCircle, Sparkles, ShieldCheck } from "lucide-react";
+import {
+  Camera,
+  Clock,
+  Image as ImageIcon,
+  UserCircle,
+  Sparkles,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -53,7 +61,11 @@ const FaceItem = React.memo(function FaceItem({ face, index, apiBase }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.92, y: 16 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ delay: index * 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={{
+        delay: index * 0.07,
+        duration: 0.4,
+        ease: [0.22, 1, 0.36, 1],
+      }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className="group"
     >
@@ -70,7 +82,10 @@ const FaceItem = React.memo(function FaceItem({ face, index, apiBase }) {
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted/40 to-muted/80">
-              <UserCircle className="h-16 w-16 text-muted-foreground/30" strokeWidth={1} />
+              <UserCircle
+                className="h-16 w-16 text-muted-foreground/30"
+                strokeWidth={1}
+              />
             </div>
           )}
 
@@ -168,10 +183,15 @@ export default function RegisteredFaceTable({
               Đăng ký khuôn mặt để hệ thống nhận diện tự động khi chấm công
             </p>
             {onStartRegister && (
-              <Button onClick={onStartRegister} className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                Đăng ký khuôn mặt
-              </Button>
+              <PermissionGate
+                fallback={<>Bạn không có quyền thực hiện thao tác này</>}
+                permission="ATTENDANCE_FACE_DATA_REGISTER"
+              >
+                <Button onClick={onStartRegister} className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Đăng ký khuôn mặt
+                </Button>
+              </PermissionGate>
             )}
           </CardContent>
         </Card>
@@ -203,7 +223,10 @@ export default function RegisteredFaceTable({
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="gap-1.5 border-success/30 text-success bg-success/5">
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-success/30 text-success bg-success/5"
+          >
             <ShieldCheck className="h-3 w-3" />
             Đã xác minh
           </Badge>
@@ -213,8 +236,13 @@ export default function RegisteredFaceTable({
         <CardContent className="pt-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             <AnimatePresence mode="popLayout">
-              {faces.map((face, i) => (
-                <FaceItem key={face.imageUrl || i} face={face} index={i} apiBase={apiBase} />
+              {faces?.map((face, i) => (
+                <FaceItem
+                  key={face.imageUrl || i}
+                  face={face}
+                  index={i}
+                  apiBase={apiBase}
+                />
               ))}
             </AnimatePresence>
           </div>

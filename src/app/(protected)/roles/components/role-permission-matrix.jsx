@@ -9,7 +9,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { PermissionService, RoleService } from '@/services/roles.service';
-import { authService } from '@/services/auth.service';
 import { CheckCircle2, Loader2, Pencil, Search, Shield, Trash2, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -130,17 +129,8 @@ export default function RolePermissionMatrix({ onEditRole }) {
         try {
             await RoleService.assignPermissions(selectedRole.id, selectedPermissions);
             
-            // Refresh current user's session in case they are editing their own role
-            await authService.getProfile();
+            toast.success('Cập nhật quyền thành công');
             
-            toast.success('Cập nhật quyền thành công. Vui lòng đăng nhập lại để áp dụng thay đổi.');
-            
-            // Logout and redirect to login to force session refresh
-            setTimeout(async () => {
-                await authService.logout();
-                window.location.href = '/login';
-            }, 2000);
-
             // Refresh local roles data to update counts if needed
             const rolesData = await RoleService.getRoles();
             setRoles(rolesData.data || []);

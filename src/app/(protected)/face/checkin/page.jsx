@@ -19,6 +19,8 @@ import RecentActivity from "./components/RecentActivity";
 import BiometricRequiredDialog from "./components/Biometricrequireddialog";
 import CheckInDialog from "./components/CheckInDialog";
 import { attendanceService } from "@/services/attendance.service";
+import { Skeleton } from "@/components/common/Skeleton";
+import { canAccess } from "@/components/common/AuthGuard";
 
 function isWithinShiftWindow(startTime, endTime) {
   const now = new Date();
@@ -101,6 +103,7 @@ const Index = () => {
     setDialogOpen(true);
   };
   const fetchMetadata = async () => {
+    setIsLoading(true);
     try {
       const data = await attendanceService.getTodayContext();
       const { recentRecords, ...metaData } = data.data || {};
@@ -114,6 +117,8 @@ const Index = () => {
       setActivities(recentRecords || []);
     } catch (error) {
       toastError("Không thể tải dữ liệu cấu hình");
+    } finally {
+      setIsLoading(false);
     }
   };
   useEffect(() => {
@@ -268,7 +273,7 @@ const Index = () => {
         )}
 
         {/* No biometric warning */}
-        {!ctx?.hasBiometric && !ctx?.isBlocked && (
+        {!isLoading && !ctx?.hasBiometric && !ctx?.isBlocked && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -304,7 +309,7 @@ const Index = () => {
         )}
 
         {/* No shift warning */}
-        {!ctx?.hasShift && !ctx?.isBlocked && (
+        {!isLoading && !ctx?.hasShift && !ctx?.isBlocked && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -383,7 +388,17 @@ const Index = () => {
             <CardContent className="pt-6">
               <AttendanceClock status={attendanceStatus} />
 
-              {ctx?.hasShift && (
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
+                  <Clock className="h-4 w-4" />
+                  <span>Ca làm: 00:00:00 — 00:00:00 (0h 0m)</span>
+                </div>
+              ) : !isLoading && !ctx?.hasShift ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
+                  <Clock className="h-4 w-4" />
+                  <span>Bạn không có ca làm việc hôm nay</span>
+                </div>
+              ) : (
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
                   <Clock className="h-4 w-4" />
                   <span>
@@ -397,7 +412,16 @@ const Index = () => {
                 <Button
                   size="lg"
                   onClick={() => handleOpenDialog("check-in")}
-                  disabled={checkInDisabled || isSubmit}
+                  title={
+                    !canAccess("ATTENDANCE_RECORD")
+                      ? "Bạn chưa được cấp quyền chấm công"
+                      : ""
+                  }
+                  disabled={
+                    checkInDisabled ||
+                    isSubmit ||
+                    !canAccess("ATTENDANCE_RECORD")
+                  }
                   className="gap-2 min-w-[140px]"
                 >
                   <LogIn className="h-4 w-4" />
@@ -406,8 +430,17 @@ const Index = () => {
                 <Button
                   size="lg"
                   variant="outline"
+                  title={
+                    !canAccess("ATTENDANCE_RECORD")
+                      ? "Bạn chưa được cấp quyền chấm công"
+                      : ""
+                  }
                   onClick={() => handleOpenDialog("check-out")}
-                  disabled={checkOutDisabled || isSubmit}
+                  disabled={
+                    checkOutDisabled ||
+                    isSubmit ||
+                    !canAccess("ATTENDANCE_RECORD")
+                  }
                   className="gap-2 min-w-[140px]"
                 >
                   <LogOut className="h-4 w-4" />

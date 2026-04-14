@@ -13,6 +13,7 @@ import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { Search, Eye, Trash2, User, Clock } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
 function getInitials(name = "") {
@@ -153,14 +154,16 @@ export default function FaceDataTable({
             >
               <Eye className="h-4 w-4 text-slate-500" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDeleteEmployee(row.original)}
-              title="Xoá toàn bộ"
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
+            <PermissionGate permission="ATTENDANCE_FACE_DATA_DELETE">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDeleteEmployee(row.original)}
+                title="Xoá toàn bộ"
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </PermissionGate>
           </div>
         ),
       },

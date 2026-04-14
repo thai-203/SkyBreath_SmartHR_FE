@@ -1,15 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function OnboardingIndex() {
-  const router = useRouter();
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
         const [
           progsRes,
           statsRes,

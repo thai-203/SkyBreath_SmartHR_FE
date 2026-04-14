@@ -5,6 +5,7 @@ import { Button } from "@/components/common/Button";
 import { ConfirmModal } from "@/components/common/Modal";
 import { useToast } from "@/components/common/Toast";
 import { FolderGit2, Plus } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import RequestGroupsTable from "./components/RequestGroupsTable";
 import RequestGroupFormModal from "./components/RequestGroupFormModal";
 import WorkflowConfigModal from "./components/WorkflowConfigModal";
@@ -69,7 +70,7 @@ export default function RequestGroupsPage() {
 
     const fetchRoles = useCallback(async () => {
         try {
-            const res = await userService.getMetadata();
+            const res = await userService.getMetadataPublic();
             setRoles(res.data?.roles || res.data || []);
         } catch (err) {
             console.error("Lỗi khi tải dữ liệu vai trò:", err);
@@ -203,9 +204,11 @@ export default function RequestGroupsPage() {
                         <p className="text-sm text-slate-500">Thiết lập danh mục và luồng duyệt đơn</p>
                     </div>
                 </div>
-                <Button onClick={handleOpenAdd} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-                    <Plus className="h-4 w-4" /> Thêm nhóm đơn
-                </Button>
+                <PermissionGate permission="REQUEST_GROUP_CREATE">
+                  <Button onClick={handleOpenAdd} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+                      <Plus className="h-4 w-4" /> Thêm nhóm đơn
+                  </Button>
+                </PermissionGate>
             </div>
 
             <RequestGroupsTable

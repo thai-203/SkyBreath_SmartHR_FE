@@ -8,6 +8,7 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { Button } from "@/components/common/Button";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
@@ -194,33 +195,39 @@ export default function ContractTable({
               >
                 <Eye className="h-4 w-4" />
               </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-                onClick={() => onEdit(row.original)}
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              {isActive && (
+              <PermissionGate permission="CONTRACT_UPDATE">
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8 text-orange-500 hover:bg-orange-50"
-                  title="Chấm dứt hợp đồng"
-                  onClick={() => onTerminate(row.original)}
+                  className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                  onClick={() => onEdit(row.original)}
                 >
-                  <FileText className="h-4 w-4" />
+                  <Edit2 className="h-4 w-4" />
                 </Button>
+              </PermissionGate>
+              {isActive && (
+                <PermissionGate permission="CONTRACT_TERMINATE">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-orange-500 hover:bg-orange-50"
+                    title="Chấm dứt hợp đồng"
+                    onClick={() => onTerminate(row.original)}
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                </PermissionGate>
               )}
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                onClick={() => onDelete(row.original)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <PermissionGate permission="CONTRACT_DELETE">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                  onClick={() => onDelete(row.original)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </PermissionGate>
             </div>
           );
         },

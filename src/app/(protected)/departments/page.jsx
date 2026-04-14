@@ -3,6 +3,7 @@
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import { regex, required, unique, validate } from "@/lib/validation";
 import { departmentsService, employeesService } from "@/services";
 import { Download, Plus } from "lucide-react";
@@ -245,14 +246,18 @@ export default function DepartmentsPage() {
                     <p className="text-slate-500">Danh sách tất cả phòng ban trong công ty</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleExport} loading={exportLoading}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Xuất Excel
-                    </Button>
-                    <Button onClick={handleCreate}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Thêm phòng ban
-                    </Button>
+                    <PermissionGate permission="DEPARTMENT_EXPORT">
+                        <Button variant="outline" onClick={handleExport} loading={exportLoading}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Xuất Excel
+                        </Button>
+                    </PermissionGate>
+                    <PermissionGate permission="DEPARTMENT_CREATE">
+                        <Button onClick={handleCreate}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Thêm phòng ban
+                        </Button>
+                    </PermissionGate>
                 </div>
             </div>
 

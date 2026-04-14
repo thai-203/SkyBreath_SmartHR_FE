@@ -1,7 +1,7 @@
 "use client";
 
 import { holidayService, holidayConfigService } from "@/services";
-import { Calendar, ChevronLeft, CreditCard, FileText, User, Plus, Search, ShieldCheck, Download } from "lucide-react";
+import { Calendar, ChevronLeft, FileText, User, Plus, Search, ShieldCheck, Download } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";

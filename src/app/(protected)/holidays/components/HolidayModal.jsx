@@ -111,8 +111,8 @@ export function HolidayModal({ isOpen, onClose, onSubmit, holiday }) {
         setLoadingTree(true);
         try {
             const [deptRes, empRes] = await Promise.all([
-                departmentsService.getChart(),
-                employeesService.getAll({ limit: 1000 })
+                departmentsService.getChartForHoliday(),
+                employeesService.getAllForPublic({ limit: 1000 })
             ]);
 
             const departments = deptRes.data || [];

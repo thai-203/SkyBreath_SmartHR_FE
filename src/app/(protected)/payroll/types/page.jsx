@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, Layers } from "lucide-react";
 import { payrollTypeService } from "@/services";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import PayrollTypeTable from "./components/PayrollTypeTable";
 import CreatePayrollTypeModal from "./components/CreatePayrollTypeModal";
 import { toast } from "sonner";
@@ -76,13 +77,15 @@ export default function PayrollTypesPage() {
           <h1 className="text-2xl font-bold text-slate-900">Danh sách loại bảng lương</h1>
           <p className="text-sm text-slate-500">Quản lý các cấu hình bảng lương khác nhau</p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-600 active:scale-95"
-        >
-          <Plus className="h-4 w-4" />
-          Thêm loại bảng lương
-        </button>
+        <PermissionGate permission="PAYROLL_TYPE_CREATE">
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-600 active:scale-95"
+          >
+            <Plus className="h-4 w-4" />
+            Thêm loại bảng lương
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Filters & Search */}
