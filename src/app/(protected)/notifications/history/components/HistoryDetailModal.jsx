@@ -91,7 +91,18 @@ export function HistoryDetailModal({ open, onClose, record }) {
                         </div>
                         <div>
                             <p className="text-xs text-slate-400 mb-1">Nội dung</p>
-                            <p className="text-sm text-slate-600 whitespace-pre-wrap">{record.message}</p>
+                            <div 
+                                className="text-sm text-slate-600 leading-relaxed max-w-none
+                                    [&_p]:mb-2 [&_p]:leading-relaxed
+                                    [&_strong]:font-semibold [&_strong]:text-slate-800
+                                    [&_em]:italic [&_em]:text-slate-600
+                                    [&_ul]:list-disc [&_ul]:ml-4 [&_ul]:mb-2
+                                    [&_ol]:list-decimal [&_ol]:ml-4 [&_ol]:mb-2
+                                    [&_li]:mb-0.5
+                                    [&_a]:text-indigo-600 [&_a]:underline
+                                    [&_blockquote]:border-l-2 [&_blockquote]:border-slate-200 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-slate-500"
+                                dangerouslySetInnerHTML={{ __html: record.message }}
+                            />
                         </div>
                     </div>
 

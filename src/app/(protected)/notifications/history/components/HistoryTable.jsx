@@ -71,7 +71,9 @@ export function HistoryTable({ items, loading, onRowClick }) {
                             >
                                 <td className="px-4 py-3.5">
                                     <p className="font-medium text-slate-800 truncate max-w-[220px]">{row.title}</p>
-                                    <p className="text-xs text-slate-400 truncate max-w-[220px]">{row.message}</p>
+                                    <p className="text-xs text-slate-400 truncate max-w-[220px]">
+                                        {(() => { try { const d = document.createElement('div'); d.innerHTML = row.message || ''; return d.textContent || ''; } catch { return (row.message || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' '); } })()}
+                                    </p>
                                 </td>
                                 <td className="px-4 py-3.5">
                                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${SOURCE_COLORS[row.sourceType] || "bg-slate-100 text-slate-600"}`}>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { History, Filter, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { History, Filter, RefreshCw } from "lucide-react";
 import { notificationsService } from "@/services/notifications.service";
+import { Pagination } from "@/components/common/Pagination";
 import { HistoryTable } from "./components/HistoryTable";
 import { HistoryDetailModal } from "./components/HistoryDetailModal";
 
@@ -33,7 +34,7 @@ export default function NotificationHistoryPage() {
     const [detailOpen, setDetailOpen] = useState(false);
     const [detailData, setDetailData] = useState(null);
 
-    const LIMIT = 15;
+    const LIMIT = 10;
     const totalPages = Math.ceil(total / LIMIT);
 
     const fetchHistory = useCallback(async () => {
@@ -156,29 +157,16 @@ export default function NotificationHistoryPage() {
                 />
 
                 {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-                        <p className="text-sm text-slate-500">
-                            Trang {page} / {totalPages}
-                        </p>
-                        <div className="flex items-center gap-2">
-                            <button
-                                disabled={page === 1}
-                                onClick={() => setPage(p => p - 1)}
-                                className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-all"
-                            >
-                                <ChevronLeft className="h-4 w-4" /> Trước
-                            </button>
-                            <button
-                                disabled={page >= totalPages}
-                                onClick={() => setPage(p => p + 1)}
-                                className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-all"
-                            >
-                                Sau <ChevronRight className="h-4 w-4" />
-                            </button>
-                        </div>
-                    </div>
-                )}
+                <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+                    <p className="text-sm text-slate-500">
+                        Hiển thị {items.length} / Trang {page} của {Math.max(totalPages, 1)}
+                    </p>
+                    <Pagination
+                        currentPage={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                    />
+                </div>
             </div>
 
             {/* Detail Modal */}

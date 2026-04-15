@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/common/Pagination";
 
 export default function RequestTypesTable({
     data, loading, search, onSearchChange,
@@ -153,12 +154,16 @@ export default function RequestTypesTable({
                 </Table>
             </div>
 
-            <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-500">Trang {currentPage} / {totalPages}</p>
-                <div className="flex space-x-2">
-                    <Button disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)} variant="outline" size="sm">Trước</Button>
-                    <Button disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)} variant="outline" size="sm">Sau</Button>
-                </div>
+            {/* Phân trang chuẩn */}
+            <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+                <p className="text-sm text-slate-500">
+                    Hiển thị {data.length} / Trang {currentPage} của {totalPages}
+                </p>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={onPageChange}
+                />
             </div>
         </div>
     );
