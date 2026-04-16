@@ -52,7 +52,7 @@ export default function MyRequestsPage() {
         fetchRequests();
     }, [fetchRequests]);
 
-    // 🔔 Real-time: Lắng nghe socket events để tự refresh
+    //  Real-time: Lắng nghe socket events để tự refresh
     useEffect(() => {
         const handleNewNotification = (e) => {
             const data = e.detail || {};
