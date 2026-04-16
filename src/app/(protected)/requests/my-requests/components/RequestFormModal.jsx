@@ -156,7 +156,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
         }
     }, [form.requestTypeId, form.employeeId, requestTypes, loadWorkflowPreview]);
 
-    // Tính số ngày/giờ đang yêu cầu khi startDate/endDate thay đổi
+    // Tính số ngày/giờ đang yêu cầu khi startDate/endDate/startTime/endTime thay đổi
     useEffect(() => {
         if (!form.startDate || !form.endDate || !quotaStatus?.hasQuota) {
             setRequestedQty(0);
@@ -166,8 +166,23 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
         const end = new Date(form.endDate);
         if (start > end) { setRequestedQty(0); return; }
 
-        // Tính trên FE: đây là ước tính calendar days (BE sẽ validate chính xác theo shift)
-        // FE dùng để hiển thị cảnh báo real-time
+        const unit = quotaStatus.unit;
+
+        // Nếu unit=HOUR → phải có cả startTime VÀ endTime mới gọi API
+        // Không thì BE sẽ fallback tính full day = 8h (sai)
+        if (unit === 'HOUR' && (!form.startTime || !form.endTime)) {
+            setRequestedQty(0);
+            return;
+        }
+
+        if (unit === 'TIME' || unit === 'OTHER') {
+            setRequestedQty(1);
+            return;
+        }
+
+        // AbortController chống race condition giữa các lần gọi
+        const controller = new AbortController();
+
         const fetchExactEstimate = async () => {
             try {
                 const res = await requestsService.estimateQuantity({
@@ -176,22 +191,22 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                     endDate: form.endDate,
                     startTime: form.startTime || '',
                     endTime: form.endTime || '',
-                    unit: quotaStatus.unit
+                    unit: quotaStatus.unit,
+                    requestTypeId: form.requestTypeId
                 });
-                if (res?.data) {
+                if (!controller.signal.aborted && res?.data) {
                     setRequestedQty(res.data.estimatedQuantity);
                 }
             } catch (error) {
-                console.error("Lỗi tải ước tính ngày:", error);
+                if (!controller.signal.aborted) {
+                    console.error("Lỗi tải ước tính ngày:", error);
+                }
             }
         };
 
-        const unit = quotaStatus.unit;
-        if (unit === 'TIME' || unit === 'OTHER') {
-            setRequestedQty(1);
-        } else {
-            fetchExactEstimate();
-        }
+        fetchExactEstimate();
+
+        return () => controller.abort();
     }, [form.startDate, form.endDate, form.startTime, form.endTime, quotaStatus]);
 
     const validate = () => {

@@ -215,18 +215,18 @@ export default function NotificationDropdown() {
         {/* Modal chi tiết thông báo - render ra ngoài body bằng Portal */}
         {selectedNotification && typeof document !== 'undefined' && createPortal(
             <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={() => setSelectedNotification(null)}>
-                <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl relative flex flex-col max-h-[85vh] animate-in zoom-in-95 fade-in duration-200" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl relative flex flex-col max-h-[85vh] animate-in zoom-in-95 fade-in duration-200" onClick={(e) => e.stopPropagation()}>
                     {/* Header */}
-                    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 bg-gradient-to-r from-slate-50 to-blue-50/40 rounded-t-2xl shrink-0">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-gradient-to-r from-slate-50 to-blue-50/40 rounded-t-2xl shrink-0">
                         <div className="flex items-center gap-2">
                             <Bell className="w-4 h-4 text-blue-500" />
                             <h2 className="text-sm font-bold text-slate-800">Chi tiết thông báo</h2>
                         </div>
                         <button
                             onClick={() => setSelectedNotification(null)}
-                            className="rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                            className="rounded-full p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
                         >
-                            <X className="h-4 w-4" />
+                            <X className="h-5 w-5" />
                         </button>
                     </div>
 
