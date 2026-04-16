@@ -76,54 +76,54 @@ export default function SalaryDetailTable({
                         <col width="45" /><col width="85" /><col width="190" />
                         {expanded.infoOther ? <><col width="40" /><col width="160" /><col width="160" /><col width="140" /></> : <col width="180" />}
                         {expanded.incomePackage ? <><col width="100" /><col width="100" /><col width="100" /></> : <col width="150" />}
-                        {expanded.totalSalary ? <><col width="130" /><col width="140" /><col width="130" /><col width="130" /><col width="130" /><col width="140" /></> : <col width="200" />}
+                        {expanded.totalSalary ? <><col width="140" /><col width="150" /><col width="150" /><col width="150" /><col width="150" /><col width="150" /></> : <col width="200" />}
                         <col width="150" />
-                        {expanded.workingDay ? <><col width="75" /><col width="75" /><col width="75" /><col width="75" /><col width="75" /><col width="75" /><col width="75" /><col width="75" /><col width="75" /><col width="75" /></> : <col width="180" />}
+                        {expanded.workingDay ? <><col width="90" /><col width="90" /><col width="90" /><col width="90" /><col width="100" /><col width="90" /><col width="90" /><col width="90" /><col width="90" /><col width="90" /></> : <col width="180" />}
                         <col width="120" />
-                        {expanded.calculateSalaryBonus ? <><col width="130" /><col width="130" /><col width="130" /><col width="130" /><col width="130" /><col width="150" /></> : <col width="200" />}
-                        <col width="130" /><col width="130" /><col width="130" /><col width="130" /><col width="130" /><col width="150" />
-                        {expanded.insuranceEmp ? <><col width="110" /><col width="110" /><col width="110" /><col width="110" /></> : <col width="180" />}
+                        {expanded.calculateSalaryBonus ? <><col width="150" /><col width="150" /><col width="150" /><col width="150" /><col width="150" /><col width="160" /></> : <col width="200" />}
+                        <col width="140" /><col width="140" /><col width="140" /><col width="140" /><col width="140" /><col width="160" />
+                        {expanded.insuranceEmp ? <><col width="110" /><col width="110" /><col width="110" /><col width="130" /></> : <col width="180" />}
                         <col width="150" /><col width="150" /><col width="150" />
-                        {expanded.insuranceCo ? <><col width="110" /><col width="110" /><col width="110" /><col width="110" /></> : <col width="180" />}
+                        {expanded.insuranceCo ? <><col width="110" /><col width="110" /><col width="110" /><col width="130" /></> : <col width="180" />}
                         <col width="200" /><col width="250" />
                         {expanded.infoBank ? <><col width="200" /><col width="200" /><col width="200" /></> : <col width="200" />}
                         <col width="300" />
                     </colgroup>
 
-                    <thead className="bg-[#f8fafc] text-slate-700 uppercase font-black sticky top-0 z-50">
+                    <thead className="bg-[#f8fafc] text-slate-700 uppercase font-black sticky top-0 z-10">
                         {/* Row 1: Groups */}
                         <tr className="border-b border-slate-300">
-                            <th rowSpan={3} className="sticky left-0 bg-[#f8fafc] z-[60] border-r border-slate-300">STT</th>
-                            <th rowSpan={3} className="sticky left-[45px] bg-[#f8fafc] z-[60] border-r border-slate-300">Mã NS</th>
-                            <th rowSpan={3} className="sticky left-[130px] bg-[#f8fafc] z-[60] border-r border-slate-300 text-left">Họ và Tên</th>
-                            <th colSpan={expanded.infoOther ? 4 : 1} rowSpan={expanded.infoOther ? 1 : 2} className="bg-emerald-50 cursor-pointer" onClick={() => toggle('infoOther')}>Hồ sơ {expanded.infoOther ? '-' : '+'}</th>
-                            <th colSpan={expanded.incomePackage ? 3 : 1} rowSpan={expanded.incomePackage ? 1 : 2} className="bg-amber-50 cursor-pointer" onClick={() => toggle('incomePackage')}>Chính sách {expanded.incomePackage ? '-' : '+'}</th>
-                            <th colSpan={expanded.totalSalary ? 6 : 1} rowSpan={expanded.totalSalary ? 1 : 2} className="bg-amber-50 cursor-pointer" onClick={() => toggle('totalSalary')}>Mức lương {expanded.totalSalary ? '-' : '+'}</th>
-                            <th rowSpan={2} className="bg-amber-50">T.P Cấp</th>
-                            <th colSpan={expanded.workingDay ? 10 : 1} rowSpan={expanded.workingDay ? 1 : 2} className="bg-blue-50 cursor-pointer" onClick={() => toggle('workingDay')}>Công {expanded.workingDay ? '-' : '+'}</th>
+                            <th rowSpan={3} className="sticky left-0 bg-[#f8fafc] z-20 border-r border-slate-300">STT</th>
+                            <th rowSpan={3} className="sticky left-[45px] bg-[#f8fafc] z-20 border-r border-slate-300">Mã NS</th>
+                            <th rowSpan={3} className="sticky left-[130px] bg-[#f8fafc] z-20 border-r border-slate-300 text-left">Họ và Tên</th>
+                            <th colSpan={expanded.infoOther ? 4 : 1} rowSpan={expanded.infoOther ? 1 : 2} className="bg-emerald-50 cursor-pointer" onClick={() => toggle('infoOther')}>Hồ sơ nhân sự {expanded.infoOther ? '-' : '+'}</th>
+                            <th colSpan={expanded.incomePackage ? 3 : 1} rowSpan={expanded.incomePackage ? 1 : 2} className="bg-amber-50 cursor-pointer" onClick={() => toggle('incomePackage')}>Chính sách lương {expanded.incomePackage ? '-' : '+'}</th>
+                            <th colSpan={expanded.totalSalary ? 6 : 1} rowSpan={expanded.totalSalary ? 1 : 2} className="bg-amber-50 cursor-pointer" onClick={() => toggle('totalSalary')}>Mức lương thỏa thuận {expanded.totalSalary ? '-' : '+'}</th>
+                            <th rowSpan={2} className="bg-amber-50">Tổng phụ cấp</th>
+                            <th colSpan={expanded.workingDay ? 10 : 1} rowSpan={expanded.workingDay ? 1 : 2} className="bg-blue-50 cursor-pointer" onClick={() => toggle('workingDay')}>Công thực tế {expanded.workingDay ? '-' : '+'}</th>
                             <th rowSpan={2}>KPI</th>
-                            <th colSpan={expanded.calculateSalaryBonus ? 6 : 1} rowSpan={expanded.calculateSalaryBonus ? 1 : 2} className="bg-blue-50 cursor-pointer" onClick={() => toggle('calculateSalaryBonus')}>Thanh toán {expanded.calculateSalaryBonus ? '-' : '+'}</th>
-                            <th rowSpan={2}>P.Sinh</th><th rowSpan={2}>TTPC</th><th rowSpan={2}>Tổng OT</th><th rowSpan={2}>TLinh</th><th rowSpan={2}>KT.Thuế</th><th rowSpan={2} className="bg-indigo-100/50">T.Thu nhập</th>
-                            <th colSpan={expanded.insuranceEmp ? 4 : 1} rowSpan={expanded.insuranceEmp ? 1 : 2} className="bg-rose-50 cursor-pointer" onClick={() => toggle('insuranceEmp')}>N.Đóng BH {expanded.insuranceEmp ? '-' : '+'}</th>
-                            <th rowSpan={2} className="bg-rose-50">Thuế</th>
-                            <th rowSpan={2} className="bg-rose-100/40 text-rose-700">Thực lĩnh</th>
+                            <th colSpan={expanded.calculateSalaryBonus ? 6 : 1} rowSpan={expanded.calculateSalaryBonus ? 1 : 2} className="bg-blue-50 cursor-pointer" onClick={() => toggle('calculateSalaryBonus')}>Thanh toán lương {expanded.calculateSalaryBonus ? '-' : '+'}</th>
+                            <th rowSpan={2}>Phát sinh</th><th rowSpan={2}>Trợ cấp</th><th rowSpan={2}>Tổng Tăng ca</th><th rowSpan={2}>Tạm lĩnh</th><th rowSpan={2}>Khấu trừ Thuế</th><th rowSpan={2} className="bg-indigo-100/50">Tổng Thu nhập</th>
+                            <th colSpan={expanded.insuranceEmp ? 4 : 1} rowSpan={expanded.insuranceEmp ? 1 : 2} className="bg-rose-50 cursor-pointer" onClick={() => toggle('insuranceEmp')}>Nhân sự đóng Bảo hiểm {expanded.insuranceEmp ? '-' : '+'}</th>
+                            <th rowSpan={2} className="bg-rose-50">Thuế TNCN</th>
+                            <th rowSpan={2} className="bg-rose-100/40 text-rose-700">Thực nhận</th>
                             <th rowSpan={2}>C.Đoàn</th>
-                            <th colSpan={expanded.insuranceCo ? 4 : 1} rowSpan={expanded.insuranceCo ? 1 : 2} className="bg-emerald-50 cursor-pointer" onClick={() => toggle('insuranceCo')}>C.Đóng BH {expanded.insuranceCo ? '-' : '+'}</th>
-                            <th rowSpan={2} className="bg-emerald-100/50 text-emerald-900 font-extrabold text-[#064e3b]">Chi phí NS</th>
+                            <th colSpan={expanded.insuranceCo ? 4 : 1} rowSpan={expanded.insuranceCo ? 1 : 2} className="bg-emerald-50 cursor-pointer" onClick={() => toggle('insuranceCo')}>Công ty đóng Bảo hiểm {expanded.insuranceCo ? '-' : '+'}</th>
+                            <th rowSpan={2} className="bg-emerald-100/50 text-emerald-900 font-extrabold text-[#064e3b]">Chi phí Nhân sự</th>
                             <th rowSpan={2}>Email</th>
-                            <th colSpan={expanded.infoBank ? 3 : 1} rowSpan={expanded.infoBank ? 1 : 2} className="cursor-pointer" onClick={() => toggle('infoBank')}>Bank {expanded.infoBank ? '-' : '+'}</th>
+                            <th colSpan={expanded.infoBank ? 3 : 1} rowSpan={expanded.infoBank ? 1 : 2} className="cursor-pointer" onClick={() => toggle('infoBank')}>Ngân hàng {expanded.infoBank ? '-' : '+'}</th>
                             <th rowSpan={2}>Ghi chú</th>
                         </tr>
                         {/* Row 2: Sub-headers */}
                         <tr className="text-[9px] bg-slate-50">
-                            {expanded.infoOther && <><th className="border-r border-slate-200">#</th><th className="border-r border-slate-200">Chức danh</th><th className="border-r border-slate-200">Bộ phận</th><th className="border-r border-slate-200">HĐ</th></>}
-                            {expanded.incomePackage && <><th className="border-r border-slate-200">Loại</th><th className="border-r border-slate-200">%(1+2)</th><th className="border-r border-slate-200">%P3</th></>}
-                            {expanded.totalSalary && <><th className="border-r border-slate-200">Lương CB</th><th className="border-r border-slate-200 bg-amber-100/20">Tổng</th><th className="border-r border-slate-200">P1</th><th className="border-r border-slate-200">P2.1</th><th className="border-r border-slate-200">P2.2</th><th className="border-r border-slate-200">Thử việc</th></>}
-                            {expanded.workingDay && <><th className="border-r border-slate-200">Chuẩn</th><th className="border-r border-slate-200">CT</th><th className="border-r border-slate-200">TV</th><th className="border-r border-slate-200">Đêm</th><th className="border-r border-slate-200">Đ.TV</th><th className="border-r border-slate-200">Học</th><th className="border-r border-slate-200">Lễ</th><th className="border-r border-slate-200">Phép</th><th className="border-r border-slate-200 text-rose-500">KL</th><th className="border-r border-slate-200">C.Độ</th></>}
-                            {expanded.calculateSalaryBonus && <><th className="border-r border-slate-200">P1</th><th className="border-r border-slate-200">P2.1</th><th className="border-r border-slate-200">P2.2</th><th className="border-r border-slate-200">T.Việc</th><th className="border-r border-slate-200">Đêm</th><th className="border-r border-slate-200 bg-blue-100/20">Cộng</th></>}
-                            {expanded.insuranceEmp && <><th className="border-r border-slate-200">XH</th><th className="border-r border-slate-200">YT</th><th className="border-r border-slate-200">TN</th><th className="border-r border-slate-200 bg-rose-100/20">Cộng</th></>}
-                            {expanded.insuranceCo && <><th className="border-r border-slate-200">XH</th><th className="border-r border-slate-200">YT</th><th className="border-r border-slate-200">TN</th><th className="border-r border-slate-200 bg-emerald-100/20">Cộng</th></>}
-                            {expanded.infoBank && <><th className="border-r border-slate-200">NH</th><th className="border-r border-slate-200">STK</th><th className="border-r border-slate-200">CN</th></>}
+                            {expanded.infoOther && <><th className="border-r border-slate-200">#</th><th className="border-r border-slate-200">Chức danh</th><th className="border-r border-slate-200">Bộ phận</th><th className="border-r border-slate-200">Hợp đồng</th></>}
+                            {expanded.incomePackage && <><th className="border-r border-slate-200">Loại lương</th><th className="border-r border-slate-200">%(1+2)</th><th className="border-r border-slate-200">%P3</th></>}
+                            {expanded.totalSalary && <><th className="border-r border-slate-200">Lương cơ bản</th><th className="border-r border-slate-200 bg-amber-100/20">Tổng cộng</th><th className="border-r border-slate-200">Lương Vị trí (P1)</th><th className="border-r border-slate-200">Lương Năng lực (P2.1)</th><th className="border-r border-slate-200">Lương Hiệu quả (P2.2)</th><th className="border-r border-slate-200">Thử việc</th></>}
+                            {expanded.workingDay && <><th className="border-r border-slate-200">Ngày chuẩn</th><th className="border-r border-slate-200">Công tác</th><th className="border-r border-slate-200">Thử việc</th><th className="border-r border-slate-200">Trực đêm</th><th className="border-r border-slate-200">Đêm thử việc</th><th className="border-r border-slate-200">Chờ việc</th><th className="border-r border-slate-200">Nghỉ lễ</th><th className="border-r border-slate-200">Nghỉ phép</th><th className="border-r border-slate-200 text-rose-500">Nghỉ KL</th><th className="border-r border-slate-200">Nghỉ CĐ</th></>}
+                            {expanded.calculateSalaryBonus && <><th className="border-r border-slate-200">Lương Vị trí (P1)</th><th className="border-r border-slate-200">Lương Năng lực (P2.1)</th><th className="border-r border-slate-200">Lương Hiệu quả (P2.2)</th><th className="border-r border-slate-200">Lương Thử việc</th><th className="border-r border-slate-200">Tiền trực đêm</th><th className="border-r border-slate-200 bg-blue-100/20">Tổng cộng</th></>}
+                            {expanded.insuranceEmp && <><th className="border-r border-slate-200">BHXH</th><th className="border-r border-slate-200">BHYT</th><th className="border-r border-slate-200">BHTN</th><th className="border-r border-slate-200 bg-rose-100/20">Tổng cộng</th></>}
+                            {expanded.insuranceCo && <><th className="border-r border-slate-200">BHXH</th><th className="border-r border-slate-200">BHYT</th><th className="border-r border-slate-200">BHTN</th><th className="border-r border-slate-200 bg-emerald-100/20">Tổng cộng</th></>}
+                            {expanded.infoBank && <><th className="border-r border-slate-200">Ngân hàng</th><th className="border-r border-slate-200">Số tài khoản</th><th className="border-r border-slate-200">Chi nhánh</th></>}
                         </tr>
                         {/* Row 3: Formulas */}
                         <tr className="bg-slate-200/60 text-[10px] text-slate-500 italic">
@@ -148,7 +148,7 @@ export default function SalaryDetailTable({
                         {Object.entries(groupedData).map(([dept, items]) => (
                             <React.Fragment key={dept}>
                                 <tr className="bg-slate-50/50 font-extrabold text-indigo-800">
-                                    <td colSpan={3} className="sticky left-0 bg-slate-50 z-20 px-4 py-2.5 border-r border-slate-200 uppercase tracking-tighter text-xs">📂 {dept}</td>
+                                    <td colSpan={3} className="sticky left-0 bg-slate-50 z-10 px-4 py-2.5 border-r border-slate-200 uppercase tracking-tighter text-xs">📂 {dept}</td>
                                     <td colSpan={100} className="border-r border-slate-100"></td>
                                 </tr>
                                 {items.map((item, idx) => (
