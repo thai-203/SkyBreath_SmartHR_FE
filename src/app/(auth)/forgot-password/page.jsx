@@ -23,7 +23,8 @@ function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const token = searchParams.get("token"); // 👈 QUAN TRỌNG
+  const requestId = searchParams.get("requestId"); // otpRequestId from URL
+  const otpFromUrl = searchParams.get("otp"); // OTP from URL
 
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -65,7 +66,7 @@ function ForgotPasswordContent() {
   };
 
   // ======================
-  // RESET PASSWORD
+  // RESET PASSWORD WITH OTP
   // ======================
   const validationErrors = validate(form, {
     password: [
@@ -97,13 +98,14 @@ function ForgotPasswordContent() {
     setLoading(true);
 
     try {
-      await authService.resetPassword(token, form.password);
+      // OTP automatically extracted from URL, user doesn't need to enter it
+      await authService.resetPasswordWithOtp(requestId, otpFromUrl, form.password);
 
       setSubmitted(true);
       toastSuccess("Đặt lại mật khẩu thành công");
     } catch (err) {
       toastError(
-        err.response?.data?.message || "Token không hợp lệ hoặc đã hết hạn",
+        err.response?.data?.message || "Link không hợp lệ hoặc đã hết hạn",
       );
     } finally {
       setLoading(false);
@@ -119,10 +121,10 @@ function ForgotPasswordContent() {
             S
           </div>
           <h2 className="mt-6 text-3xl font-bold text-slate-900">
-            {token ? "Đặt lại mật khẩu" : "Quên mật khẩu"}
+            {requestId ? "Đặt lại mật khẩu" : "Quên mật khẩu"}
           </h2>
           <p className="mt-2 text-sm text-slate-500">
-            {token
+            {requestId
               ? "Nhập mật khẩu mới cho tài khoản của bạn"
               : "Nhập email để nhận link đặt lại mật khẩu"}
           </p>
@@ -131,14 +133,14 @@ function ForgotPasswordContent() {
         <Card className="border-none shadow-xl">
           <CardHeader>
             <CardTitle>
-              {token ? "Mật khẩu mới" : "Khôi phục mật khẩu"}
+              {requestId ? "Mật khẩu mới" : "Khôi phục mật khẩu"}
             </CardTitle>
             <CardDescription>
               {!submitted
-                ? token
+                ? requestId
                   ? "Mật khẩu phải có ít nhất 8 ký tự"
                   : "Chúng tôi sẽ gửi link đặt lại mật khẩu qua email"
-                : token
+                : requestId
                   ? "Mật khẩu đã được thay đổi thành công"
                   : "Vui lòng kiểm tra email của bạn"}
             </CardDescription>
@@ -146,7 +148,7 @@ function ForgotPasswordContent() {
 
           <CardContent>
             {!submitted ? (
-              token ? (
+              requestId ? (
                 // ===== RESET PASSWORD FORM =====
                 <form onSubmit={handleResetPassword} className="space-y-4">
                   <div className="space-y-2">

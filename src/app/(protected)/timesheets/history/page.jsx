@@ -108,7 +108,7 @@ export default function ActionHistoryPage() {
             if (applied.toDate) params.toDate = formatDateForAPI(applied.toDate);
             if (applied.search) params.search = applied.search;
 
-            const res = await auditService.getAll(params);
+            const res = await auditService.getAllForTimesheet(params);
             setLogs(res?.data?.data || []);
             setTotalPages(res?.data?.meta?.totalPages || 0);
             setTotalItems(res?.data?.meta?.totalItems ?? 0);
@@ -158,7 +158,7 @@ export default function ActionHistoryPage() {
 
     const handleExportExcel = async () => {
         try {
-            const blob = await auditService.export();
+            const blob = await auditService.exportForTimesheet();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;

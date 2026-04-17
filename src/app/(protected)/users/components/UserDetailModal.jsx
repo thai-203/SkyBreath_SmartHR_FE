@@ -12,6 +12,7 @@ import {
   UserX,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 export default function UserDetailModal({
   isOpen,
@@ -171,31 +172,39 @@ export default function UserDetailModal({
             Đóng
           </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="text-orange-600 border-orange-200 hover:bg-orange-50"
-            onClick={() => onRemoveRole?.(user)}
-            disabled={user.isCurrentUser}
-          >
-            <UserX className="h-4 w-4" /> Remove Role
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-            onClick={() => onResetPassword?.(user)}
-            disabled={user.isCurrentUser}
-          >
-            <Key className="h-4 w-4" />
-            Reset Password
-          </Button>
-
-          <Button type="button" onClick={() => onEdit(user)} disabled={user.isCurrentUser}>
-            <Edit2 className="h-4 w-4" />
-            Chỉnh sửa
-          </Button>
+          <PermissionGate permission="USER_ROLE_REMOVE">
+            <Button
+              type="button"
+              variant="outline"
+              className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              onClick={() => onRemoveRole?.(user)}
+              disabled={user.isCurrentUser}
+            >
+              <UserX className="h-4 w-4" /> Remove Role
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="USER_PASSWORD_RESET_FORCE">
+            <Button
+              type="button"
+              variant="outline"
+              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              onClick={() => onResetPassword?.(user)}
+              disabled={user.isCurrentUser}
+            >
+              <Key className="h-4 w-4" />
+              Reset Password
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="USER_UPDATE">
+            <Button
+              type="button"
+              onClick={() => onEdit(user)}
+              disabled={user.isCurrentUser}
+            >
+              <Edit2 className="h-4 w-4" />
+              Chỉnh sửa
+            </Button>
+          </PermissionGate>
         </div>
       </div>
     </Modal>

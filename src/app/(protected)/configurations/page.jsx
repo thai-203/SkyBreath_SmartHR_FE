@@ -24,6 +24,7 @@ export default function ConfigurationsPage() {
       icon: Camera,
       color: "indigo",
       href: "/configurations/face-recognition",
+      disabled: false,
     },
     {
       id: "attendance-security",

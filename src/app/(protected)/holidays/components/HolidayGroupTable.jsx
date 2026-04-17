@@ -9,7 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Edit, Eye, Trash2, Calendar, Copy } from "lucide-react";
+import { Edit, Eye, Trash2, Copy } from "lucide-react";
 import Link from "next/link";
 
 export function HolidayGroupTable({ groups, onEdit, onDelete, onInherit }) {

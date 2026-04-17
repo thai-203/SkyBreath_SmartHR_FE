@@ -1,4 +1,3 @@
-
 import axios from "axios";
 import { toast } from "sonner";
 
@@ -26,6 +25,9 @@ api.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue = [];
 
+let isSyncingPermissions = false;
+let permissionSyncQueue = [];
+
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
@@ -34,26 +36,63 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+const processPermissionQueue = () => {
+  permissionSyncQueue = [];
+};
+
+const handleForceLogout = (message) => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    toast.error(message, {
+      duration: 3000,
+      onAutoClose: () => (window.location.href = "/login"),
+      onDismiss: () => (window.location.href = "/login"),
+    });
+  }
+  return new Promise(() => {});
+};
+
 // Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-
     const originalRequest = error.config;
     const status = error.response?.status;
+    const errorCode = error.response?.data?.errorCode;
 
     if (!error.response) {
       return Promise.reject(error);
     }
 
+    // 403 — Permission denied, show notification only once to avoid spam
+    if (status === 403) {
+      // If already showing permission error, queue this one
+      if (isSyncingPermissions) {
+        permissionSyncQueue.push(error);
+        return Promise.reject(error);
+      }
+
+      // First permission error - show notification
+      isSyncingPermissions = true;
+      toast.error("Bạn không có quyền truy cập chức năng này", {
+        duration: 3000,
+      });
+
+      // Reset flag after toast duration + buffer to allow new notifications
+      setTimeout(() => {
+        processPermissionQueue();
+        isSyncingPermissions = false;
+      }, 3500);
+
+      return Promise.reject(error);
+    }
+
     if (!originalRequest?.skipAuthRedirect) {
       if (status === 401 && originalRequest.url.includes("auth/refresh")) {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          window.location.href = "/login";
-          return new Promise(() => { });
-        }
+        return handleForceLogout(
+          "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại",
+        );
       }
       if (status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
@@ -78,13 +117,17 @@ api.interceptors.response.use(
 
           // Bulletproof extraction: check all possible locations for the token string
           let newAccessToken = null;
-          if (typeof res === 'string') {
+          if (typeof res === "string") {
             newAccessToken = res;
-          } else if (res && typeof res.data === 'string') {
+          } else if (res && typeof res.data === "string") {
             newAccessToken = res.data;
-          } else if (res && res.data && typeof res.data.accessToken === 'string') {
+          } else if (
+            res &&
+            res.data &&
+            typeof res.data.accessToken === "string"
+          ) {
             newAccessToken = res.data.accessToken;
-          } else if (res && typeof res.accessToken === 'string') {
+          } else if (res && typeof res.accessToken === "string") {
             newAccessToken = res.accessToken;
           }
 
@@ -98,11 +141,9 @@ api.interceptors.response.use(
           return api(originalRequest);
         } catch (refreshError) {
           processQueue(refreshError, null);
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          window.location.href = "/login";
-          toast.info("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
-          return new Promise(() => { });
+          return handleForceLogout(
+            "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại",
+          );
         } finally {
           isRefreshing = false;
         }

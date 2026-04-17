@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/common/Button";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import { Select } from "@/components/common/Select";
 import { ConfirmModal } from "@/components/common/Modal";
 import { Input } from "@/components/common/Input";
@@ -68,8 +69,8 @@ export default function DataManagementPage() {
         const fetchDeps = async () => {
             try {
                 const [deptRes, empRes] = await Promise.all([
-                    departmentsService.getAll(),
-                    employeesService.getAll({ limit: 1000 })
+                    departmentsService.getAllForTimeSheet(),
+                    employeesService.getAllForPublic({ limit: 1000 })
                 ]);
                 setDepartments(deptRes?.data || []);
                 setEmployeeList(empRes?.data?.items || []);
@@ -371,27 +372,26 @@ export default function DataManagementPage() {
                 </div>
                 {!isEmployeeOnly && (
                     <div className="flex flex-wrap gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={handleSync}
-                            loading={syncLoading}
-                            className="gap-2 text-teal-700 border-teal-200"
-                            disabled={selectedEmployeeIds.size === 0}
-                        >
-                            <RefreshCw className="h-4 w-4" /> Đồng bộ ({selectedEmployeeIds.size})
-                        </Button>
-
-                        <Button variant="outline" onClick={handleFinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
-                            <Lock className="h-4 w-4" /> Chốt công
-                        </Button>
-
-                        <Button variant="outline" onClick={handleUnfinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
-                            <Unlock className="h-4 w-4" /> Bỏ chốt
-                        </Button>
-
-                        <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
-                            <Download className="h-4 w-4" /> Xuất chi tiết
-                        </Button>
+                        <PermissionGate permission="TIMESHEET_UPDATE">
+                            <Button variant="outline" onClick={handleSync} loading={syncLoading} className="gap-2 text-teal-700 border-teal-200">
+                                <RefreshCw className="h-4 w-4" /> Đồng bộ công
+                            </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="TIMESHEET_UPDATE">
+                            <Button variant="outline" onClick={handleBulkRecalculate} className="gap-2 text-amber-600 border-amber-200">
+                                <RefreshCw className="h-4 w-4" /> Tính lại tất cả
+                            </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="TIMESHEET_EXPORT">
+                            <Button variant="outline" onClick={handleExportSummary} className="gap-2">
+                                <FileSpreadsheet className="h-4 w-4" /> Xuất tổng hợp
+                            </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="TIMESHEET_EXPORT">
+                            <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
+                                <Download className="h-4 w-4" /> Xuất chi tiết
+                            </Button>
+                        </PermissionGate>
                     </div>
                 )}
             </div>

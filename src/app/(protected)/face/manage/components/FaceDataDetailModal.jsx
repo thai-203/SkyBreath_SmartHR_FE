@@ -11,6 +11,7 @@ import {
   UserCircle,
   Trash2,
 } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
 function formatDateTime(dateStr) {
@@ -56,7 +57,6 @@ const Section = ({ title, children }) => (
     {children}
   </div>
 );
-const api_base = "http://localhost:3000";
 // ─── Face thumbnail card ──────────────────────────────────────────────────────────
 function FaceCard({ face, index }) {
   return (
@@ -65,7 +65,7 @@ function FaceCard({ face, index }) {
         <div className="flex h-full w-full items-center justify-center">
           {face.imageUrl ? (
             <img
-              src={api_base + face.imageUrl}
+              src={face.imageUrl}
               alt={`Face #${index + 1}`}
               className="h-full w-full object-cover"
             />
@@ -113,7 +113,7 @@ export default function FaceDataDetailModal({
           <div className="h-14 w-14 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-semibold text-lg shrink-0">
             {employee.avatar ? (
               <img
-                src={api_base +"/"+ employee.avatar}
+                src={employee.avatar}
                 alt={employee.fullName}
                 className="h-full w-full object-cover rounded-full"
               />
@@ -177,11 +177,7 @@ export default function FaceDataDetailModal({
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-1">
               {faces.map((face, i) => (
-                <FaceCard
-                  key={face.id}
-                  face={face}
-                  index={i}
-                />
+                <FaceCard key={face.id} face={face} index={i} />
               ))}
             </div>
           )}
@@ -194,14 +190,16 @@ export default function FaceDataDetailModal({
             <Button variant="outline" onClick={onClose}>
               Đóng
             </Button>
-            <Button
-              variant="destructive"
-              className="flex items-center gap-1.5"
-              onClick={() => onDeleteAll(employee)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Xoá toàn bộ
-            </Button>
+            <PermissionGate permission="ATTENDANCE_FACE_DATA_DELETE">
+              <Button
+                variant="destructive"
+                className="flex items-center gap-1.5"
+                onClick={() => onDeleteAll(employee)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Xoá toàn bộ
+              </Button>
+            </PermissionGate>
           </div>
         </div>
       </div>

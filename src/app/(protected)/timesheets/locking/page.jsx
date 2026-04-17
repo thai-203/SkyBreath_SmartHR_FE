@@ -8,6 +8,7 @@ import { ConfirmModal } from "@/components/common/Modal";
 import { useToast } from "@/components/common/Toast";
 import { timesheetsService } from "@/services/timesheets.service";
 import { departmentsService } from "@/services/departments.service";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import TimesheetTable from "../components/TimesheetTable";
 import AttendanceDetailModal from "../components/AttendanceDetailModal";
 import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
@@ -45,7 +46,7 @@ export default function LockingPage() {
     useEffect(() => {
         const fetchDeps = async () => {
             try {
-                const res = await departmentsService.getAll();
+                const res = await departmentsService.getAllForTimeSheet();
                 setDepartments(res?.data || []);
             } catch (err) { console.error(err); }
         };
@@ -141,9 +142,11 @@ export default function LockingPage() {
                     </div>
                 </div>
                 <div>
-                    <Button variant="outline" onClick={handleBulkLock} className="gap-2 text-rose-600 border-rose-200">
+                    <PermissionGate permission="TIMESHEET_LOCK">
+                      <Button variant="outline" onClick={handleBulkLock} className="gap-2 text-rose-600 border-rose-200">
                         <Lock className="h-4 w-4" /> Khóa tất cả bảng công
-                    </Button>
+                      </Button>
+                    </PermissionGate>
                 </div>
             </div>
 

@@ -7,6 +7,7 @@ import {
   departmentsService,
 } from "@/services";
 import { useToast } from "@/components/common/Toast";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import {
   FileDown,
   Plus,
@@ -197,22 +198,26 @@ export default function OnboardingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleExport}
-              disabled={exportLoading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
-            >
-              <FileDown className="w-4 h-4" />
-              {exportLoading ? "Đang xuất..." : "Xuất File"}
-            </button>
+            <PermissionGate permission="ONBOARDING_PROGRESS_EXPORT">
+              <button
+                onClick={handleExport}
+                disabled={exportLoading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+              >
+                <FileDown className="w-4 h-4" />
+                {exportLoading ? "Đang xuất..." : "Xuất File"}
+              </button>
+            </PermissionGate>
 
-            <button
-              onClick={() => setShowCreatePlan(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
-            >
-              <Plus className="w-4 h-4" />
-              Tạo kế hoạch
-            </button>
+            <PermissionGate permission="ONBOARDING_PROGRESS_CREATE">
+              <button
+                onClick={() => setShowCreatePlan(true)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
+              >
+                <Plus className="w-4 h-4" />
+                Tạo kế hoạch
+              </button>
+            </PermissionGate>
           </div>
         </div>
 

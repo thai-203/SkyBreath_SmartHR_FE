@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import {
     Table,
     TableBody,
@@ -91,7 +92,8 @@ export function HolidayTable({ holidays, onEdit, onDelete, onView, onOpenNotific
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">
-                                        <Button
+                                        <PermissionGate permission="HOLIDAY_NOTIFICATION_SEND">
+                                            <Button
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-full"
@@ -100,6 +102,7 @@ export function HolidayTable({ holidays, onEdit, onDelete, onView, onOpenNotific
                                         >
                                             <Bell className="h-4 w-4" />
                                         </Button>
+                                        </PermissionGate>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -108,22 +111,26 @@ export function HolidayTable({ holidays, onEdit, onDelete, onView, onOpenNotific
                                         >
                                             <Eye className="h-4 w-4" />
                                         </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
-                                            onClick={() => onEdit(holiday)}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                                            onClick={() => onDelete(holiday.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <PermissionGate permission="HOLIDAY_UPDATE">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+                                                onClick={() => onEdit(holiday)}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        </PermissionGate>
+                                        <PermissionGate permission="HOLIDAY_DELETE">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                                onClick={() => onDelete(holiday.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </PermissionGate>
                                     </div>
                                 </TableCell>
                             </TableRow>

@@ -169,7 +169,7 @@ export default function PersonalSchedulePage() {
           startYmd,
           endYmd,
         ),
-        holidayService.findAll({ startDate: startYmd, endDate: endYmd }),
+        holidayService.findAllPublic({ startDate: startYmd, endDate: endYmd }),
       ]);
 
       setSchedule(

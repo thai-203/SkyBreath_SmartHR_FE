@@ -13,6 +13,11 @@ export const faceRecognitionService = {
     }
   },
 
+  getConfigForPublic: async () => {
+    const response = await api.get(`${BASE_URL}/public`);
+    return response.data;
+  },
+
   // Update face recognition configuration
   async updateConfig(configData) {
     try {

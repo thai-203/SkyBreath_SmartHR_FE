@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { Edit2, Eye, Trash2, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils"; // Giả định bạn dùng shadcn utility
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 export default function AssignmentTable({
   data = [],
@@ -107,25 +108,26 @@ export default function AssignmentTable({
             >
               <Eye className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-              onClick={() => onEdit(row.original)}
-              title="Chỉnh sửa"
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            <div className="w-px h-4 bg-slate-200 mx-1" />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
-              onClick={() => onDelete(row.original)}
-              title="Hủy"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <PermissionGate permission="SHIFT_ASSIGN_UPDATE">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onEdit(row.original)}
+                title="Chỉnh sửa"
+              >
+                <Edit2 className="h-4 w-4 text-blue-500" />
+              </Button>
+            </PermissionGate>
+            <PermissionGate permission="SHIFT_ASSIGN_DELETE">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDelete(row.original)}
+                title="Hủy"
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </PermissionGate>
           </div>
         ),
       },

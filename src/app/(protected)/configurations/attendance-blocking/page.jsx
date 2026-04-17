@@ -17,9 +17,9 @@ import { AttendanceBlockingTable } from "./components/AttendanceBlockingTable";
 import { EditModal } from "./components/EditModal";
 import { DeleteModal } from "./components/DeleteModal";
 import { useToast } from "@/components/common/Toast";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 // Import các components đã tách
-
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 const containerVariants = {
@@ -42,10 +42,10 @@ const itemVariants = {
 export default function AttendanceConfig() {
   const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
-  
+
   const [rules, setRules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // States cho Form Modal (Thêm/Sửa)
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
@@ -65,7 +65,7 @@ export default function AttendanceConfig() {
       const data = await attendanceBlockingConfigService.getRules();
       setRules(data.data);
     } catch (error) {
-      toastError("Lỗi tải dữ liệu"); 
+      toastError("Lỗi tải dữ liệu");
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +91,7 @@ export default function AttendanceConfig() {
         await attendanceBlockingConfigService.createRule(payload);
         toastSuccess("Thêm quy tắc thành công.");
       }
-      fetchRules(); 
+      fetchRules();
       setModalOpen(false);
     } catch (error) {
       toastError("Lỗi lưu cấu hình. Vui lòng thử lại!");
@@ -100,14 +100,14 @@ export default function AttendanceConfig() {
 
   const handleToggle = async (id, checked) => {
     setRules((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, isActive: checked } : r))
+      prev.map((r) => (r.id === id ? { ...r, isActive: checked } : r)),
     );
     try {
       await attendanceBlockingConfigService.toggleRule(id, checked);
       toastSuccess(checked ? "Đã kích hoạt quy tắc." : "Đã tạm dừng quy tắc.");
     } catch (error) {
       setRules((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, isActive: !checked } : r))
+        prev.map((r) => (r.id === id ? { ...r, isActive: !checked } : r)),
       );
       toastError("Cập nhật thất bại");
     }
@@ -143,7 +143,10 @@ export default function AttendanceConfig() {
       className="max-w space-y-6"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <motion.div
+        variants={itemVariants}
+        className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+      >
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-10">
@@ -160,7 +163,10 @@ export default function AttendanceConfig() {
           </div>
         </div>
         <div className="mt-4 sm:mt-0">
-          <Button variant="outline" onClick={() => router.push("/configurations")}>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/configurations")}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại cấu hình
           </Button>
@@ -168,13 +174,18 @@ export default function AttendanceConfig() {
       </motion.div>
 
       {/* Action Buttons */}
-      <motion.div variants={itemVariants} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <motion.div
+        variants={itemVariants}
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div></div>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={openAddModal}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Thêm quy tắc
-          </Button>
+          <PermissionGate permission="ATTENDANCE_BLOCKING_CONFIG_CREATE">
+            <Button size="sm" onClick={openAddModal}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Thêm quy tắc
+            </Button>
+          </PermissionGate>
         </div>
       </motion.div>
 
@@ -211,17 +222,22 @@ export default function AttendanceConfig() {
         {/* ...Giữ nguyên Info Cards của bạn... */}
         <Card className="border-destructive-20 bg-destructive-5 backdrop-blur-md">
           <CardContent className="p-4">
-            <p className="text-xs font-medium text-destructive">Thông báo khi sai</p>
+            <p className="text-xs font-medium text-destructive">
+              Thông báo khi sai
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              "Xác thực thất bại. Bạn còn <strong>{"{remaining}"}</strong> lần thử."
+              Xác thực thất bại. Bạn còn <strong>{"{remaining}"}</strong> lần
+              thử.
             </p>
           </CardContent>
         </Card>
         <Card className="border-warning-20 bg-warning-5 backdrop-blur-md">
           <CardContent className="p-4">
-            <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Thông báo khi bị chặn</p>
+            <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+              Thông báo khi bị chặn
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              "Điểm danh bị khóa trong <strong>{"{minutes}"}</strong> phút."
+              Điểm danh bị khóa trong <strong>{"{minutes}"}</strong> phút.
             </p>
           </CardContent>
         </Card>
@@ -229,7 +245,7 @@ export default function AttendanceConfig() {
           <CardContent className="p-4">
             <p className="text-xs font-medium text-primary">Đang bị khóa</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              "Tạm khóa điểm danh. Thử lại sau <strong>{"{time}"}</strong>."
+              Tạm khóa điểm danh. Thử lại sau <strong>{"{time}"}</strong>.
             </p>
           </CardContent>
         </Card>
@@ -244,7 +260,7 @@ export default function AttendanceConfig() {
         onSave={handleSaveModal}
       />
 
-      <DeleteModal 
+      <DeleteModal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={confirmDelete}
