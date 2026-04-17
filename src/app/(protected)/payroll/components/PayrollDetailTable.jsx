@@ -4,7 +4,7 @@ import { Pencil } from "lucide-react";
 import { authService } from "@/services/auth.service";
 
 const fmt = (n) =>
-    new Intl.NumberFormat("vi-VN", { notation: "compact", maximumFractionDigits: 1 }).format(parseFloat(n || 0));
+    new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Math.round(parseFloat(n || 0)));
 
 const fmtFull = (n) =>
     new Intl.NumberFormat("vi-VN").format(parseFloat(n || 0));
@@ -132,20 +132,20 @@ export default function PayrollDetailTable({ details = [], loading = false, canE
                             
                             {/* Metric Totals */}
                             <td className="px-2 py-3 text-center text-slate-500 text-[11px]">-</td>
-                            <td className="px-2 py-3 text-center text-indigo-700">{details.reduce((s, d) => s + parseFloat(d.workingDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-slate-500 text-[11px]">{details.reduce((s, d) => s + parseFloat(d.officialDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-slate-500 text-[11px]">{details.reduce((s, d) => s + parseFloat(d.probationDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-slate-400 text-[10px]">{details.reduce((s, d) => s + parseFloat(d.businessTripDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-slate-500 text-[11px]">{details.reduce((s, d) => s + parseFloat(d.holidayDays || 0), 0).toFixed(0)}</td>
-                            <td className="px-2 py-3 text-center text-slate-400 text-[10px]">{details.reduce((s, d) => s + parseFloat(d.benefitLeaveDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-slate-500 text-[11px] font-medium italic">{details.reduce((s, d) => s + parseFloat(d.annualLeaveDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-red-600 font-bold">{details.reduce((s, d) => s + parseFloat(d.unpaidLeaveDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-indigo-500 font-medium">{details.reduce((s, d) => s + parseFloat(d.nightShiftOfficialDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-indigo-400">{details.reduce((s, d) => s + parseFloat(d.nightShiftProbationDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-slate-300 italic">{details.reduce((s, d) => s + parseFloat(d.waitingDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-slate-700 bg-slate-50 font-bold">{details.reduce((s, d) => s + parseFloat(d.mealCount || 0), 0).toFixed(0)}</td>
-                            <td className="px-2 py-3 text-center text-emerald-600">{details.reduce((s, d) => s + parseFloat(d.usedLeaveDays || 0), 0).toFixed(1)}</td>
-                            <td className="px-2 py-3 text-center text-blue-700">{details.reduce((s, d) => s + parseFloat(d.remainingLeaveDays || 0), 0).toFixed(1)}</td>
+                            <td className="px-2 py-3 text-center text-indigo-700">{details.reduce((s, d) => s + parseFloat(d.workingDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-slate-500 text-[11px]">{details.reduce((s, d) => s + parseFloat(d.officialDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-slate-500 text-[11px]">{details.reduce((s, d) => s + parseFloat(d.probationDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-slate-400 text-[10px]">{details.reduce((s, d) => s + parseFloat(d.businessTripDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-slate-500 text-[11px]">{details.reduce((s, d) => s + parseFloat(d.holidayDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-slate-400 text-[10px]">{details.reduce((s, d) => s + parseFloat(d.benefitLeaveDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-slate-500 text-[11px] font-medium italic">{details.reduce((s, d) => s + parseFloat(d.annualLeaveDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-red-600 font-bold">{details.reduce((s, d) => s + parseFloat(d.unpaidLeaveDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-indigo-500 font-medium">{details.reduce((s, d) => s + parseFloat(d.nightShiftOfficialDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-indigo-400">{details.reduce((s, d) => s + parseFloat(d.nightShiftProbationDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-slate-300 italic">{details.reduce((s, d) => s + parseFloat(d.waitingDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-slate-700 bg-slate-50 font-bold">{details.reduce((s, d) => s + parseFloat(d.mealCount || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-emerald-600">{details.reduce((s, d) => s + parseFloat(d.usedLeaveDays || 0), 0)}</td>
+                            <td className="px-2 py-3 text-center text-blue-700">{details.reduce((s, d) => s + parseFloat(d.remainingLeaveDays || 0), 0)}</td>
 
                             {/* Salary Placeholder Cells */}
                             <td colSpan={7} className="bg-slate-50/30" />

@@ -270,7 +270,7 @@ export default function AssistantChatbot() {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
         size="icon"
       >
         <MessageCircle className="h-6 w-6" />
@@ -283,7 +283,7 @@ export default function AssistantChatbot() {
 
   return (
     <Card
-      className="fixed bottom-6 right-6 shadow-2xl flex flex-col z-50 overflow-hidden border transition-all duration-200"
+      className="fixed bottom-6 right-6 shadow-2xl flex flex-col z-[100] overflow-hidden border transition-all duration-200"
       style={{ width: size.width, height: size.height }}
     >
       {/* Resize handle */}

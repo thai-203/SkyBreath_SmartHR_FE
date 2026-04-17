@@ -1,34 +1,22 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { PlusSquare, MinusSquare } from "lucide-react";
+import React, { useMemo } from "react";
+import { PlusSquare, MinusSquare, Calculator, ShieldCheck, Wallet } from "lucide-react";
 
 /**
- * Premium Payroll Detail Table (Database Bound)
- * - Ultra-wide layout (7000px+) to prevent column squashing.
- * - All cells mapped to backend PayrollDetailEntity fields.
- * - Dynamic calculations for P1, P2, P3, and Insurance.
+ * Premium Payroll Detail Table (36-Indicator Standard)
+ * - Structured according to the provided 36-step formula list.
+ * - All calculations derived from payroll details (Data sourced from Timesheet/Input).
  */
 
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(parseFloat(n || 0)));
+const fmt = (n) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(parseFloat(n || 0)));
 
 export default function SalaryDetailTable({ 
     details = [], 
     loading = false,
+    canEdit,
+    onUpdateDetail
 }) {
-    const [expanded, setExpanded] = useState({
-        infoOther: false,
-        incomePackage: true,
-        totalSalary: true,
-        workingDay: true,
-        calculateSalaryBonus: true,
-        insuranceEmp: false,
-        insuranceCo: false,
-        infoBank: false,
-    });
-
-    const toggle = (group) => setExpanded(prev => ({ ...prev, [group]: !prev[group] }));
-
     const groupedData = useMemo(() => {
         const groups = {};
         details.forEach(item => {
@@ -39,350 +27,297 @@ export default function SalaryDetailTable({
         return groups;
     }, [details]);
 
-    // Guaranteed width for each state to prevent squashing (matched to column counts)
-    const tableWidth = useMemo(() => {
-        let w = 320; // Fixed STT, Code, Name
-        w += expanded.infoOther ? 500 : 180;
-        w += expanded.incomePackage ? 300 : 150;
-        w += expanded.totalSalary ? 800 : 200;
-        w += 150; // Allowance
-        w += expanded.workingDay ? 750 : 180;
-        w += 120; // KPI
-        w += expanded.calculateSalaryBonus ? 800 : 200;
-        w += 800; // Granular PS, TTPC, OT, TL, KT, Total Inc
-        w += expanded.insuranceEmp ? 440 : 180;
-        w += 150 + 150 + 150; // Tax, Net, Union
-        w += expanded.insuranceCo ? 440 : 180;
-        w += 200 + 250; // Cost, Email
-        w += expanded.infoBank ? 600 : 200;
-        w += 300; // Notes
-        return w;
-    }, [expanded]);
+    // Wide table to accommodate all indicators
+    const tableWidth = 4500;
 
     if (loading) {
-        return <div className="h-64 flex items-center justify-center bg-white rounded-xl border border-slate-200 animate-pulse text-slate-400 font-medium italic">Đang đồng bộ dữ liệu từ hệ thống...</div>;
+        return <div className="h-64 flex items-center justify-center bg-white rounded-xl border border-slate-200 animate-pulse text-slate-400 font-medium italic">Đang đồng bộ dữ liệu tính toán từ hệ thống...</div>;
     }
 
-    const cellClass = "border-r border-slate-200 px-3 py-3 whitespace-nowrap overflow-hidden text-center";
+    const headerCellClass = "border-r border-slate-300 py-3 px-2 text-center align-middle font-black text-[10px]";
+    const subHeaderCellClass = "border-r border-slate-200 py-1 px-1 text-center align-middle font-bold text-[9px] bg-slate-50 text-slate-400";
 
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl ring-1 ring-slate-200/20 mb-12">
-            <div className="overflow-x-auto scroller-thick rounded-2xl">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl ring-1 ring-slate-200/20 mb-12 overflow-hidden">
+            <div className="overflow-x-auto scroller-thick">
                 <table 
-                    className="text-[11px] border-separate border-spacing-0 bg-white table-fixed min-w-full"
+                    className="text-[11px] border-separate border-spacing-0 bg-white table-fixed"
                     style={{ width: `${tableWidth}px` }}
                 >
-                    <colgroup>
-                        <col width="45" /><col width="85" /><col width="190" />
-                        {expanded.infoOther ? <><col width="40" /><col width="160" /><col width="160" /><col width="140" /></> : <col width="180" />}
-                        {expanded.incomePackage ? <><col width="100" /><col width="100" /><col width="100" /></> : <col width="150" />}
-                        {expanded.totalSalary ? <><col width="140" /><col width="150" /><col width="150" /><col width="150" /><col width="150" /><col width="150" /></> : <col width="200" />}
-                        <col width="150" />
-                        {expanded.workingDay ? <><col width="90" /><col width="90" /><col width="90" /><col width="90" /><col width="100" /><col width="90" /><col width="90" /><col width="90" /><col width="90" /><col width="90" /></> : <col width="180" />}
-                        <col width="120" />
-                        {expanded.calculateSalaryBonus ? <><col width="150" /><col width="150" /><col width="150" /><col width="150" /><col width="150" /><col width="160" /></> : <col width="200" />}
-                        <col width="140" /><col width="140" /><col width="140" /><col width="140" /><col width="140" /><col width="160" />
-                        {expanded.insuranceEmp ? <><col width="110" /><col width="110" /><col width="110" /><col width="130" /></> : <col width="180" />}
-                        <col width="150" /><col width="150" /><col width="150" />
-                        {expanded.insuranceCo ? <><col width="110" /><col width="110" /><col width="110" /><col width="130" /></> : <col width="180" />}
-                        <col width="200" /><col width="250" />
-                        {expanded.infoBank ? <><col width="200" /><col width="200" /><col width="200" /></> : <col width="200" />}
-                        <col width="300" />
-                    </colgroup>
+                    <thead className="bg-[#f8fafc] text-slate-700 uppercase z-0 border-b border-slate-200">
+                        {/* Group Headers */}
+                        <tr className="border-b border-slate-300 bg-slate-100/50">
+                            <th colSpan={3} className="bg-slate-100 z-40 border-r border-slate-300 py-4">Thông tin nhân sự</th>
+                            <th colSpan={5} className="bg-amber-50 border-r border-slate-300">I. Định mức Hợp đồng & Công (1-5)</th>
+                            <th colSpan={4} className="bg-slate-50 border-r border-slate-300">II. Dữ liệu công chốt (6-9)</th>
+                            <th colSpan={6} className="bg-blue-50 border-r border-slate-300">III. Thu nhập thực nhận (10-15)</th>
+                            <th colSpan={6} className="bg-indigo-50 border-r border-slate-300">IV. Thu nhập khác & Phụ cấp (16-21)</th>
+                            <th colSpan={2} className="bg-emerald-600 text-white border-r border-white">Tổng thu nhập (22)</th>
+                            <th colSpan={10} className="bg-rose-50 border-r border-slate-300 text-rose-700">V. Khấu trừ & Thuế (23-32)</th>
+                            <th className="bg-amber-600 text-white border-r border-white">Thực lĩnh (33)</th>
+                            <th colSpan={3} className="bg-slate-800 text-slate-200 border-r border-slate-700">VI. Chi phí Doanh nghiệp (34-36)</th>
+                            <th className="bg-slate-50">Ghi chú</th>
+                        </tr>
+                        
+                        {/* Column Names (36 Indicators) */}
+                        <tr className="bg-white text-slate-600 divide-x divide-slate-200 shadow-sm">
+                            <th className="w-[45px] text-center">STT</th>
+                            <th className="w-[100px] text-center">Mã NV</th>
+                            <th className="w-[200px] text-left px-4">Họ tên</th>
+                            
+                            {/* Group I */}
+                            <th className="w-[150px] bg-amber-50/30">Lương đóng BHXH (1.1)</th>
+                            <th className="w-[150px] bg-amber-50/30">Lương vị trí (11)</th>
+                            <th className="w-[150px] bg-amber-50/30">Thưởng HQCV (12)</th>
+                            <th className="w-[150px] bg-amber-50/30">Khoán CV (13)</th>
+                            <th className="w-[150px] bg-amber-50/30">Lương thử việc (14)</th>
 
-                    <thead className="bg-[#f8fafc] text-slate-700 uppercase font-black sticky top-0 z-10">
-                        {/* Row 1: Groups */}
-                        <tr className="border-b border-slate-300">
-                            <th rowSpan={3} className="sticky left-0 bg-[#f8fafc] z-20 border-r border-slate-300">STT</th>
-                            <th rowSpan={3} className="sticky left-[45px] bg-[#f8fafc] z-20 border-r border-slate-300">Mã NS</th>
-                            <th rowSpan={3} className="sticky left-[130px] bg-[#f8fafc] z-20 border-r border-slate-300 text-left">Họ và Tên</th>
-                            <th colSpan={expanded.infoOther ? 4 : 1} rowSpan={expanded.infoOther ? 1 : 2} className="bg-emerald-50 cursor-pointer" onClick={() => toggle('infoOther')}>Hồ sơ nhân sự {expanded.infoOther ? '-' : '+'}</th>
-                            <th colSpan={expanded.incomePackage ? 3 : 1} rowSpan={expanded.incomePackage ? 1 : 2} className="bg-amber-50 cursor-pointer" onClick={() => toggle('incomePackage')}>Chính sách lương {expanded.incomePackage ? '-' : '+'}</th>
-                            <th colSpan={expanded.totalSalary ? 6 : 1} rowSpan={expanded.totalSalary ? 1 : 2} className="bg-amber-50 cursor-pointer" onClick={() => toggle('totalSalary')}>Mức lương thỏa thuận {expanded.totalSalary ? '-' : '+'}</th>
-                            <th rowSpan={2} className="bg-amber-50">Tổng phụ cấp</th>
-                            <th colSpan={expanded.workingDay ? 10 : 1} rowSpan={expanded.workingDay ? 1 : 2} className="bg-blue-50 cursor-pointer" onClick={() => toggle('workingDay')}>Công thực tế {expanded.workingDay ? '-' : '+'}</th>
-                            <th rowSpan={2}>KPI</th>
-                            <th colSpan={expanded.calculateSalaryBonus ? 6 : 1} rowSpan={expanded.calculateSalaryBonus ? 1 : 2} className="bg-blue-50 cursor-pointer" onClick={() => toggle('calculateSalaryBonus')}>Thanh toán lương {expanded.calculateSalaryBonus ? '-' : '+'}</th>
-                            <th rowSpan={2}>Phát sinh</th><th rowSpan={2}>Trợ cấp</th><th rowSpan={2}>Tổng Tăng ca</th><th rowSpan={2}>Tạm lĩnh</th><th rowSpan={2}>Khấu trừ Thuế</th><th rowSpan={2} className="bg-indigo-100/50">Tổng Thu nhập</th>
-                            <th colSpan={expanded.insuranceEmp ? 4 : 1} rowSpan={expanded.insuranceEmp ? 1 : 2} className="bg-rose-50 cursor-pointer" onClick={() => toggle('insuranceEmp')}>Nhân sự đóng Bảo hiểm {expanded.insuranceEmp ? '-' : '+'}</th>
-                            <th rowSpan={2} className="bg-rose-50">Thuế TNCN</th>
-                            <th rowSpan={2} className="bg-rose-100/40 text-rose-700">Thực nhận</th>
-                            <th rowSpan={2}>C.Đoàn</th>
-                            <th colSpan={expanded.insuranceCo ? 4 : 1} rowSpan={expanded.insuranceCo ? 1 : 2} className="bg-emerald-50 cursor-pointer" onClick={() => toggle('insuranceCo')}>Công ty đóng Bảo hiểm {expanded.insuranceCo ? '-' : '+'}</th>
-                            <th rowSpan={2} className="bg-emerald-100/50 text-emerald-900 font-extrabold text-[#064e3b]">Chi phí Nhân sự</th>
-                            <th rowSpan={2}>Email</th>
-                            <th colSpan={expanded.infoBank ? 3 : 1} rowSpan={expanded.infoBank ? 1 : 2} className="cursor-pointer" onClick={() => toggle('infoBank')}>Ngân hàng {expanded.infoBank ? '-' : '+'}</th>
-                            <th rowSpan={2}>Ghi chú</th>
-                        </tr>
-                        {/* Row 2: Sub-headers */}
-                        <tr className="text-[9px] bg-slate-50">
-                            {expanded.infoOther && <><th className="border-r border-slate-200">#</th><th className="border-r border-slate-200">Chức danh</th><th className="border-r border-slate-200">Bộ phận</th><th className="border-r border-slate-200">Hợp đồng</th></>}
-                            {expanded.incomePackage && <><th className="border-r border-slate-200">Loại lương</th><th className="border-r border-slate-200">%(1+2)</th><th className="border-r border-slate-200">%P3</th></>}
-                            {expanded.totalSalary && <><th className="border-r border-slate-200">Lương cơ bản</th><th className="border-r border-slate-200 bg-amber-100/20">Tổng cộng</th><th className="border-r border-slate-200">Lương Vị trí (P1)</th><th className="border-r border-slate-200">Lương Năng lực (P2.1)</th><th className="border-r border-slate-200">Lương Hiệu quả (P2.2)</th><th className="border-r border-slate-200">Thử việc</th></>}
-                            {expanded.workingDay && <><th className="border-r border-slate-200">Ngày chuẩn</th><th className="border-r border-slate-200">Công tác</th><th className="border-r border-slate-200">Thử việc</th><th className="border-r border-slate-200">Trực đêm</th><th className="border-r border-slate-200">Đêm thử việc</th><th className="border-r border-slate-200">Chờ việc</th><th className="border-r border-slate-200">Nghỉ lễ</th><th className="border-r border-slate-200">Nghỉ phép</th><th className="border-r border-slate-200 text-rose-500">Nghỉ KL</th><th className="border-r border-slate-200">Nghỉ CĐ</th></>}
-                            {expanded.calculateSalaryBonus && <><th className="border-r border-slate-200">Lương Vị trí (P1)</th><th className="border-r border-slate-200">Lương Năng lực (P2.1)</th><th className="border-r border-slate-200">Lương Hiệu quả (P2.2)</th><th className="border-r border-slate-200">Lương Thử việc</th><th className="border-r border-slate-200">Tiền trực đêm</th><th className="border-r border-slate-200 bg-blue-100/20">Tổng cộng</th></>}
-                            {expanded.insuranceEmp && <><th className="border-r border-slate-200">BHXH</th><th className="border-r border-slate-200">BHYT</th><th className="border-r border-slate-200">BHTN</th><th className="border-r border-slate-200 bg-rose-100/20">Tổng cộng</th></>}
-                            {expanded.insuranceCo && <><th className="border-r border-slate-200">BHXH</th><th className="border-r border-slate-200">BHYT</th><th className="border-r border-slate-200">BHTN</th><th className="border-r border-slate-200 bg-emerald-100/20">Tổng cộng</th></>}
-                            {expanded.infoBank && <><th className="border-r border-slate-200">Ngân hàng</th><th className="border-r border-slate-200">Số tài khoản</th><th className="border-r border-slate-200">Chi nhánh</th></>}
-                        </tr>
-                        {/* Row 3: Formulas */}
-                        <tr className="bg-slate-200/60 text-[10px] text-slate-500 italic">
-                            {expanded.infoOther ? <><th className={cellClass}>3</th><th className={cellClass}>4</th><th className={cellClass}>5</th><th className={cellClass}>6</th></> : <th className={cellClass}>3</th>}
-                            {expanded.incomePackage ? <><th className={cellClass}>10</th><th className={cellClass}>11</th><th className={cellClass}>12</th></> : <th className={cellClass}>10</th>}
-                            {expanded.totalSalary ? <><th className={cellClass}>14</th><th className={cellClass + " font-bold bg-amber-100/20"}>14.1</th><th className={cellClass}>15</th><th className={cellClass}>16</th><th className={cellClass}>17</th><th className={cellClass}>18</th></> : <th className={cellClass}>14</th>}
-                            <th className={cellClass}>20</th>
-                            {expanded.workingDay ? <><th className={cellClass}>21</th><th className={cellClass}>22</th><th className={cellClass}>23</th><th className={cellClass}>24</th><th className={cellClass}>25</th><th className={cellClass}>26</th><th className={cellClass}>27</th><th className={cellClass}>28</th><th className={cellClass}>29</th><th className={cellClass + " font-black"}>30</th></> : <th className={cellClass}>21</th>}
-                            <th className={cellClass}>32</th>
-                            {expanded.calculateSalaryBonus ? <><th className={cellClass}>34</th><th className={cellClass}>35</th><th className={cellClass}>36</th><th className={cellClass}>37</th><th className={cellClass}>38</th><th className={cellClass + " font-black"}>40</th></> : <th className={cellClass}>40</th>}
-                            <th className={cellClass}>41</th><th className={cellClass}>42</th><th className={cellClass}>OT</th><th className={cellClass}>44</th><th className={cellClass}>45</th><th className={cellClass + " font-black"}>51</th>
-                            {expanded.insuranceEmp ? <><th className={cellClass}>52.1</th><th className={cellClass}>52.2</th><th className={cellClass}>52.3</th><th className={cellClass + " font-black text-rose-800"}>52</th></> : <th className={cellClass}>52</th>}
-                            <th className={cellClass}>66</th><th className={cellClass + " font-black text-rose-800 bg-rose-50"}>67=51-52-66</th><th className={cellClass}>76</th>
-                            {expanded.insuranceCo ? <><th className={cellClass}>77.1</th><th className={cellClass}>77.2</th><th className={cellClass}>77.3</th><th className={cellClass + " font-black text-emerald-800 underline"}>77</th></> : <th className={cellClass}>77</th>}
-                            <th className={cellClass + " font-black text-indigo-900 bg-emerald-100/30"}>79.1</th><th className={cellClass + " font-bold text-slate-700"}>80</th>
-                            {expanded.infoBank ? <><th className={cellClass}>81</th><th className={cellClass}>82</th><th className={cellClass}>83</th></> : <th className={cellClass}>81</th>}
-                            <th className={cellClass + " font-black text-slate-800"}>90</th>
+                            {/* Group II */}
+                            <th className="w-[100px]">Công chuẩn</th>
+                            <th className="w-[100px]">Công chính thức (22)</th>
+                            <th className="w-[100px]">Công thử việc (23)</th>
+                            <th className="w-[150px]">Công khác (phép,lễ..) (26+)</th>
+
+                            {/* Group III */}
+                            <th className="w-[100px] bg-blue-50/30">% KPI (10)</th>
+                            <th className="w-[150px] bg-blue-50/30">Lương P1 thực nhận (31)</th>
+                            <th className="w-[150px] bg-blue-50/30">Thưởng P2.1 thực (32)</th>
+                            <th className="w-[150px] bg-blue-50/30">Khoán P2.2 thực (33)</th>
+                            <th className="w-[150px] bg-blue-50/30">Thử việc thực (34)</th>
+                            <th className="w-[180px] bg-blue-100/50 font-black">Tổng lương chính (36)</th>
+
+                            {/* Group IV */}
+                            <th className="w-[150px] bg-indigo-50/30">Thưởng P3 (36.1)</th>
+                            <th className="w-[150px] bg-indigo-50/30">Phụ cấp (43)</th>
+                            <th className="w-[150px] bg-indigo-50/30">Tăng ca OT (45)</th>
+                            <th className="w-[150px] bg-indigo-50/30">Truy thu tính thuế (46)</th>
+                            <th className="w-[150px] bg-indigo-50/30">Truy thu ko thuế (47)</th>
+                            <th className="w-[150px] bg-indigo-50/30">Khác ko thuế (50.1)</th>
+
+                            {/* Group V - Total */}
+                            <th className="w-[200px] bg-emerald-500 text-white font-black text-xs italic">TỔNG THU NHẬP (51)</th>
+                            <th className="w-[100px] bg-emerald-400/20">Mã (51)</th>
+
+                            {/* Group VI - Deductions */}
+                            <th className="w-[150px] bg-rose-50/50">BHXH NLĐ (52)</th>
+                            <th className="w-[120px] bg-rose-50/50">Truy thu BH (53)</th>
+                            <th className="w-[120px] bg-rose-50/50">CĐ phí NLĐ (54)</th>
+                            <th className="w-[120px] bg-rose-50/50">Đảng phí (55)</th>
+                            <th className="w-[180px] bg-rose-50/50">Giảm trừ gia cảnh (12.2)</th>
+                            <th className="w-[180px] bg-rose-50/50">TN tính thuế (12.3)</th>
+                            <th className="w-[150px] bg-rose-50/50">Thuế TNCN (63)</th>
+                            <th className="w-[120px] bg-rose-50/50">Truy thu thuế (64)</th>
+                            <th className="w-[120px] bg-rose-50/50">Trừ khác (65)</th>
+                            <th className="w-[180px] bg-rose-600 text-white font-black">Tổng khấu trừ (65.1)</th>
+
+                            {/* Group VII - Net */}
+                            <th className="w-[220px] bg-amber-600 text-white font-black text-sm">LƯƠNG THỰC NHẬN (66)</th>
+
+                            {/* Group VIII - Cost */}
+                            <th className="w-[150px] bg-slate-800 text-slate-300">KPCĐ Cty (71)</th>
+                            <th className="w-[150px] bg-slate-800 text-slate-300">BHXH Cty (75)</th>
+                            <th className="w-[200px] bg-slate-950 text-white font-black">TỔNG CHI PHÍ NS (79.1)</th>
+
+                            <th className="w-[250px] bg-white">Ghi chú</th>
                         </tr>
                     </thead>
 
                     <tbody className="divide-y divide-slate-100">
                         {Object.entries(groupedData).map(([dept, items]) => (
                             <React.Fragment key={dept}>
-                                <tr className="bg-slate-50/50 font-extrabold text-indigo-800">
-                                    <td colSpan={3} className="sticky left-0 bg-slate-50 z-10 px-4 py-2.5 border-r border-slate-200 uppercase tracking-tighter text-xs">📂 {dept}</td>
-                                    <td colSpan={100} className="border-r border-slate-100"></td>
+                                <tr className="bg-slate-50/80 font-extrabold text-indigo-900 border-b border-slate-200">
+                                    <td colSpan={3} className="sticky left-0 bg-slate-50 z-20 px-4 py-3 uppercase tracking-wider text-[10px] shadow-sm flex items-center gap-2">
+                                        🏢 {dept} <span className="text-slate-400 font-medium ml-2">({items.length} nhân sự)</span>
+                                    </td>
+                                    <td colSpan={36} className="bg-slate-50/40"></td>
                                 </tr>
-                                {items.map((item, idx) => (
-                                    <tr key={item.id} className="group hover:bg-indigo-50/20 transition-colors">
-                                        <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 p-2 text-center text-slate-400 border-r border-slate-100">{idx + 1}</td>
-                                        <td className="sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 px-2.5 py-2.5 font-bold text-slate-500 border-r border-slate-100">{item.employee?.employeeCode || "—"}</td>
-                                        <td className="sticky left-[130px] bg-white group-hover:bg-slate-50 z-10 px-4 py-2.5 font-black text-slate-800 border-r border-slate-300 truncate">{item.employee?.fullName || "—"}</td>
-                                        
-                                        {/* infoOther */}
-                                        {expanded.infoOther ? (
-                                            <React.Fragment>
-                                                <td className="px-2 text-center border-r border-slate-100">#{item.id}</td>
-                                                <td className="px-3 border-r border-slate-100 truncate text-[10px]">{item.employee?.position?.positionName || "—"}</td>
-                                                <td className="px-3 border-r border-slate-100 truncate text-[10px] text-slate-400">{dept}</td>
-                                                <td className="p-2 text-center border-r border-slate-100 text-[9px] font-bold text-slate-400 uppercase">{item.employee?.employmentStatus || "CT"}</td>
-                                            </React.Fragment>
-                                        ) : (
-                                            <td className="p-2 text-center border-r border-slate-100 text-slate-300 italic">...</td>
-                                        )}
+                                {items.map((item, idx) => {
+                                    // ── CALCULATIONS BASED ON THE 36-INDICATOR FORMULA ──
+                                    const ncChuẩn = parseFloat(item.standardDays || 26);
+                                    const ncChínhThức = parseFloat(item.officialDays || 0);
+                                    const ncThửViệc = parseFloat(item.probationDays || 0);
+                                    const ncKhác = parseFloat(item.benefitLeaveDays || 0) + parseFloat(item.holidayDays || 0) + parseFloat(item.businessTripDays || 0) + parseFloat(item.annualLeaveDays || 0);
+                                    const kpi = parseFloat(item.kpiPercentage || 0) / 100;
 
-                                        {/* incomePackage */}
-                                        {expanded.incomePackage ? (
-                                            <React.Fragment>
-                                                <td className="px-3 border-r border-slate-100 font-bold text-slate-600 bg-amber-50/10">Lương HS</td>
-                                                <td className="px-2 text-center border-r border-slate-100 font-medium text-amber-700">{item.p1p2Percentage || 100}%</td>
-                                                <td className="px-2 text-center border-r border-slate-100 font-medium text-amber-700">{item.p3Percentage || 100}%</td>
-                                            </React.Fragment>
-                                        ) : (
-                                            <td className="px-2 text-center border-r border-slate-100 text-amber-600 font-extrabold uppercase">L-HS</td>
-                                        )}
+                                    // (31) = (11 / NC chuẩn) * (22 + 26 + 26.1 + 27 + 28)
+                                    const p1ThựcNhận = (parseFloat(item.p1Salary || item.baseSalary || 0) / ncChuẩn) * (ncChínhThức + ncKhác);
+                                    
+                                    // (32) = (12 / NC chuẩn) * (22 + 26 + 26.1 + 27 + 28) * % KPI
+                                    const p21ThựcNhận = (parseFloat(item.p21Salary || 0) / ncChuẩn) * (ncChínhThức + ncKhác) * kpi;
+                                    
+                                    // (33) = (13 * % KPI)
+                                    const p22ThựcNhận = parseFloat(item.p22Salary || 0) * kpi;
+                                    
+                                    // (34) = (14 / NC chuẩn) * (23)
+                                    const probationThựcNhận = (parseFloat(item.probationSalary || 0) / ncChuẩn) * ncThửViệc;
 
-                                        {/* totalSalary */}
-                                        {expanded.totalSalary ? (
-                                            <React.Fragment>
-                                                <td className="px-3 text-right border-r border-slate-100 text-slate-400 italic">{fmt(item.baseSalary)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100 font-black text-indigo-700 bg-amber-50">{fmt(parseFloat(item.baseSalary) + parseFloat(item.p21Amount || 0) + parseFloat(item.p22Amount || 0))}</td>
-                                                <td className="px-3 text-right border-r border-slate-100">{fmt(item.p1Amount)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100">{fmt(item.p21Amount)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100">{fmt(item.p22Amount)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100">{fmt(item.probationAmount)}</td>
-                                            </React.Fragment>
-                                        ) : (
-                                            <td className="px-3 text-right border-r border-slate-100 font-black text-indigo-700">{fmt(item.baseSalary)}</td>
-                                        )}
+                                    // (36) = (31) + (32) + (33) + (34)
+                                    const tổngLươngChính = p1ThựcNhận + p21ThựcNhận + p22ThựcNhận + probationThựcNhận;
 
-                                        <td className="px-3 text-right border-r border-slate-100 font-bold text-amber-600">0</td>
+                                    // (51) = (36) + (36.1) + SUM(43 -> 50.1)
+                                    // Note: Using fields mapped from item or provided in formulas
+                                    const phụCấp = parseFloat(item.allowanceAmount || 0);
+                                    const ot = parseFloat(item.overtimePay || 0);
+                                    const thưởngP3 = parseFloat(item.bonus || 0);
+                                    const truyThuTínhThuế = parseFloat(item.adjustmentTaxable || 0);
+                                    const truyThuKoThuế = parseFloat(item.adjustmentNonTaxable || 0);
+                                    const khácKoThuế = parseFloat(item.otherIncomeNonTaxable || 0);
 
-                                        {/* workingDay */}
-                                        {expanded.workingDay ? (
-                                            <React.Fragment>
-                                                <td className="p-2 text-center border-r border-slate-100 text-slate-400 font-bold">{item.standardDays || 26}</td>
-                                                <td className="p-2 text-center border-r border-slate-100 font-semibold">{item.officialDays || 0}</td>
-                                                <td className="p-2 text-center border-r border-slate-100">{item.probationDays || 0}</td>
-                                                <td className="p-2 text-center border-r border-slate-100">{item.nightShiftOfficialDays || 0}</td>
-                                                <td className="p-2 text-center border-r border-slate-100">{item.nightShiftProbationDays || 0}</td>
-                                                <td className="p-2 text-center border-r border-slate-100 font-medium text-emerald-600">{item.businessTripDays || 0}</td>
-                                                <td className="p-2 text-center border-r border-slate-100 font-bold text-indigo-600">{item.holidayDays || 0}</td>
-                                                <td className="p-2 text-center border-r border-slate-100 font-medium text-blue-600">{item.benefitLeaveDays || 0}</td>
-                                                <td className="p-2 text-center border-r border-slate-100 bg-rose-50 text-rose-600 font-black">{item.unpaidLeaveDays || 0}</td>
-                                                <td className="p-2 text-center border-r border-slate-100">{item.remainingLeaveDays || 0}</td>
-                                            </React.Fragment>
-                                        ) : (
-                                            <td className="p-2 text-center border-r border-slate-100 font-black text-slate-800">{item.workingDays || 0}</td>
-                                        )}
+                                    const tổngThuNhập = tổngLươngChính + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
 
-                                        <td className="p-2 text-center border-r border-slate-100 font-black text-indigo-900 bg-slate-50">100</td>
+                                    // (52) = 10.5% * (1.1)
+                                    const bhxhNLĐ = 0.105 * parseFloat(item.baseSalary || 0);
+                                    
+                                    // Total Deductions (65.1)
+                                    const thuếTNCN = parseFloat(item.taxDeduction || 0);
+                                    const khấuTrừKhác = parseFloat(item.penalty || 0) + parseFloat(item.deduction || 0);
+                                    const tổngKhấuTrừ = bhxhNLĐ + parseFloat(item.insuranceAdjustment || 0) + parseFloat(item.unionFee || 0) + parseFloat(item.partyFee || 0) + thuếTNCN + parseFloat(item.taxAdjustment || 0) + khấuTrừKhác;
 
-                                        {/* calculateSalaryBonus */}
-                                        {expanded.calculateSalaryBonus ? (
-                                            <React.Fragment>
-                                                <td className="px-3 text-right border-r border-slate-100 font-medium">{fmt(item.p1Amount)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100">{fmt(item.p21Amount)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100">{fmt(item.p22Amount)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100">{fmt(item.probationAmount)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100">0</td>
-                                                <td className="px-3 text-right border-r border-slate-100 font-black text-blue-800 bg-blue-50/50">{fmt(parseFloat(item.p1Amount || 0) + parseFloat(item.p21Amount || 0) + parseFloat(item.p22Amount || 0) + parseFloat(item.probationAmount || 0))}</td>
-                                            </React.Fragment>
-                                        ) : (
-                                            <td className="px-3 text-right border-r border-slate-100 font-black text-blue-900 bg-blue-50/50">{fmt(parseFloat(item.p1Amount || 0) + parseFloat(item.p21Amount || 0) + parseFloat(item.p22Amount || 0) + parseFloat(item.probationAmount || 0))}</td>
-                                        )}
+                                    // (66) = (51) - (65.1)
+                                    const thựcLĩnh = tổngThuNhập - tổngKhấuTrừ;
 
-                                        <td className="px-3 text-right border-r border-slate-100 text-slate-400">0</td>
-                                        <td className="px-3 text-right border-r border-slate-100 text-slate-400">0</td>
-                                        <td className="px-3 text-right border-r border-slate-100 font-black text-indigo-500 italic">{fmt(item.overtimePay)}</td>
-                                        <td className="px-3 text-right border-r border-slate-100 text-slate-400">0</td>
-                                        <td className="px-3 text-right border-r border-slate-100 text-slate-300">0</td>
+                                    // Costs
+                                    const kpcđCty = parseFloat(item.companyUnionFee || 0);
+                                    const bhxhCty = parseFloat(item.companyInsurance || 0);
+                                    const tổngChiPhíNS = tổngThuNhập + kpcđCty + bhxhCty;
 
-                                        {/* Total Income 51 */}
-                                        <td className="px-3 text-right font-black text-indigo-950 bg-slate-100/30 border-r border-slate-100 text-[11px]">{fmt(parseFloat(item.netSalary) + parseFloat(item.insuranceDeduction) + parseFloat(item.taxDeduction))}</td>
+                                    return (
+                                        <tr key={item.id} className="group hover:bg-indigo-50/30 transition-colors divide-x divide-slate-100">
+                                            <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 p-2 text-center text-slate-400 italic font-medium">{idx + 1}</td>
+                                            <td className="sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 px-2.5 py-3 font-bold text-slate-500">{item.employee?.employeeCode || "—"}</td>
+                                            <td className="sticky left-[145px] bg-white group-hover:bg-slate-50 z-10 px-4 py-3 font-black text-slate-800 truncate">{item.employee?.fullName || "—"}</td>
+                                            
+                                            {/* Group I */}
+                                            <td className="px-3 text-right text-slate-600 bg-amber-50/10 italic">{fmt(item.baseSalary)}</td>
+                                            <td className="px-3 text-right text-slate-600 font-medium">{fmt(item.p1Salary || item.baseSalary)}</td>
+                                            <td className="px-3 text-right text-slate-600">{fmt(item.p21Salary)}</td>
+                                            <td className="px-3 text-right text-slate-600">{fmt(item.p22Salary)}</td>
+                                            <td className="px-3 text-right text-slate-600">{fmt(item.probationSalary)}</td>
 
-                                        {/* insuranceEmp */}
-                                        {expanded.insuranceEmp ? (
-                                            <React.Fragment>
-                                                <td className="px-3 text-right border-r border-slate-100 text-rose-400">{fmt(item.socialInsurance)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100 text-rose-400">{fmt(item.healthInsurance)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100 text-rose-400">{fmt(item.unemploymentInsurance)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100 font-black text-rose-600 bg-rose-50/50">{fmt(item.insuranceDeduction)}</td>
-                                            </React.Fragment>
-                                        ) : (
-                                            <td className="px-3 text-right border-r border-slate-100 text-rose-600 font-black tracking-tighter italic">{fmt(item.insuranceDeduction)}</td>
-                                        )}
+                                            {/* Group II */}
+                                            <td className="px-3 text-center font-bold text-slate-500">{ncChuẩn}</td>
+                                            <td className="px-3 text-center text-indigo-600 font-bold">{ncChínhThức}</td>
+                                            <td className="px-3 text-center text-indigo-600">{ncThửViệc}</td>
+                                            <td className="px-3 text-center text-indigo-400 italic">{ncKhác}</td>
 
-                                        <td className="px-3 text-right border-r border-slate-100 text-rose-600 italic font-bold bg-rose-50/10">{fmt(item.taxDeduction)}</td>
-                                        <td className="px-3 text-right font-black text-rose-800 bg-rose-100/30 border-r border-slate-200 text-xs shadow-[inset_-2px_0_4px_rgba(244,63,94,0.05)]">{fmt(item.netSalary)}</td>
-                                        <td className="px-3 text-right border-r border-slate-100 text-emerald-600 font-black">{fmt(item.companyUnionFee)}</td>
+                                            {/* Group III */}
+                                            <td className="px-3 text-center font-black text-blue-600">{item.kpiPercentage || 100}%</td>
+                                            <td className="px-3 text-right font-bold text-blue-800">{fmt(p1ThựcNhận)}</td>
+                                            <td className="px-3 text-right font-bold text-blue-800">{fmt(p21ThựcNhận)}</td>
+                                            <td className="px-3 text-right font-bold text-blue-800">{fmt(p22ThựcNhận)}</td>
+                                            <td className="px-3 text-right font-bold text-blue-800">{fmt(probationThựcNhận)}</td>
+                                            <td className="px-3 text-right font-black text-indigo-900 bg-indigo-50/50">{fmt(tổngLươngChính)}</td>
 
-                                        {/* insuranceCo */}
-                                        {expanded.insuranceCo ? (
-                                            <React.Fragment>
-                                                <td className="px-3 text-right border-r border-slate-100 text-emerald-500/80">{fmt(item.companySocialInsurance)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100 text-emerald-500/80">{fmt(item.companyHealthInsurance)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100 text-emerald-500/80">{fmt(item.companyUnemploymentInsurance)}</td>
-                                                <td className="px-3 text-right border-r border-slate-100 font-extrabold text-emerald-700 bg-emerald-100/10">{fmt(item.companySocialInsurance + item.companyHealthInsurance + item.companyUnemploymentInsurance)}</td>
-                                            </React.Fragment>
-                                        ) : (
-                                            <td className="px-3 text-right border-r border-slate-100 text-emerald-700 font-black underline decoration-emerald-100">{fmt(item.companySocialInsurance + item.companyHealthInsurance + item.companyUnemploymentInsurance)}</td>
-                                        )}
+                                            {/* Group IV */}
+                                            <td className="px-3 text-right text-slate-700">{fmt(thưởngP3)}</td>
+                                            <td className="px-3 text-right text-slate-700">{fmt(phụCấp)}</td>
+                                            <td className="px-3 text-right text-indigo-600 font-bold">{fmt(ot)}</td>
+                                            <td className="px-3 text-right text-emerald-600">{fmt(truyThuTínhThuế)}</td>
+                                            <td className="px-3 text-right text-emerald-600">{fmt(truyThuKoThuế)}</td>
+                                            <td className="px-3 text-right text-slate-500 italic">{fmt(khácKoThuế)}</td>
 
-                                        {/* totalHrCost 79.1 */}
-                                        <td className="px-3 text-right font-black text-[#064e3b] bg-emerald-100/30 border-r border-slate-300 text-[11px]">{fmt(item.totalHrCost)}</td>
-                                        
-                                        <td className="px-4 text-slate-400 border-r border-slate-100 italic truncate text-[10px] max-w-[220px]">{item.employee?.companyEmail || item.employee?.personalEmail || "—"}</td>
-                                        
-                                        {/* infoBank */}
-                                        {expanded.infoBank ? (
-                                            <React.Fragment>
-                                                <td className="px-4 border-r border-slate-100 truncate text-indigo-700 font-bold uppercase text-[10px]">MB BANK</td>
-                                                <td className="px-4 border-r border-slate-100 font-mono text-slate-500 text-[9px] tracking-widest font-bold">1234567890</td>
-                                                <td className="px-4 border-r border-slate-100 truncate text-slate-400 italic">Vĩnh Phúc</td>
-                                            </React.Fragment>
-                                        ) : (
-                                            <td className="px-4 border-r border-slate-100 text-slate-300 text-center italic tracking-widest">****</td>
-                                        )}
+                                            {/* Group V - Total */}
+                                            <td className="px-3 text-right font-black text-white bg-emerald-600 text-xs shadow-inner">{fmt(tổngThuNhập)}</td>
+                                            <td className="px-3 text-center text-[10px] text-slate-400">#51</td>
 
-                                        <td className="px-5 text-slate-400 border-r border-slate-100 italic font-medium truncate max-w-[300px]">{item.note || "—"}</td>
-                                    </tr>
-                                ))}
+                                            {/* Group VI - Deductions */}
+                                            <td className="px-3 text-right text-rose-600 font-medium">{fmt(bhxhNLĐ)}</td>
+                                            <td className="px-3 text-right text-rose-400">{fmt(item.insuranceAdjustment)}</td>
+                                            <td className="px-3 text-right text-rose-400">{fmt(item.unionFee)}</td>
+                                            <td className="px-3 text-right text-rose-400">{fmt(item.partyFee)}</td>
+                                            <td className="px-3 text-right text-slate-400 italic text-[10px]">{fmt(item.familyDeduction)}</td>
+                                            <td className="px-3 text-right text-slate-500 font-medium">{fmt(item.taxableIncome)}</td>
+                                            <td className="px-3 text-right text-rose-700 font-bold">{fmt(thuếTNCN)}</td>
+                                            <td className="px-3 text-right text-rose-500">{fmt(item.taxAdjustment)}</td>
+                                            <td className="px-3 text-right text-rose-500">{fmt( khấuTrừKhác )}</td>
+                                            <td className="px-3 text-right font-black text-white bg-rose-600 text-xs">{fmt(tổngKhấuTrừ)}</td>
+
+                                            {/* Group VII - Net */}
+                                            <td className="px-3 text-right font-black text-white bg-amber-600 text-[13px] shadow-lg">{fmt(thựcLĩnh)}</td>
+
+                                            {/* Group VIII - Cost */}
+                                            <td className="px-3 text-right text-slate-400">{fmt(kpcđCty)}</td>
+                                            <td className="px-3 text-right text-slate-400">{fmt(bhxhCty)}</td>
+                                            <td className="px-3 text-right font-bold text-slate-200 bg-slate-900">{fmt(tổngChiPhíNS)}</td>
+
+                                            <td className="px-5 text-slate-400 italic font-medium truncate max-w-[250px]">{item.note || "—"}</td>
+                                        </tr>
+                                    );
+                                })}
                             </React.Fragment>
                         ))}
                     </tbody>
                 </table>
             </div>
 
-            {/* Salary Calculation Explanation Footer */}
+            {/* Premium Calculation Methodology Legend */}
             <div className="p-8 bg-slate-50/50 border-t border-slate-200">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="h-8 w-1 bg-indigo-600 rounded-full"></div>
-                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Giải thích công thức & Quy tắc tính lương</h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {/* Category 1: Income */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-indigo-700 font-bold text-[11px] uppercase">
-                            <div className="p-1.5 rounded-md bg-indigo-100"><PlusSquare className="h-3.5 w-3.5" /></div>
-                            1. Thu nhập & Lương (P1, P2, P3)
-                        </div>
-                        <ul className="space-y-2.5 text-[11px] text-slate-600">
-                            <li className="flex gap-2">
-                                <span className="font-bold text-slate-800 min-w-[70px]">Lương P1:</span>
-                                <span>Lương cơ bản tính theo ngày công thực tế (Công chính thức + Lễ/Tết + Phép).</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="font-bold text-slate-800 min-w-[70px]">Lương P2:</span>
-                                <span>Lương hiệu quả công việc, chia theo tỷ lệ <b className="text-indigo-600">80% (P2.1)</b> và <b className="text-indigo-600">20% (P2.2)</b>.</span>
-                            </li>
-                            <li className="flex gap-2 text-indigo-700 italic bg-white p-2 rounded border border-indigo-50 shadow-sm">
-                                <span>P2.1 = (P2 * 80%) * (Công thực tế / Công chuẩn)</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="font-bold text-slate-800 min-w-[70px]">Lương P3:</span>
-                                <span>Lương theo kết quả kinh doanh hoặc thưởng đặc thù (nếu có).</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Category 2: Deductions */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-rose-700 font-bold text-[11px] uppercase">
-                            <div className="p-1.5 rounded-md bg-rose-100"><MinusSquare className="h-3.5 w-3.5" /></div>
-                            2. Bảo hiểm & Khấu trừ (NS)
-                        </div>
-                        <ul className="space-y-2.5 text-[11px] text-slate-600">
-                            <li className="flex gap-2">
-                                <span className="font-bold text-slate-800 min-w-[90px]">BHXH (8%):</span>
-                                <span>Trích từ lương đóng bảo hiểm của nhân sự.</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="font-bold text-slate-800 min-w-[90px]">BHYT (1.5%):</span>
-                                <span>Bảo hiểm y tế trích từ lương nhân sự.</span>
-                            </li>
-                            <li className="flex gap-2 border-l-2 border-rose-200 pl-3 py-1">
-                                <span className="font-bold text-slate-800">Thực lĩnh =</span>
-                                <span className="text-rose-700 font-bold">Tổng TN - (BHXH + BHYT + BHTN) - Thuế TNCN</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-[10px] italic text-slate-400 font-medium">※ Thuế TNCN được tính theo biểu thức lũy tiến từng phần của Bộ Tài Chính.</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Category 3: Employer Cost */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-emerald-700 font-bold text-[11px] uppercase">
-                            <div className="p-1.5 rounded-md bg-emerald-100"><PlusSquare className="h-3.5 w-3.5" /></div>
-                            3. Chi phí cho Doanh nghiệp
-                        </div>
-                        <ul className="space-y-2.5 text-[11px] text-slate-600">
-                            <li className="flex gap-2">
-                                <span className="font-bold text-slate-800 min-w-[100px]">BH Công ty (21.5%):</span>
-                                <span>Gồm BHXH (17.5%), BHYT (3%), BHTN (1%).</span>
-                            </li>
-                            <li className="flex gap-2 text-emerald-700 font-black bg-emerald-50 p-2 rounded-lg border-2 border-emerald-100">
-                                <span className="min-w-[100px]">Chi phí NS =</span>
-                                <span>Tổng thu nhập + BH Công ty + Kinh phí công đoàn (2%)</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-[10px] italic text-slate-400">Đây là tổng ngân sách mà công ty phải chi trả cho 1 vị trí nhân sự trong tháng.</span>
-                            </li>
-                        </ul>
+                <div className="flex items-center gap-3 mb-8">
+                    <Calculator className="h-6 w-6 text-indigo-600" />
+                    <div>
+                        <h3 className="text-base font-black text-slate-800 uppercase tracking-tight">Quy chuẩn tính toán bảng lương chi tiết</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Dựa trên hệ thống 36 chỉ tiêu và 3P framework</p>
                     </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <CalculationRule 
+                        icon={Calculator} 
+                        color="blue" 
+                        title="1. Lương thực nhận P1 & P2.1"
+                        rule="= (Lương / NC chuẩn) × (Ngày công chính thức + Nghỉ phép/Lễ) [× % KPI đối với P2.1]"
+                    />
+                    <CalculationRule 
+                        icon={ShieldCheck} 
+                        color="rose" 
+                        title="2. Khấu trừ Bảo hiểm"
+                        rule="= 10.5% × Lương đóng BHXH (indicator 1.1)"
+                    />
+                    <CalculationRule 
+                        icon={Wallet} 
+                        color="emerald" 
+                        title="3. Tổng thu nhập (51)"
+                        rule="= Lương chính (36) + Thưởng P3 + Phụ cấp + OT + Truy thu"
+                    />
+                    <CalculationRule 
+                        icon={Calculator} 
+                        color="amber" 
+                        title="4. Thực lĩnh NET (66)"
+                        rule="= Tổng thu nhập (51) - Tổng các khoản khấu trừ (65.1)"
+                    />
+                </div>
                 {/* Footer Notes */}
                 <div className="mt-10 pt-6 border-t border-slate-200 flex items-center justify-between">
                     <div className="flex items-center gap-4 text-[10px] text-slate-400 font-medium italic">
                         <span>● Lương được tính dựa trên dữ liệu chấm công đã chốt</span>
-                        <span>● Các khoản phụ cấp không tính thuế được liệt kê tại cột TTPC</span>
+                        <span>● Công thức áp dụng chuẩn 3P cho khối vận hành và gián tiếp</span>
                     </div>
                     <div className="text-[10px] font-black text-indigo-400/50 tracking-widest uppercase">
-                        SmartHR Payroll Engine v2.0
+                        SmartHR Payroll Engine v3.0
                     </div>
                 </div>
             </div>
         </div>
     );
 }
+
+const CalculationRule = ({ icon: Icon, color, title, rule }) => {
+    const colors = {
+        blue: "text-blue-600 bg-blue-50 border-blue-100",
+        rose: "text-rose-600 bg-rose-50 border-rose-100",
+        emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
+        amber: "text-amber-600 bg-amber-50 border-amber-100"
+    };
+
+    return (
+        <div className="space-y-3 p-4 rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow">
+            <div className={`flex items-center gap-2 font-bold text-[11px] uppercase ${colors[color].split(' ')[0]}`}>
+                <div className={`p-1.5 rounded-lg border ${colors[color]}`}><Icon className="h-4 w-4" /></div>
+                {title}
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed font-medium p-3 bg-slate-50/50 rounded-lg italic">
+                {rule}
+            </p>
+        </div>
+    );
+};

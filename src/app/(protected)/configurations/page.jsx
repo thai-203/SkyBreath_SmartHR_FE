@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/common/Card";
 import { Button } from "@/components/common/Button";
-import { Camera, Settings, Shield, Activity, ChevronRight, ShieldAlert } from "lucide-react";
+import { Camera, Settings, Shield, Activity, ChevronRight, ShieldAlert, Wallet } from "lucide-react";
 
 export default function ConfigurationsPage() {
   const router = useRouter();
@@ -45,6 +45,15 @@ export default function ConfigurationsPage() {
       disabled: false,
     },
     {
+      id: "payroll-settings",
+      title: "Quy Trình Lương",
+      description: "Cấu hình người phê duyệt, quy trình tính lương và thông báo",
+      icon: Wallet,
+      color: "emerald",
+      href: "/configurations/payroll",
+      disabled: false,
+    },
+    {
       id: "notification-settings",
       title: "Cài Đặt Thông Báo",
       description: "Quản lý các cảnh báo, email thông báo và cấu hình gửi",
@@ -59,6 +68,7 @@ export default function ConfigurationsPage() {
     indigo: "bg-indigo-50 border-indigo-200 text-indigo-600",
     blue: "bg-blue-50 border-blue-200 text-blue-600",
     purple: "bg-purple-50 border-purple-200 text-purple-600",
+    emerald: "bg-emerald-50 border-emerald-200 text-emerald-600",
     orange: "bg-orange-50 border-orange-200 text-orange-600",
   };
 

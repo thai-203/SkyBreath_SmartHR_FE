@@ -233,6 +233,10 @@ const menuItems = [
     icon: Settings,
     href: "/configurations",
     roles: ["ADMIN"],
+    children: [
+      { title: "Tổng quan", href: "/configurations" },
+      { title: "Quy trình lương", href: "/configurations/payroll" },
+    ],
   },
   {
     title: "Cấu hình AI",
