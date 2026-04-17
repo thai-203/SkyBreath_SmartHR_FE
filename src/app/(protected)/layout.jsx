@@ -7,9 +7,11 @@ export const metadata = {
 
 export default function Layout({ children }) {
     return (
-        <AdminLayout>
-            {children}
+        <>
+            <AdminLayout>
+                {children}
+            </AdminLayout>
             <AssistantChatbot />
-        </AdminLayout>
+        </>
     );
 }

@@ -122,7 +122,7 @@ export default function PermissionsPage() {
     };
 
     return (
-        <div className="container mx-auto py-8 space-y-8 max-w-7xl animate-in fade-in duration-500">
+        <div className="w-full max-w-7xl mx-auto space-y-6 px-4 sm:px-6 pb-10">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-br from-white to-blue-50/20 p-8 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/20 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
@@ -146,16 +146,16 @@ export default function PermissionsPage() {
                     <Button
                         variant="outline"
                         onClick={fetchPermissions}
-                        className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                        className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-medium h-9"
                     >
                         <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                         Làm mới
                     </Button>
                     <Button
                         onClick={handleCreate}
-                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200 transition-all hover:scale-[1.03] active:scale-[0.98] font-bold px-6"
+                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200 transition-all hover:scale-[1.03] active:scale-[0.98] font-bold h-9"
                     >
-                        <Plus className="mr-2 h-5 w-5" />
+                        <Plus className="mr-2 h-4 w-4" />
                         Thêm quyền mới
                     </Button>
                 </div>

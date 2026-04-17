@@ -321,12 +321,94 @@ const PayrollDetailView = React.memo(({
         if (sectionId === "timesheet") {
             setTimesheetData(null);
         } else if (sectionId === "input") {
-            // Re-fetch payroll to refresh input rows (assuming parent can provide refresh)
-            window.location.reload(); 
+            // Reset input rows from current payroll details
+            if (payroll?.details) {
+                const rows = [];
+                payroll.details.forEach(d => {
+                    // KPI Row
+                    if (d.p1p2Percentage > 0 || d.p21Salary > 0) {
+                        rows.push({
+                            id: `kpi-${d.id}`,
+                            employeeCode: d.employee?.employeeCode,
+                            fullName: d.employee?.fullName,
+                            item: "Thưởng KPI",
+                            kpiPercentage: d.p1p2Percentage || 100,
+                            maxKpiSalary: d.p21Salary || 0,
+                            amount: (d.p1p2Percentage / 100) * d.p21Salary || 0,
+                            note: d.note || ""
+                        });
+                    }
+                    // Penalty Row
+                    if (d.penalty > 0) {
+                        rows.push({
+                            id: `penalty-${d.id}`,
+                            employeeCode: d.employee?.employeeCode,
+                            fullName: d.employee?.fullName,
+                            item: "Phạt vi phạm",
+                            amount: d.penalty,
+                            note: d.note || ""
+                        });
+                    }
+                    // Deduction Row
+                    if (d.deduction > 0) {
+                        rows.push({
+                            id: `deduction-${d.id}`,
+                            employeeCode: d.employee?.employeeCode,
+                            fullName: d.employee?.fullName,
+                            item: "Truy thu thuế",
+                            amount: d.deduction,
+                            note: d.note || ""
+                        });
+                    }
+                });
+                setInputRows(rows);
+            }
         } else if (sectionId === "payroll") {
             window.location.reload();
         }
         setTimeout(() => setIsRefreshing(false), 800);
+    };
+
+    // Matrix-based input rows for all employees
+    useEffect(() => {
+        if (timesheetData && timesheetData.length > 0 && payroll?.details && inputRows.length === 0) {
+            const rows = timesheetData.map(ts => {
+                const detail = payroll.details.find(d => d.employeeId === ts.id);
+                return {
+                    id: ts.id,
+                    employeeId: ts.id,
+                    employeeCode: ts.employeeCode,
+                    fullName: ts.fullName,
+                    departmentName: ts.departmentName,
+                    positionName: ts.positionName,
+                    // Attendance reference
+                    standardDays: ts.standardDays || 26,
+                    officialDays: ts.officialDays || 0,
+                    probationDays: ts.probationDays || 0,
+                    // Editable fields
+                    performanceSalary: detail?.performanceSalary ?? (ts.performanceSalary || 0),
+                    p1p2Percentage: detail?.p1p2Percentage ?? 100,
+                    p3Percentage: detail?.p3Percentage ?? 100,
+                    bonus: detail?.bonus ?? 0,
+                    allowanceAmount: detail?.allowanceAmount ?? 0,
+                    penalty: detail?.penalty ?? 0,
+                    deduction: detail?.deduction ?? 0,
+                    socialInsurancePercentage: detail?.socialInsurancePercentage ?? 0,
+                    healthInsurancePercentage: detail?.healthInsurancePercentage ?? 0,
+                    unemploymentInsurancePercentage: detail?.unemploymentInsurancePercentage ?? 0,
+                    unionFeePercentage: detail?.unionFeePercentage ?? 0,
+                    taxDeduction: detail?.taxDeduction ?? 0,
+                    note: detail?.note || ""
+                };
+            });
+            setInputRows(rows);
+        }
+    }, [timesheetData, payroll?.details]);
+
+    const handleInputRowChange = (id, field, value) => {
+        setInputRows(prev => prev.map(row => 
+            row.id === id ? { ...row, [field]: value } : row
+        ));
     };
 
     const handleExportExcel = () => {
@@ -689,70 +771,41 @@ const PayrollDetailView = React.memo(({
 
         try {
             setIsSaving(true);
-            // 1. Group by employeeCode
-            const groupedByEmployee = inputRows.reduce((acc, row) => {
-                if (!row.employeeCode) return acc;
-                if (!acc[row.employeeCode]) {
-                    acc[row.employeeCode] = { bonus: 0, penalty: 0, deduction: 0, p1p2Percentage: undefined };
-                }
-                const amount = parseFloat(row.amount) || 0;
-                if (row.item === "Phạt vi phạm") {
-                    acc[row.employeeCode].penalty += amount;
-                } else if (row.item === "Truy thu thuế") {
-                    acc[row.employeeCode].deduction += amount;
-                } else if (row.item === "Thưởng KPI") {
-                    acc[row.employeeCode].bonus += amount;
-                    acc[row.employeeCode].p1p2Percentage = parseFloat(row.kpiPercentage) || 0;
-                } else {
-                    // Default to bonus for Phone, Other
-                    acc[row.employeeCode].bonus += amount;
-                }
-                return acc;
-            }, {});
+            const updates = inputRows.map(row => {
+                const detail = payroll?.details?.find(d => d.employeeId === row.employeeId);
+                if (!detail) return null;
 
-            // 2. Map to PayrollDetail updates
-            const updates = [];
-            for (const [code, values] of Object.entries(groupedByEmployee)) {
-                // Find employee by code in timesheetData (already loaded)
-                const employee = timesheetData?.find(ts => ts.employeeCode === code);
-                if (!employee) {
-                    console.warn(`Không tìm thấy nhân viên với mã ${code}`);
-                    continue;
-                }
-
-                // Find existing PayrollDetail for this employee
-                const detail = payroll?.details?.find(d => d.employeeId === employee.id);
-                if (!detail) {
-                    console.warn(`Không tìm thấy chi tiết lương cho nhân viên ${code}`);
-                    continue;
-                }
-
-                updates.push({
+                return {
                     id: detail.id,
-                    bonus: values.bonus,
-                    penalty: values.penalty,
-                    deduction: values.deduction,
-                    p1p2Percentage: values.p1p2Percentage,
-                    note: inputRows.filter(r => r.employeeCode === code).map(r => r.note).filter(Boolean).join("; ")
-                });
-            }
+                    performanceSalary: parseFloat(row.performanceSalary) || 0,
+                    p1p2Percentage: parseFloat(row.p1p2Percentage) || 0,
+                    p3Percentage: parseFloat(row.p3Percentage) || 0,
+                    bonus: parseFloat(row.bonus) || 0,
+                    allowanceAmount: parseFloat(row.allowanceAmount) || 0,
+                    penalty: parseFloat(row.penalty) || 0,
+                    deduction: parseFloat(row.deduction) || 0,
+                    socialInsurancePercentage: parseFloat(row.socialInsurancePercentage) || 0,
+                    healthInsurancePercentage: parseFloat(row.healthInsurancePercentage) || 0,
+                    unemploymentInsurancePercentage: parseFloat(row.unemploymentInsurancePercentage) || 0,
+                    unionFeePercentage: parseFloat(row.unionFeePercentage) || 0,
+                    taxDeduction: parseFloat(row.taxDeduction) || 0,
+                    note: row.note || ""
+                };
+            }).filter(Boolean);
 
             if (updates.length > 0) {
-                // Update all affected details
+                // Update in batches or parallel
                 await Promise.all(updates.map(u => payrollService.updateDetail(u.id, u)));
-                toast.success(`Đã lưu dữ liệu cho ${updates.length} nhân sự thành công!`);
+                toast.success(`Đã lưu dữ liệu nhập liệu cho ${updates.length} nhân sự thành công!`);
 
-                // Recalculate to reflect changes in final totals
+                // Recalculate to reflect changes
                 if (onCalculate && payroll?.payrollStatus === "DRAFT") {
                     await onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear });
                 }
-            } else {
-                toast.error("Không tìm thấy nhân viên hợp lệ trong hệ thống để cập nhật");
             }
-
         } catch (err) {
             console.error(err);
-            toast.error("Lỗi khi lưu dữ liệu nhập liệu: " + (err.message || "Unknown error"));
+            toast.error("Lỗi khi lưu dữ liệu: " + (err.message || "Unknown error"));
         } finally {
             setIsSaving(false);
         }
@@ -1421,22 +1474,12 @@ const PayrollDetailView = React.memo(({
                             isOpen={openSections.input}
                             onToggle={toggleSection}
                         >
-                            {/* ── Section Toolbar ── */}
                             <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-slate-100">
                                 <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
-                                    <Pencil className="h-3 w-3" /> Chỉnh sửa
-                                </button>
-                                <button
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
-                                    onClick={handleAddInputRow}
-                                >
-                                    <Plus className="h-3 w-3" /> Thêm dòng
+                                    <Pencil className="h-3 w-3" /> Chỉnh sửa hàng loạt
                                 </button>
                                 <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
-                                    <Upload className="h-3 w-3" /> Import
-                                </button>
-                                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-slate-800 text-white hover:bg-slate-700 transition-colors">
-                                    <Download className="h-3 w-3" /> Xuất Excel
+                                    <Upload className="h-3 w-3" /> Import Excel
                                 </button>
                                 {canEdit && payroll?.payrollStatus === "DRAFT" && (
                                     <button
@@ -1444,7 +1487,7 @@ const PayrollDetailView = React.memo(({
                                         onClick={handleSaveInputRows}
                                         disabled={isSaving}
                                     >
-                                        <CheckCircle2 className={`h-3 w-3 ${isSaving ? 'animate-spin' : ''}`} /> Lưu thay đổi
+                                        <CheckCircle2 className={`h-3 w-3 ${isSaving ? 'animate-spin' : ''}`} /> Lưu tất cả thay đổi
                                     </button>
                                 )}
                                 <div className="ml-auto flex items-center gap-1">
@@ -1455,23 +1498,20 @@ const PayrollDetailView = React.memo(({
                                     >
                                         <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                                     </button>
-                                    <button className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Cài đặt">
-                                        <Settings className="h-3.5 w-3.5" />
-                                    </button>
                                 </div>
                             </div>
 
                             {/* ── Search & Summary ── */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                                <div className="text-[14px] font-semibold text-indigo-600">
-                                    Tổng cộng: {inputRows.length} dòng nhập liệu
+                                <div className="text-[13px] font-bold text-slate-500 uppercase tracking-tight">
+                                    📊 <span className="text-indigo-600">Tổng cộng: {inputRows.length} nhân sự trong danh sách nhập liệu</span>
                                 </div>
-                                <div className="relative w-full sm:w-[300px]">
+                                <div className="relative w-full sm:w-[320px]">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                     <input
                                         type="text"
-                                        placeholder="Tìm kiếm nội dung nhập liệu..."
-                                        className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm shadow-slate-100"
+                                        placeholder="Tìm kiếm nhanh nhân sự..."
+                                        className="w-full pl-9 pr-4 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all bg-slate-50/50"
                                         value={inputSearch}
                                         onChange={(e) => setInputSearch(e.target.value)}
                                     />
@@ -1479,155 +1519,197 @@ const PayrollDetailView = React.memo(({
                             </div>
 
                             <div className={`overflow-hidden rounded-xl border border-slate-200 bg-white ${isRefreshing ? 'opacity-50' : ''} transition-opacity`}>
-                                <table className="w-full text-[12px] border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                                            <th className="px-3 py-3 text-center w-[50px]">STT</th>
-                                            <th className="px-3 py-3 text-left w-[120px]">Mã nhân sự</th>
-                                            <th className="px-3 py-3 text-left">Họ tên nhân sự</th>
-                                            <th className="px-3 py-3 text-left">Khoản mục</th>
-                                            <th className="px-3 py-3 text-center w-[100px]">% nhận được</th>
-                                            <th className="px-3 py-3 text-right w-[150px]">Lương KPI tối đa</th>
-                                            <th className="px-3 py-3 text-right w-[150px]">Số tiền</th>
-                                            <th className="px-3 py-3 text-left">Ghi chú</th>
-                                            <th className="px-3 py-3 text-center w-[100px]">Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {inputRows.length > 0 ? inputRows.filter(r =>
-                                            r.employeeCode.includes(inputSearch) ||
-                                            r.fullName.toLowerCase().includes(inputSearch.toLowerCase()) ||
-                                            r.item.toLowerCase().includes(inputSearch.toLowerCase())
-                                        ).map((row, idx) => (
-                                            <tr key={row.id} className="hover:bg-slate-50/50 transition-colors animate-in fade-in slide-in-from-left-2 duration-300">
-                                                <td className="px-3 py-2 text-center text-slate-400">{idx + 1}</td>
-                                                <td className="px-3 py-2">
-                                                    <input
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1 font-bold text-slate-700"
-                                                        placeholder="Mã NV"
-                                                        value={row.employeeCode ?? ""}
-                                                        onChange={(e) => {
-                                                            const newRows = [...inputRows];
-                                                            newRows[idx].employeeCode = e.target.value;
-                                                            setInputRows(newRows);
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <input
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1"
-                                                        placeholder="Họ tên"
-                                                        value={row.fullName ?? ""}
-                                                        onChange={(e) => {
-                                                            const newRows = [...inputRows];
-                                                            newRows[idx].fullName = e.target.value;
-                                                            setInputRows(newRows);
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <select
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1"
-                                                        value={row.item ?? "Thưởng KPI"}
-                                                        onChange={(e) => {
-                                                            const newRows = [...inputRows];
-                                                            newRows[idx].item = e.target.value;
-                                                            setInputRows(newRows);
-                                                        }}
-                                                    >
-                                                        <option value="Thưởng KPI">Thưởng KPI</option>
-                                                        <option value="Phụ cấp điện thoại">Phụ cấp điện thoại</option>
-                                                        <option value="Phạt vi phạm">Phạt vi phạm</option>
-                                                        <option value="Truy thu thuế">Truy thu thuế</option>
-                                                        <option value="Khác">Khác</option>
-                                                    </select>
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    {row.item === "Thưởng KPI" ? (
-                                                        <div className="flex items-center gap-1">
-                                                            <input
-                                                                type="number"
-                                                                className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-300 outline-none p-1 text-center font-bold text-indigo-600"
-                                                                value={row.kpiPercentage ?? 0}
-                                                                onChange={(e) => {
-                                                                    const val = parseFloat(e.target.value) || 0;
-                                                                    const newRows = [...inputRows];
-                                                                    newRows[idx].kpiPercentage = val;
-                                                                    newRows[idx].amount = (val / 100) * (newRows[idx].maxKpiSalary || 0);
-                                                                    setInputRows(newRows);
-                                                                }}
-                                                            />
-                                                            <span className="text-[10px] text-slate-400">%</span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center text-slate-200">—</div>
-                                                    )}
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    {row.item === "Thưởng KPI" ? (
+                                <div className="overflow-x-auto scroller-thick">
+                                    <table className="w-full text-[12px] border-collapse min-w-[2200px]">
+                                        <thead>
+                                            <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px]">
+                                                <th className="px-3 py-3 text-center w-[50px] sticky left-0 bg-slate-50 z-20">STT</th>
+                                                <th className="px-3 py-3 text-left w-[100px] sticky left-[50px] bg-slate-50 z-20">Mã NV</th>
+                                                <th className="px-3 py-3 text-left w-[200px] sticky left-[150px] bg-slate-50 z-20 border-r border-slate-200">Họ tên nhân sự</th>
+                                                
+                                                {/* Attendance Group */}
+                                                <th colSpan={3} className="px-3 py-3 text-center bg-blue-50/50 text-blue-700 border-r border-slate-200 italic">Dữ liệu công (Tham chiếu)</th>
+                                                
+                                                {/* Editable Columns */}
+                                                <th className="px-3 py-3 text-right w-[130px] bg-amber-50 text-amber-800">Lương P2</th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700">% P2.1</th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700">% P2.2</th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700">Thưởng P3</th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700">Phụ cấp</th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700">Phạt</th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700">K.Trừ khác</th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHXH</th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHYT</th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHTN</th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% KPCĐ</th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-200/50 text-rose-950 font-black">Thuế TNCN</th>
+                                                <th className="px-3 py-3 text-left">Ghi chú</th>
+                                            </tr>
+                                            <tr className="bg-slate-50/50 text-[9px] text-slate-400 divide-x divide-slate-100 border-b border-slate-200">
+                                                <th colSpan={3} className="sticky left-0 bg-slate-50/50 z-20 border-r border-slate-200"></th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20">Công chuẩn</th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20">Chính thức</th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20 border-r border-slate-200">Thử việc</th>
+                                                <th className="px-2 py-1 text-center italic bg-amber-50/20">(P2 base)</th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(10)</th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2.2%)</th>
+                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20">(36.1)</th>
+                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20">(43)</th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-50/20">(65)</th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-50/20">(K.Trừ)</th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHXH)</th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHYT)</th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHTN)</th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-100/30">(KPCĐ)</th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-200/30">(Thuế)</th>
+                                                <th className=""></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {inputRows.length > 0 ? inputRows.filter(r =>
+                                                r.employeeCode?.toLowerCase().includes(inputSearch.toLowerCase()) ||
+                                                r.fullName?.toLowerCase().includes(inputSearch.toLowerCase()) ||
+                                                r.departmentName?.toLowerCase().includes(inputSearch.toLowerCase())
+                                            ).map((row, idx) => (
+                                                <tr key={row.id} className="hover:bg-slate-50/50 transition-colors group">
+                                                    <td className="px-3 py-2 text-center text-slate-400 sticky left-0 bg-white group-hover:bg-slate-50 z-10">{idx + 1}</td>
+                                                    <td className="px-3 py-2 font-bold text-slate-700 sticky left-[50px] bg-white group-hover:bg-slate-50 z-10">{row.employeeCode}</td>
+                                                    <td className="px-3 py-2 font-medium text-slate-900 sticky left-[150px] bg-white group-hover:bg-slate-50 z-10 border-r border-slate-100">{row.fullName}</td>
+                                                    
+                                                    {/* Attendance Reference */}
+                                                    <td className="px-3 py-2 text-center text-slate-500 bg-blue-50/10">{row.standardDays}</td>
+                                                    <td className="px-3 py-2 text-center font-bold text-blue-600 bg-blue-50/10">{row.officialDays}</td>
+                                                    <td className="px-3 py-2 text-center text-slate-400 bg-blue-50/10 border-r border-slate-100">{row.probationDays}</td>
+
+                                                    {/* Editable Performance/Allowance */}
+                                                    <td className="px-3 py-2 bg-amber-50/20">
                                                         <input
                                                             type="number"
-                                                            className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-300 outline-none p-1 text-right font-medium"
-                                                            placeholder="0"
-                                                            value={row.maxKpiSalary ?? 0}
-                                                            onChange={(e) => {
-                                                                const val = parseFloat(e.target.value) || 0;
-                                                                const newRows = [...inputRows];
-                                                                newRows[idx].maxKpiSalary = val;
-                                                                newRows[idx].amount = (newRows[idx].kpiPercentage / 100) * val;
-                                                                setInputRows(newRows);
-                                                            }}
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 focus:ring-2 focus:ring-amber-500 outline-none"
+                                                            value={row.performanceSalary ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'performanceSalary', e.target.value)}
                                                         />
-                                                    ) : (
-                                                        <div className="text-right text-slate-200">—</div>
-                                                    )}
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <input
-                                                        type="number"
-                                                        className={`w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1 text-right font-bold ${row.item === 'Thưởng KPI' ? 'text-indigo-600 bg-indigo-50/30' : 'text-emerald-600'}`}
-                                                        placeholder="0"
-                                                        value={row.amount ?? 0}
-                                                        onChange={(e) => {
-                                                            const newRows = [...inputRows];
-                                                            newRows[idx].amount = e.target.value;
-                                                            setInputRows(newRows);
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="px-3 py-2 text-slate-500">
-                                                    <input
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-300 outline-none p-1"
-                                                        placeholder="Ghi chú..."
-                                                        value={row.note ?? ""}
-                                                        onChange={(e) => {
-                                                            const newRows = [...inputRows];
-                                                            newRows[idx].note = e.target.value;
-                                                            setInputRows(newRows);
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="px-3 py-2 text-center">
-                                                    <button
-                                                        className="p-1 px-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                        onClick={() => setInputRows(prev => prev.filter(r => r.id !== row.id))}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        )) : (
-                                            <tr className="hover:bg-slate-50/30 transition-colors">
-                                                <td colSpan={7} className="px-4 py-12 text-center text-slate-400 italic">
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <Pencil className="h-6 w-6 opacity-20" />
-                                                        Chưa có dữ liệu nhập liệu. Nhấn "Thêm dòng" để bắt đầu.
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                        <input
+                                                            type="number"
+                                                            className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                            value={row.p1p2Percentage ?? 100}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'p1p2Percentage', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                        <input
+                                                            type="number"
+                                                            className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                            value={row.p3Percentage ?? 100}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'p3Percentage', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-emerald-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-emerald-200 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                            value={row.bonus ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'bonus', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-emerald-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-emerald-200 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                            value={row.allowanceAmount ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'allowanceAmount', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-rose-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-600 focus:ring-2 focus:ring-rose-500 outline-none"
+                                                            value={row.penalty ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'penalty', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-rose-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-600 focus:ring-2 focus:ring-rose-500 outline-none"
+                                                            value={row.deduction ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'deduction', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-rose-100/10">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
+                                                            value={row.socialInsurancePercentage ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'socialInsurancePercentage', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-rose-100/10">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
+                                                            value={row.healthInsurancePercentage ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'healthInsurancePercentage', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-rose-100/10">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
+                                                            value={row.unemploymentInsurancePercentage ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'unemploymentInsurancePercentage', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-rose-100/10">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
+                                                            value={row.unionFeePercentage ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'unionFeePercentage', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-rose-200/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-full bg-white border border-rose-300 rounded text-right py-1 px-2 font-black text-rose-950 focus:ring-2 focus:ring-rose-500 outline-none"
+                                                            value={row.taxDeduction ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'taxDeduction', e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        <input
+                                                            className="w-full bg-transparent border-b border-transparent focus:border-slate-300 outline-none p-1 text-slate-500 italic text-[11px]"
+                                                            placeholder="Ghi chú..."
+                                                            value={row.note || ""}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'note', e.target.value)}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            )) : (
+                                                <tr className="hover:bg-slate-50/30 transition-colors">
+                                                    <td colSpan={10} className="px-4 py-12 text-center text-slate-400 italic">
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <Pencil className="h-6 w-6 opacity-20" />
+                                                            Đang tải dữ liệu nhập liệu matrix...
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </Section>
                         <Section
