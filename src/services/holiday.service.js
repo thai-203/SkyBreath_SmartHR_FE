@@ -6,6 +6,11 @@ export const holidayService = {
         return response.data;
     },
 
+    async findAllPublic(params) {
+        const response = await api.get('/holiday-list/public', { params });
+        return response.data;
+    },
+
     async findById(id) {
         const response = await api.get(`/holiday-list/${id}`);
         return response.data;

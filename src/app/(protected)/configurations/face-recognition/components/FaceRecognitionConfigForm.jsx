@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/common/Toast";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -374,23 +375,27 @@ export default function ConfigurationsForm({
       >
         <div></div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onResetRequest}
-            disabled={saving}
-          >
-            <RotateCcw className="mr-1.5 h-4 w-4" />
-            Đặt lại
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSaveClick}
-            disabled={saving || !isDirty || Object.keys(errors).length > 0}
-          >
-            <Save className="mr-1.5 h-4 w-4" />
-            {saving ? "Đang lưu..." : "Lưu cấu hình"}
-          </Button>
+          <PermissionGate permission="ATTENDANCE_FACE_RECOGNITION_CONFIG_UPDATE">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onResetRequest}
+              disabled={saving}
+            >
+              <RotateCcw className="mr-1.5 h-4 w-4" />
+              Đặt lại
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="ATTENDANCE_FACE_RECOGNITION_CONFIG_UPDATE">
+            <Button
+              size="sm"
+              onClick={handleSaveClick}
+              disabled={saving || !isDirty || Object.keys(errors).length > 0}
+            >
+              <Save className="mr-1.5 h-4 w-4" />
+              {saving ? "Đang lưu..." : "Lưu cấu hình"}
+            </Button>
+          </PermissionGate>
         </div>
       </motion.div>
 

@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { onboardingsService, departmentsService, positionsService } from "@/services";
+import {
+  onboardingsService,
+  departmentsService,
+  positionsService,
+} from "@/services";
 import { useToast } from "@/components/common/Toast";
 import {
   Plus,
@@ -9,8 +13,6 @@ import {
   LayoutTemplate,
   FileStack,
   CheckCircle2,
-  Trash2,
-  AlertTriangle,
 } from "lucide-react";
 
 import TemplateStatsCard from "./components/TemplateStatsCard";
@@ -18,6 +20,7 @@ import TemplatesTable from "./components/TemplatesTable";
 import CreateTemplateModal from "./components/CreateTemplateModal";
 import ViewTemplateModal from "./components/ViewTemplateModal";
 import ConfirmDeleteModal from "./components/ConfirmDeleteModal";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 /* ================= UTILS ================= */
 const normalizeList = (data) => {
@@ -58,7 +61,6 @@ export default function OnboardingTemplatesPage() {
     fetchTemplates();
   }, [refreshKey]);
 
-  
   const fetchPositionsList = async () => {
     try {
       const response = await positionsService.getAll();
@@ -75,9 +77,9 @@ export default function OnboardingTemplatesPage() {
     }
   };
 
-    const fetchDepartmentList = async () => {
+  const fetchDepartmentList = async () => {
     try {
-      const response = await departmentsService.getAll();
+      const response = await departmentsService.getList();
       const departments = Array.isArray(response.data) ? response.data : [];
       const mappedData = departments.map((dept) => ({
         value: dept.id,
@@ -90,7 +92,7 @@ export default function OnboardingTemplatesPage() {
     }
   };
 
-    useEffect(() => {
+  useEffect(() => {
     fetchPositionsList();
     fetchDepartmentList();
   }, []);
@@ -98,7 +100,7 @@ export default function OnboardingTemplatesPage() {
   /* ================= HANDLERS ================= */
   const handleCreate = () => {
     setSelectedTemplate(null);
-    setShowCreateModal(true); 
+    setShowCreateModal(true);
   };
 
   const handleEdit = (template) => {
@@ -126,41 +128,39 @@ export default function OnboardingTemplatesPage() {
     const templateId = deleteModal.data?.id;
     if (!templateId) return;
 
-    setDeleteModal(prev => ({ ...prev, loading: true }));
+    setDeleteModal((prev) => ({ ...prev, loading: true }));
     try {
       await onboardingsService.deletePlan(templateId);
       success("Đã xóa mẫu quy trình thành công!");
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
       setDeleteModal({ show: false, data: null, loading: false });
     } catch (err) {
       error(err?.response?.data?.message || "Lỗi khi xóa quy trình");
-      setDeleteModal(prev => ({ ...prev, loading: false }));
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
     }
   };
 
   const safeTemplates = useMemo(
     () => (Array.isArray(templates) ? templates : []),
-    [templates]
+    [templates],
   );
 
   /* ================= STATS ================= */
   const stats = useMemo(
     () => ({
       total: safeTemplates.length,
-      active: safeTemplates.filter(
-        (t) => t.status?.toLowerCase() === "active"
-      ).length,
-      draft: safeTemplates.filter(
-        (t) => t.status?.toLowerCase() === "draft"
-      ).length,
+      active: safeTemplates.filter((t) => t.status?.toLowerCase() === "active")
+        .length,
+      draft: safeTemplates.filter((t) => t.status?.toLowerCase() === "draft")
+        .length,
     }),
-    [safeTemplates]
+    [safeTemplates],
   );
 
-  const [deleteModal, setDeleteModal] = useState({ 
-    show: false, 
-    data: null, 
-    loading: false 
+  const [deleteModal, setDeleteModal] = useState({
+    show: false,
+    data: null,
+    loading: false,
   });
 
   /* ================= FILTER ================= */
@@ -170,7 +170,7 @@ export default function OnboardingTemplatesPage() {
       { id: "active", label: "Đang sử dụng", count: stats.active },
       { id: "draft", label: "Bản nháp", count: stats.draft },
     ],
-    [stats]
+    [stats],
   );
 
   const filteredTemplates = useMemo(() => {
@@ -199,17 +199,20 @@ export default function OnboardingTemplatesPage() {
               Mẫu quy trình hội nhập
             </h1>
             <p className="text-slate-500 mt-1 font-medium">
-              Thiết lập các bộ khung nhiệm vụ chuẩn hóa theo vị trí và phòng ban.
+              Thiết lập các bộ khung nhiệm vụ chuẩn hóa theo vị trí và phòng
+              ban.
             </p>
           </div>
 
-          <button
-            onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200"
-          >
-            <Plus className="w-4 h-4" />
-            Tạo mẫu mới
-          </button>
+          <PermissionGate permission="ONBOARDING_PLAN_CREATE">
+            <button
+              onClick={handleCreate}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200"
+            >
+              <Plus className="w-4 h-4" />
+              Tạo mẫu mới
+            </button>
+          </PermissionGate>
         </div>
 
         {/* STATS */}
@@ -249,9 +252,7 @@ export default function OnboardingTemplatesPage() {
                   }`}
                 >
                   {tab.label}
-                  <span className="ml-1 text-xs opacity-60">
-                    {tab.count}
-                  </span>
+                  <span className="ml-1 text-xs opacity-60">{tab.count}</span>
                 </button>
               ))}
             </div>
@@ -285,7 +286,7 @@ export default function OnboardingTemplatesPage() {
             setSelectedTemplate(null);
           }}
           departmentsList={departmentsList}
-          positionsList={positionsList} 
+          positionsList={positionsList}
           onSuccess={handleModalSuccess}
         />
       )}
@@ -306,7 +307,9 @@ export default function OnboardingTemplatesPage() {
         isOpen={deleteModal.show}
         title={deleteModal.data?.planName || deleteModal.data?.plan_name}
         loading={deleteModal.loading}
-        onClose={() => setDeleteModal({ show: false, data: null, loading: false })}
+        onClose={() =>
+          setDeleteModal({ show: false, data: null, loading: false })
+        }
         onConfirm={handleConfirmDelete}
       />
     </div>

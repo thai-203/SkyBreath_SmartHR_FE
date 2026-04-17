@@ -16,6 +16,7 @@ import AssignmentTable from "./components/AssignmentTable";
 import AssignmentFormModal from "./components/AssignmentFormModal";
 import AssignmentDeleteModal from "./components/AssignmentDeleteModal";
 import AssignmentDetailModal from "./components/AssignmentDetailModal";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 const initialData = {
   assignmentName: "",
@@ -75,7 +76,7 @@ export default function AssignmentsPage() {
   const fetchOptions = useCallback(async () => {
     try {
       const [empAllRes, deptRes, shiftRes] = await Promise.all([
-        employeesService.getAll({ page: 1, limit: 1000 }),
+        employeesService.getAllForPublic({ page: 1, limit: 1000 }),
         departmentsService.getList(),
         workingShiftsService.getList(),
       ]);
@@ -288,17 +289,14 @@ export default function AssignmentsPage() {
 
           {/* Right Section: Action Button */}
           <div className="flex shrink-0">
-            <Button
-              onClick={handleCreate}
-              icon={<Plus size={18} />}
-              className="w-full sm:w-auto shadow-sm"
-            >
-              Phân ca
-            </Button>
+            <PermissionGate permission="SHIFT_ASSIGN_CREATE">
+              <Button onClick={handleCreate} icon={<Plus />}>
+                Phân ca
+              </Button>
+            </PermissionGate>
           </div>
         </div>
       </div>
-
       <AssignmentTable
         data={data}
         loading={loading}

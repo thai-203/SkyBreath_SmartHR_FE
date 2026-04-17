@@ -5,6 +5,7 @@ import { Button } from "@/components/common/Button";
 import { ConfirmModal } from "@/components/common/Modal";
 import { useToast } from "@/components/common/Toast";
 import { FileText, Plus } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import RequestTypesTable from "./components/RequestTypesTable";
 import RequestTypeFormModal from "./components/RequestTypeFormModal";
 import RequestTypePolicyModal from "./components/RequestTypePolicyModal";
@@ -256,9 +257,11 @@ export default function RequestTypesPage() {
                         <p className="text-sm text-slate-500">Danh sách tất cả loại đơn từ trong hệ thống</p>
                     </div>
                 </div>
-                <Button onClick={handleOpenAdd} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-                    <Plus className="h-4 w-4" /> Thêm loại đơn
-                </Button>
+                <PermissionGate permission="REQUEST_TYPE_CREATE">
+                  <Button onClick={handleOpenAdd} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                      <Plus className="h-4 w-4" /> Thêm loại đơn
+                  </Button>
+                </PermissionGate>
             </div>
 
             <RequestTypesTable

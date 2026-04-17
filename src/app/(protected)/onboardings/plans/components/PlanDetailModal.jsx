@@ -35,10 +35,10 @@ export default function PlanDetailModal({ plan, onClose }) {
   const completedPercent =
     tasks.length > 0
       ? Math.round(
-        (tasks.filter((t) => t.status === "completed").length /
-          tasks.length) *
-        100
-      )
+          (tasks.filter((t) => t.status === "completed").length /
+            tasks.length) *
+            100,
+        )
       : 0;
 
   return (
@@ -135,14 +135,14 @@ export default function PlanDetailModal({ plan, onClose }) {
                         >
                           <div className="flex items-center gap-3">
                             <div className="text-xl">
-                              {task.category ===
-                                "IT Equipment Provisioning" && "💻"}
-                              {task.category ===
-                                "Sign Employee Handbook" && "📄"}
+                              {task.category === "IT Equipment Provisioning" &&
+                                "💻"}
+                              {task.category === "Sign Employee Handbook" &&
+                                "📄"}
                               {task.category ===
                                 "Security Awareness Briefing" && "🔒"}
-                              {task.category ===
-                                "Team Introduction & Lunch" && "👥"}
+                              {task.category === "Team Introduction & Lunch" &&
+                                "👥"}
                             </div>
                             <div className="text-left">
                               <p className="font-medium">{task.title}</p>
@@ -163,8 +163,9 @@ export default function PlanDetailModal({ plan, onClose }) {
                                   : "CHƯA BẮT ĐẦU"}
                             </span>
                             <ChevronDown
-                              className={`w-5 h-5 transition-transform ${isExpanded ? "rotate-180" : ""
-                                }`}
+                              className={`w-5 h-5 transition-transform ${
+                                isExpanded ? "rotate-180" : ""
+                              }`}
                             />
                           </div>
                         </button>

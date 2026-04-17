@@ -5,6 +5,7 @@ import { Plus, Download, Users } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import { employeesService } from "@/services";
 import { validate, required, email, uniqueField, regex } from "@/lib/validation";
 import { Select } from "@/components/common/Select";
@@ -279,12 +280,16 @@ export default function EmployeesPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="hidden sm:flex items-center gap-2" onClick={handleExport} loading={exportLoading}>
-                        <Download className="h-4 w-4" /> Xuất Excel
-                    </Button>
-                    <Button onClick={handleCreate} className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" /> Thêm nhân viên
-                    </Button>
+                    <PermissionGate permission="EMPLOYEE_EXPORT">
+                        <Button variant="outline" className="hidden sm:flex items-center gap-2" onClick={handleExport} loading={exportLoading}>
+                            <Download className="h-4 w-4" /> Xuất Excel
+                        </Button>
+                    </PermissionGate>
+                    <PermissionGate permission="EMPLOYEE_CREATE">
+                        <Button onClick={handleCreate} className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" /> Thêm nhân viên
+                        </Button>
+                    </PermissionGate>
                 </div>
             </div>
 

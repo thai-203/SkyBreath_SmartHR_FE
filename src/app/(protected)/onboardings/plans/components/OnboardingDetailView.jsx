@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { onboardingsService } from "@/services";
 import { resolveAssetUrl } from "@/lib/utils";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 export default function OnboardingFinalReview({
   onboardingPlan,
@@ -183,9 +184,11 @@ export default function OnboardingFinalReview({
           <span className="text-indigo-600">Đánh giá cuối cùng</span>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
-            <Printer className="w-4 h-4" /> In bản tóm tắt
-          </button>
+          <PermissionGate permission="ONBOARDING_PROGRESS_EXPORT">
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
+              <Printer className="w-4 h-4" /> In bản tóm tắt
+            </button>
+          </PermissionGate>
           <button
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-full transition-colors"
@@ -470,32 +473,34 @@ export default function OnboardingFinalReview({
                   : "Vui lòng hoàn thành các nhiệm vụ 'Bắt buộc' trước khi chốt hồ sơ."}
             </p>
           </div>
-          <button
-            disabled={!canFinalize || isSubmitting}
-            onClick={handleUpdate}
-            className={`flex items-center gap-3 px-12 py-5 rounded-[24px] font-black text-lg transition-all 
-    ${
-      isAlreadyCompleted
-        ? "bg-green-100 text-green-700 cursor-not-allowed"
-        : canFinalize
-          ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100"
-          : "bg-slate-200 text-slate-400 cursor-not-allowed"
-    }`}
-          >
-            {isSubmitting
-              ? "Đang xử lý..."
-              : isAlreadyCompleted
-                ? "Đã xác nhận hoàn thành"
-                : "Xác nhận hoàn thành"}
+          <PermissionGate permission="ONBOARDING_PROGRESS_COMPLETE">
+            <button
+              disabled={!canFinalize || isSubmitting}
+              onClick={handleUpdate}
+              className={`flex items-center gap-3 px-12 py-5 rounded-[24px] font-black text-lg transition-all 
+    ${isAlreadyCompleted
+                  ? "bg-green-100 text-green-700 cursor-not-allowed"
+                  : canFinalize
+                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100"
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                }`}
+            >
+              {isSubmitting
+                ? "Đang xử lý..."
+                : isAlreadyCompleted
+                  ? "Đã xác nhận hoàn thành"
+                  : "Xác nhận hoàn thành"}
 
-            {!isAlreadyCompleted && (
-              <CheckCircle2
-                className={`w-6 h-6 ${canFinalize ? "animate-bounce" : ""}`}
-              />
-            )}
-          </button>
+              {!isAlreadyCompleted && (
+                <CheckCircle2
+                  className={`w-6 h-6 ${canFinalize ? "animate-bounce" : ""}`}
+                />
+              )}
+            </button>
+          </PermissionGate>
         </div>
       </div>
     </div>
   );
 }
+  

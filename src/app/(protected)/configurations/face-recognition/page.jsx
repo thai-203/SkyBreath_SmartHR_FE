@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import ConfigurationsLayout from "../layout";
 import ConfigurationsForm from "./components/FaceRecognitionConfigForm";
 import ConfirmModal from "./components/ConfirmModal";

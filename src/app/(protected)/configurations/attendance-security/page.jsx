@@ -15,6 +15,7 @@ import {
   attendanceSecurityService,
   attendanceAllowedIpService,
 } from "@/services";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Button } from "@/components/common/Button";
 import AttendanceSecurityConfigForm from "./components/AttendanceSecurityConfigForm";
@@ -143,6 +144,8 @@ export default function AttendanceSecurityPage() {
           validationErrors.locationRadiusMeters = "Bán kính phải lớn hơn 0";
         }
       }
+      console.log(config);
+      
 
       if (Object.keys(validationErrors).length > 0) {
         setErrors(validationErrors);
@@ -293,23 +296,27 @@ export default function AttendanceSecurityPage() {
       >
         <div></div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={requestReset}
-            disabled={saving}
-          >
-            <RotateCcw className="mr-1.5 h-4 w-4" />
-            Đặt lại
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSubmit}
-            disabled={saving || !isDirty || Object.keys(errors).length > 0}
-          >
-            <Save className="mr-1.5 h-4 w-4" />
-            {saving ? "Đang lưu..." : "Lưu cấu hình"}
-          </Button>
+          <PermissionGate permission="ATTENDANCE_SECURITY_CONFIG_UPDATE">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsResetModalOpen(true)}
+              disabled={saving}
+            >
+              <RotateCcw className="mr-1.5 h-4 w-4" />
+              Đặt lại
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="ATTENDANCE_SECURITY_CONFIG_UPDATE">
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={saving || !isDirty || Object.keys(errors).length > 0}
+            >
+              <Save className="mr-1.5 h-4 w-4" />
+              {saving ? "Đang lưu..." : "Lưu cấu hình"}
+            </Button>
+          </PermissionGate>
         </div>
       </motion.div>
 

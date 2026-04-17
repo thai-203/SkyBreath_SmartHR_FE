@@ -10,9 +10,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/common/Card";
-import { Switch } from "@/components/ui/switch"; // Đảm bảo bạn đã có component này
+import { Switch } from "@/components/ui/switch";
 import { AllowedIpList } from "./AllowedIpList";
 import { motion } from "framer-motion";
+import LocationMapPicker from "./LocationMapPicker";
 
 export default function AttendanceSecurityConfigForm({
   config,
@@ -59,6 +60,8 @@ export default function AttendanceSecurityConfigForm({
   const handleChange = (field, value) => {
     const nextConfig = { ...config, [field]: value };
     onConfigChange(nextConfig);
+    console.log(nextConfig);
+    
 
     // Validate field hiện tại
     const errorMsg = validateField(field, value, nextConfig);
@@ -94,6 +97,30 @@ export default function AttendanceSecurityConfigForm({
     handleChange(field, numValue);
   };
 
+  const handleLocationSelect = (location) => {
+    const nextConfig = {
+      ...config,
+      officeLatitude: location?.latitude ?? null,
+      officeLongitude: location?.longitude ?? null,
+    };
+    onConfigChange(nextConfig);
+    console.log(nextConfig);
+
+    setLocalErrors((prev) => ({
+      ...prev,
+      officeLatitude: validateField(
+        "officeLatitude",
+        nextConfig.officeLatitude,
+        nextConfig,
+      ),
+      officeLongitude: validateField(
+        "officeLongitude",
+        nextConfig.officeLongitude,
+        nextConfig,
+      ),
+    }));
+  };
+
   const sections = [
     {
       title: "Bảo mật định vị",
@@ -104,22 +131,6 @@ export default function AttendanceSecurityConfigForm({
           label: "Yêu cầu kiểm tra vị trí",
           type: "switch",
           hint: "Bật để kiểm tra vị trí GPS khi điểm danh",
-        },
-        {
-          id: "officeLatitude",
-          label: "Vĩ độ văn phòng",
-          type: "number",
-          placeholder: "Ví dụ: 10.762622",
-          hint: "Nhập vĩ độ của văn phòng (WGS84)",
-          dependentOn: "requireLocationCheck", // Field này phụ thuộc vào nút switch trên
-        },
-        {
-          id: "officeLongitude",
-          label: "Kinh độ văn phòng",
-          type: "number",
-          placeholder: "Ví dụ: 106.660172",
-          hint: "Nhập kinh độ của văn phòng (WGS84)",
-          dependentOn: "requireLocationCheck",
         },
         {
           id: "locationRadiusMeters",
@@ -188,68 +199,87 @@ export default function AttendanceSecurityConfigForm({
 
       {/* ── CÁC SECTIONS KHÁC (VỊ TRÍ & THIẾT BỊ) ── */}
       {sections.map((section, idx) => (
-        <Card key={idx}>
-          <CardHeader>
-            <CardTitle>{section.title}</CardTitle>
-            <CardDescription>{section.description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {section.fields.map((field) => {
-              // Khóa các ô input nếu chưa bật Switch "Yêu cầu kiểm tra vị trí"
-              const isDisabled =
-                field.dependentOn && !config[field.dependentOn];
+        <div key={idx}>
+          {section.title === "Bảo mật định vị" && config.requireLocationCheck && (
+            <>
+              <LocationMapPicker
+                latitude={config.officeLatitude}
+                longitude={config.officeLongitude}
+                onLocationSelect={handleLocationSelect}
+                disabled={!config.requireLocationCheck}
+              />
+              <div className="mt-6" />
+            </>
+          )}
 
-              return (
-                <div key={field.id} className="space-y-2">
-                  {field.type === "switch" ? (
-                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <div className="space-y-0.5">
-                        <Label
-                          htmlFor={field.id}
-                          className="text-sm font-medium text-slate-900 cursor-pointer"
-                        >
-                          {field.label}
-                        </Label>
-                        {field.hint && (
-                          <p className="text-xs text-slate-500">{field.hint}</p>
-                        )}
+          <Card>
+            <CardHeader>
+              <CardTitle>{section.title}</CardTitle>
+              <CardDescription>{section.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {section.fields.map((field) => {
+                // Khóa các ô input nếu chưa bật Switch
+                const isDisabled =
+                  field.dependentOn && !config[field.dependentOn];
+
+                return (
+                  <div key={field.id} className="space-y-2">
+                    {field.type === "switch" ? (
+                      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="space-y-0.5">
+                          <Label
+                            htmlFor={field.id}
+                            className="text-sm font-medium text-slate-900 cursor-pointer"
+                          >
+                            {field.label}
+                          </Label>
+                          {field.hint && (
+                            <p className="text-xs text-slate-500">
+                              {field.hint}
+                            </p>
+                          )}
+                        </div>
+                        <Switch
+                          id={field.id}
+                          checked={config[field.id] || false}
+                          onCheckedChange={(v) =>
+                            handleChange(field.id, v)
+                          }
+                        />
                       </div>
-                      <Switch
-                        id={field.id}
-                        checked={config[field.id] || false}
-                        onCheckedChange={(v) => handleChange(field.id, v)}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className={`space-y-1.5 ${isDisabled ? "opacity-60" : ""}`}
-                    >
-                      <Label htmlFor={field.id}>{field.label}</Label>
+                    ) : (
+                      <div
+                        className={`space-y-1.5 ${
+                          isDisabled ? "opacity-60" : ""
+                        }`}
+                      >
+                        <Label htmlFor={field.id}>{field.label}</Label>
 
-                      <Input
-                        id={field.id}
-                        type={field.type}
-                        placeholder={field.placeholder}
-                        value={config[field.id] ?? ""}
-                        onChange={(e) =>
-                          handleNumberChange(field.id, e.target.value)
-                        }
-                        disabled={isDisabled}
-                        // Nếu Custom Input của bạn hỗ trợ prop error thì truyền vào:
-                        error={localErrors[field.id]}
-                        className={
-                          localErrors[field.id]
-                            ? "border-red-500 focus-visible:ring-red-500"
-                            : ""
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+                        <Input
+                          id={field.id}
+                          type={field.type}
+                          placeholder={field.placeholder}
+                          value={config[field.id] ?? ""}
+                          onChange={(e) =>
+                            handleNumberChange(field.id, e.target.value)
+                          }
+                          disabled={isDisabled}
+                          error={localErrors[field.id]}
+                          className={
+                            localErrors[field.id]
+                              ? "border-red-500 focus-visible:ring-red-500"
+                              : ""
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
       ))}
     </motion.div>
   );

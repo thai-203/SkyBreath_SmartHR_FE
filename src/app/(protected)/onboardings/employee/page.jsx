@@ -12,11 +12,11 @@ export default function EmployeeOnboardingPage() {
   const [onboardingPlan, setOnboardingPlan] = useState(null);
   const [error, setError] = useState(null);
 
-// Hàm này dùng để lấy dữ liệu mới nhất từ Server
+  // Hàm này dùng để lấy dữ liệu mới nhất từ Server
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
-      
+
       const userRes = await authService.getCurrentEmployeeByUserId();
       setEmployeeInfo(userRes);
       if (userRes?.id) {
