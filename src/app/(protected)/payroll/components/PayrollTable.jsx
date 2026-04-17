@@ -1,7 +1,6 @@
 "use client";
 
 import { authService } from "@/services/auth.service";
-import { MoreHorizontal, Search } from "lucide-react";
 import { useState } from "react";
 import { Search, ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
 import { PermissionGate } from "@/components/common/AuthGuard";

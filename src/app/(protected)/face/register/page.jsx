@@ -179,7 +179,6 @@ export default function FaceRegisterPage() {
           faces={registeredFaces}
           loading={loadingFaces}
           onStartRegister={handleStartRegister}
-          apiBase="http://localhost:3000"
         />
       )}
 

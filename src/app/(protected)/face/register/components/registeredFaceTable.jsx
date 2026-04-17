@@ -53,8 +53,9 @@ function FaceItemSkeleton({ index }) {
   );
 }
 
-const FaceItem = React.memo(function FaceItem({ face, index, apiBase }) {
-  const imageUrl = face.imageUrl ? `${apiBase}${face.imageUrl}` : null;
+const FaceItem = React.memo(function FaceItem({ face, index }) {
+  const imageUrl = face.imageUrl
+  
   const [imgError, setImgError] = React.useState(false);
 
   return (

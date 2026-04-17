@@ -1,5 +1,24 @@
 import api from "@/lib/api";
 
+// ==========================================
+// JWT Decode Helper
+// ==========================================
+const decodeToken = (token) => {
+  try {
+    if (!token) return null;
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+
+    const decoded = JSON.parse(
+      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+    );
+    return decoded;
+  } catch (error) {
+    console.error("Failed to decode token:", error);
+    return null;
+  }
+};
+
 export const authService = {
   login: async (email, password) => {
     const response = await api.post(
@@ -25,11 +44,12 @@ export const authService = {
     return response.data;
   },
 
-  resetPassword: async (token, newPassword) => {
+  resetPasswordWithOtp: async (otpRequestId, otp, newPassword) => {
     const response = await api.post(
-      "/auth/reset-password",
+      "/auth/reset-password-otp",
       {
-        token,
+        otpRequestId,
+        otp,
         newPassword,
       },
       { skipAuthRedirect: true },
@@ -65,29 +85,44 @@ export const authService = {
     return !!localStorage.getItem("token");
   },
 
+  // ==========================================
+  // Get decoded token payload
+  // ==========================================
+  getDecodedToken: () => {
+    const token = authService.getToken();
+    return decodeToken(token);
+  },
+
+  // ==========================================
+  // Role & Permission checks (from JWT token)
+  // ==========================================
   hasRole: (role) => {
-    const user = authService.getCurrentUser();
-    const userRoles = user?.roles || [];
-    return userRoles.some((r) => r.toUpperCase() === role.toUpperCase());
+    const token = authService.getToken();
+    const decoded = decodeToken(token);
+    const roles = decoded?.roles || [];
+    return roles.some((r) => r.toUpperCase() === role.toUpperCase());
   },
 
   hasAnyRole: (roles) => {
-    const user = authService.getCurrentUser();
-    const userRoles = user?.roles || [];
+    const token = authService.getToken();
+    const decoded = decodeToken(token);
+    const userRoles = decoded?.roles || [];
     return roles.some((role) =>
       userRoles.some((r) => r.toUpperCase() === role.toUpperCase()),
     );
   },
 
   hasPermission: (permissionCode) => {
-    const user = authService.getCurrentUser();
-    const permissions = user?.permissions || [];
+    const token = authService.getToken();
+    const decoded = decodeToken(token);
+    const permissions = decoded?.permissions || [];
     return permissions.includes(permissionCode);
   },
 
   hasAnyPermission: (permissionCodes) => {
-    const user = authService.getCurrentUser();
-    const permissions = user?.permissions || [];
+    const token = authService.getToken();
+    const decoded = decodeToken(token);
+    const permissions = decoded?.permissions || [];
     return permissionCodes.some((code) => permissions.includes(code));
   },
 

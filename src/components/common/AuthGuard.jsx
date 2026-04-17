@@ -119,6 +119,10 @@ const ROUTE_PERMISSIONS = {
   "/configurations/attendance-blocking": {
     permissions: ["ATTENDANCE_BLOCKING_CONFIG_READ"],
   },
+  "/notifications/manual": { permissions: ["SEND_MANUAL_NOTIFICATION"] },
+  "/notifications/history": { permissions: ["VIEW_NOTIFICATION_HISTORY"] },
+  "/ai-configurations": { permissions: ["AI_CONFIGURATION_READ"] },
+  "/ai-prompts": { permissions: ["AI_PROMPT_READ"] },
 };
 
 export function AuthGuard({ children }) {

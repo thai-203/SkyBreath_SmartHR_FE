@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { permission } from "node:process";
 import { useEffect, useState } from "react";
 
 const menuItems = [
@@ -118,11 +119,13 @@ const menuItems = [
       //   href: "/timesheets/data",
       //   permissions: ["TIMESHEET_READ", "TIMESHEET_READ_OWN"],
       // },
-      {
-        title: "Chốt công",
-        href: "/timesheets/locking",
-        permissions: ["TIMESHEET_READ"],
-      },
+      { title: "Bảng tăng ca chi tiết", href: "/timesheets/overtime-detail", permissions: ["TIMESHEET_READ", "TIMESHEET_READ_OWN"] },
+
+      // {
+      //   title: "Chốt công",
+      //   href: "/timesheets/locking",
+      //   permissions: ["TIMESHEET_READ"],
+      // },
       {
         title: "Đơn giải trình",
         href: "/timesheets/excuses",
@@ -352,9 +355,14 @@ const menuItems = [
     icon: Bell,
     href: "/notifications/manual",
     roles: ["ADMIN", "HR"],
+    permissions: ["SEND_MANUAL_NOTIFICATION", "VIEW_NOTIFICATION_HISTORY"],
     children: [
-      { title: "Gửi thông báo", href: "/notifications/manual" },
-      { title: "Lịch sử thông báo", href: "/notifications/history" },
+      {
+        title: "Gửi thông báo",
+        permissions: ["SEND_MANUAL_NOTIFICATION"],
+        href: "/notifications/manual"
+      },
+      { title: "Lịch sử thông báo", permissions: ["VIEW_NOTIFICATION_HISTORY"], href: "/notifications/history" },
     ],
   },
   {
@@ -391,12 +399,14 @@ const menuItems = [
     title: "Cấu hình AI",
     icon: Bot,
     href: "/ai-configurations",
+    permissions: ["AI_CONFIGURATION_READ"],
     roles: ["ADMIN"],
   },
   {
     title: "AI Prompts",
     icon: FileText,
     href: "/ai-prompts",
+    permissions: ["AI_PROMPT_READ"],
     roles: ["ADMIN"],
   },
 ];

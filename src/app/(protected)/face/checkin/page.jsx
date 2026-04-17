@@ -10,6 +10,7 @@ import {
   Timer,
   AlertCircle,
   Ban,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,30 +20,51 @@ import RecentActivity from "./components/RecentActivity";
 import BiometricRequiredDialog from "./components/Biometricrequireddialog";
 import CheckInDialog from "./components/CheckInDialog";
 import { attendanceService } from "@/services/attendance.service";
-import { Skeleton } from "@/components/common/Skeleton";
 import { canAccess } from "@/components/common/AuthGuard";
 
-function isWithinShiftWindow(startTime, endTime) {
+// function isWithinShiftWindow(startTime, endTime) {
+//   const now = new Date();
+//   const [sh, sm] = startTime.split(":").map(Number);
+//   const [eh, em] = endTime.split(":").map(Number);
+
+//   const nowMinutes = now.getHours() * 60 + now.getMinutes();
+//   const startMinutes = sh * 60 + sm;
+//   const endMinutes = eh * 60 + em;
+
+//   const windowStart = startMinutes - 120;
+//   const windowEnd = endMinutes + 120;
+
+//   if (windowStart < 0) {
+//     return nowMinutes >= windowStart + 1440 || nowMinutes <= windowEnd;
+//   }
+
+//   if (windowEnd > 1440) {
+//     return nowMinutes >= windowStart || nowMinutes <= windowEnd - 1440;
+//   }
+
+//   return nowMinutes >= windowStart && nowMinutes <= windowEnd;
+// }
+
+function isWithinShiftWindow(startTime, endTime, hasCheckedIn) {
+  if (!startTime || !endTime) return false;
+
   const now = new Date();
-  const [sh, sm] = startTime.split(":").map(Number);
-  const [eh, em] = endTime.split(":").map(Number);
+  const today = now.toISOString().slice(0, 10);
 
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const startMinutes = sh * 60 + sm;
-  const endMinutes = eh * 60 + em;
+  let start = new Date(`${today} ${startTime}`);
+  let end = new Date(`${today} ${endTime}`);
 
-  const windowStart = startMinutes - 120;
-  const windowEnd = endMinutes + 120;
-
-  if (windowStart < 0) {
-    return nowMinutes >= windowStart + 1440 || nowMinutes <= windowEnd;
+  // handle ca qua đêm
+  if (end < start) {
+    end.setDate(end.getDate() + 1);
   }
 
-  if (windowEnd > 1440) {
-    return nowMinutes >= windowStart || nowMinutes <= windowEnd - 1440;
+  // ❗ RULE CHÍNH
+  if (!hasCheckedIn && now > end) {
+    return false; // ❌ block
   }
 
-  return nowMinutes >= windowStart && nowMinutes <= windowEnd;
+  return true; // ✅ còn lại cho hết
 }
 
 function getGreeting() {
@@ -68,6 +90,7 @@ const Index = () => {
   const [ctx, setCtx] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmit, setIsSubmit] = useState(false);
+  const [isShiftsExpanded, setIsShiftsExpanded] = useState(false);
 
   const attendanceStatus = isCheckedOut
     ? "checked-out"
@@ -76,7 +99,7 @@ const Index = () => {
       : "not-started";
 
   const shiftWindowValid = ctx?.hasShift
-    ? isWithinShiftWindow(ctx?.shift.startTime, ctx?.shift.endTime)
+    ? isWithinShiftWindow(ctx?.currentShift?.startTime, ctx?.currentShift?.endTime, ctx?.attendance?.checkInTime ? true : false)
     : false;
 
   const handleOpenDialog = (mode) => {
@@ -94,7 +117,7 @@ const Index = () => {
 
     if (!shiftWindowValid) {
       toastError(
-        `Ca làm ${ctx?.shift.startTime} — ${ctx?.shift.endTime} đã kết thúc. Không thể chấm công lúc này.`,
+        `Ca làm ${ctx?.currentShift?.startTime} — ${ctx?.currentShift?.endTime} đã kết thúc. Không thể chấm công lúc này.`,
       );
       return;
     }
@@ -113,6 +136,7 @@ const Index = () => {
           setIsCheckedOut(true);
         }
       }
+      console.log(metaData);
       setCtx(metaData);
       setActivities(recentRecords || []);
     } catch (error) {
@@ -178,11 +202,10 @@ const Index = () => {
       };
     }
 
-    const { checkInTime, checkOutTime } = ctx.attendance;
+    const { checkInTime, checkOutTime, totalWorkMinutes, overtimeMinutes } = ctx.attendance;
 
     let firstIn = "--:--";
     let firstOut = "--:--";
-    let totalMinutes = 0;
 
     if (checkInTime) {
       const checkInDate = new Date(checkInTime);
@@ -202,26 +225,13 @@ const Index = () => {
         minute: "2-digit",
         hour12: false,
       }).format(checkOutDate);
-
-      if (checkInTime) {
-        const checkInDate = new Date(checkInTime);
-        totalMinutes = Math.max(
-          0,
-          Math.round((checkOutDate - checkInDate) / 60000),
-        );
-      }
     }
-
-    const overtime =
-      totalMinutes > (ctx?.totalWorkMinutes || 0)
-        ? totalMinutes - ctx.totalWorkMinutes
-        : 0;
 
     return {
       firstIn,
       firstOut,
-      totalHours: formatMinutesToHM(totalMinutes),
-      overtime: formatMinutesToHM(overtime),
+      totalHours: formatMinutesToHM(totalWorkMinutes || 0),
+      overtime: formatMinutesToHM(overtimeMinutes || 0),
     };
   }, [ctx]);
 
@@ -367,7 +377,7 @@ const Index = () => {
                   <div>
                     <p className="font-medium">Ngoài khung giờ cho phép</p>
                     <p className="text-sm text-muted-foreground">
-                      Ca làm {ctx?.shift.startTime} — {ctx?.shift.endTime} đã
+                      Ca làm {ctx?.currentShift?.startTime} — {ctx?.currentShift?.endTime} đã
                       kết thúc. Không thể chấm công lúc này.
                     </p>
                   </div>
@@ -402,8 +412,15 @@ const Index = () => {
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
                   <Clock className="h-4 w-4" />
                   <span>
-                    Ca làm: {ctx?.shift.startTime} — {ctx?.shift.endTime} (
-                    {formatMinutesToHM(ctx?.totalWorkMinutes)})
+                    {ctx?.currentShift?.name}: {ctx?.currentShift?.startTime} — {ctx?.currentShift?.endTime}
+                  </span>
+                </div>
+              )}
+              {ctx?.overtime && (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
+                  <TrendingUp className="h-4 w-4" />
+                  <span> {'Tăng ca: '}
+                    {ctx?.overtime?.startTime} — {ctx?.overtime?.endTime}
                   </span>
                 </div>
               )}
@@ -450,6 +467,73 @@ const Index = () => {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Shifts Schedule Card */}
+        {ctx?.shifts && ctx?.shifts.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-6"
+          >
+            <Card>
+              <CardHeader
+                className="cursor-pointer hover:bg-muted/30 transition-colors p-4"
+                onClick={() => setIsShiftsExpanded(!isShiftsExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Các ca làm hôm nay</CardTitle>
+                  <motion.div
+                    animate={{ rotate: isShiftsExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  </motion.div>
+                </div>
+              </CardHeader>
+              <motion.div
+                initial={false}
+                animate={{
+                  height: isShiftsExpanded ? "auto" : 0,
+                  opacity: isShiftsExpanded ? 1 : 0
+                }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {ctx?.shifts?.map((shift, index) => (
+                      <div
+                        key={shift.shiftId}
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${shift.shiftId === ctx?.currentShift?.shiftId
+                            ? "bg-primary/5 border-primary/30"
+                            : "bg-muted/30 border-muted/50"
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Clock className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium text-sm">
+                              {shift.name}
+                              {shift.shiftId === ctx?.currentShift?.shiftId && (
+                                <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
+                                  Ca hiện tại
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {shift.startTime} — {shift.endTime}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </motion.div>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Stat Cards */}
         <div className="mb-6">

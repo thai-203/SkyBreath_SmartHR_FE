@@ -32,6 +32,8 @@ export default function PendingApprovalsPage() {
     try {
       const params = { page, limit };
       const res = await requestsService.getPendingApprovals(params);
+      console.log(res);
+      
       setRequests(res?.data?.items || []);
       setTotal(res?.data?.total || 0);
     } catch (err) {

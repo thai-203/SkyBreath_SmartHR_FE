@@ -57,7 +57,6 @@ const Section = ({ title, children }) => (
     {children}
   </div>
 );
-const api_base = "http://localhost:3000";
 // ─── Face thumbnail card ──────────────────────────────────────────────────────────
 function FaceCard({ face, index }) {
   return (
@@ -66,7 +65,7 @@ function FaceCard({ face, index }) {
         <div className="flex h-full w-full items-center justify-center">
           {face.imageUrl ? (
             <img
-              src={api_base + face.imageUrl}
+              src={face.imageUrl}
               alt={`Face #${index + 1}`}
               className="h-full w-full object-cover"
             />
@@ -114,7 +113,7 @@ export default function FaceDataDetailModal({
           <div className="h-14 w-14 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-semibold text-lg shrink-0">
             {employee.avatar ? (
               <img
-                src={api_base + "/" + employee.avatar}
+                src={employee.avatar}
                 alt={employee.fullName}
                 className="h-full w-full object-cover rounded-full"
               />

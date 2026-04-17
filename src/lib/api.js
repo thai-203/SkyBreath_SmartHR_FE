@@ -25,12 +25,19 @@ api.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue = [];
 
+let isSyncingPermissions = false;
+let permissionSyncQueue = [];
+
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
     else prom.resolve(token);
   });
   failedQueue = [];
+};
+
+const processPermissionQueue = () => {
+  permissionSyncQueue = [];
 };
 
 const handleForceLogout = (message) => {
@@ -58,11 +65,27 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // 403 — dù là admin đổi quyền hay user xấu đều force logout
-    if (status === 403 || errorCode === "PERMISSION_DENIED") {
-      return handleForceLogout(
-        "Phiên làm việc không hợp lệ, vui lòng đăng nhập lại",
-      );
+    // 403 — Permission denied, show notification only once to avoid spam
+    if (status === 403) {
+      // If already showing permission error, queue this one
+      if (isSyncingPermissions) {
+        permissionSyncQueue.push(error);
+        return Promise.reject(error);
+      }
+
+      // First permission error - show notification
+      isSyncingPermissions = true;
+      toast.error("Bạn không có quyền truy cập chức năng này", {
+        duration: 3000,
+      });
+
+      // Reset flag after toast duration + buffer to allow new notifications
+      setTimeout(() => {
+        processPermissionQueue();
+        isSyncingPermissions = false;
+      }, 3500);
+
+      return Promise.reject(error);
     }
 
     if (!originalRequest?.skipAuthRedirect) {

@@ -144,6 +144,8 @@ export default function AttendanceSecurityPage() {
           validationErrors.locationRadiusMeters = "Bán kính phải lớn hơn 0";
         }
       }
+      console.log(config);
+      
 
       if (Object.keys(validationErrors).length > 0) {
         setErrors(validationErrors);
