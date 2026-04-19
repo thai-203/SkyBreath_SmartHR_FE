@@ -20,6 +20,7 @@ import {
   FileText,
   Calendar,
   RotateCcw,
+  trash2
 } from "lucide-react";
 
 // Cấu hình nhãn loại hợp đồng
@@ -216,7 +217,6 @@ export default function ContractTable({
                   </Button>
                 </PermissionGate>
               )}
-<<<<<<< Updated upstream
               <PermissionGate permission="CONTRACT_DELETE">
                 <Button
                   size="icon"
@@ -227,8 +227,6 @@ export default function ContractTable({
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </PermissionGate>
-=======
->>>>>>> Stashed changes
             </div>
           );
         },

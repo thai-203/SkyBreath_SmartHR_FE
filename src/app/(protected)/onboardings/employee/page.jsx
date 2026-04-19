@@ -16,10 +16,6 @@ export default function EmployeeOnboardingPage() {
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
-<<<<<<< Updated upstream
-=======
-      setError(null);
->>>>>>> Stashed changes
 
       const userRes = await authService.getCurrentEmployeeByUserId();
       setEmployeeInfo(userRes);
