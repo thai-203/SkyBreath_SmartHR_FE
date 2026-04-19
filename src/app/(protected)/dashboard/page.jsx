@@ -352,7 +352,9 @@ function LoadingCard({ rows = 3 }) {
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [currentUser] = useState(() => authService.getCurrentUser());
+  const [currentUser, setCurrentUser] = useState(() =>
+    authService.getCurrentUser(),
+  );
   const [attendanceContext, setAttendanceContext] = useState(null);
   const [employeesTotal, setEmployeesTotal] = useState(0);
   const [departmentTree, setDepartmentTree] = useState([]);
@@ -378,6 +380,25 @@ export default function DashboardPage() {
     }),
     [],
   );
+
+  const normalizedRoles = useMemo(
+    () =>
+      (currentUser?.roles || []).map((role) =>
+        String(role || "").toUpperCase(),
+      ),
+    [currentUser],
+  );
+
+  const roleFlags = useMemo(() => getRoleFlags(currentUser), [currentUser]);
+
+  const isManagerScoped = useMemo(() => {
+    const hasManagerRole = normalizedRoles.includes("MANAGER");
+    const hasOrgWideRole = normalizedRoles.some((role) =>
+      ["ADMIN", "HR", "DIRECTOR"].includes(role),
+    );
+
+    return hasManagerRole && !hasOrgWideRole;
+  }, [normalizedRoles]);
 
   useEffect(() => {
     setCurrentUser(authService.getCurrentUser());
@@ -407,15 +428,24 @@ export default function DashboardPage() {
             ? requestsService.getPendingApprovals({ page: 1, limit: 5 })
             : Promise.resolve(null),
           permissions.canReadOnboardingProgress
-            ? onboardingsService.getProgressStats()
+            ? isManagerScoped
+              ? onboardingsService.getProgress({ page: 1, limit: 500 })
+              : onboardingsService.getProgressStats()
             : Promise.resolve(null),
           permissions.canReadAttendanceOwn
             ? attendanceService.getTodayContext()
             : Promise.resolve(null),
         ]);
-        console.log("Dashboard data loaded:", attendanceRes);
 
         if (!active) return;
+
+        const departmentsPayload =
+          permissions.canReadDepartments &&
+          departmentsRes.status === "fulfilled" &&
+          departmentsRes.value
+            ? unwrapResponse(departmentsRes.value)
+            : null;
+        const departmentsItems = extractItems(departmentsPayload);
 
         if (
           permissions.canReadEmployees &&
@@ -433,8 +463,7 @@ export default function DashboardPage() {
           departmentsRes.status === "fulfilled" &&
           departmentsRes.value
         ) {
-          const departmentsPayload = unwrapResponse(departmentsRes.value);
-          setDepartmentTree(extractItems(departmentsPayload));
+          setDepartmentTree(departmentsItems);
         } else {
           setDepartmentTree([]);
         }
@@ -464,13 +493,28 @@ export default function DashboardPage() {
           onboardingRes.value
         ) {
           const onboardingPayload = unwrapResponse(onboardingRes.value) || {};
-          setOnboardingStats({
-            newEmployeesLast30Days:
-              onboardingPayload.newEmployeesLast30Days ?? 0,
-            inProgress: onboardingPayload.inProgress ?? 0,
-            completed: onboardingPayload.completed ?? 0,
-            growthRate: onboardingPayload.growthRate ?? 0,
-          });
+          if (isManagerScoped) {
+            const managedDepartmentIds = getManagedDepartmentIds(
+              departmentsItems,
+              currentUser,
+            );
+            const progressItems = extractItems(onboardingPayload);
+
+            setOnboardingStats(
+              buildOnboardingStatsFromProgress(
+                progressItems,
+                managedDepartmentIds,
+              ),
+            );
+          } else {
+            setOnboardingStats({
+              newEmployeesLast30Days:
+                onboardingPayload.newEmployeesLast30Days ?? 0,
+              inProgress: onboardingPayload.inProgress ?? 0,
+              completed: onboardingPayload.completed ?? 0,
+              growthRate: onboardingPayload.growthRate ?? 0,
+            });
+          }
         } else {
           setOnboardingStats({
             newEmployeesLast30Days: 0,
@@ -502,8 +546,12 @@ export default function DashboardPage() {
   }, [
     currentUser,
     isManagerScoped,
-    roleFlags.canViewOrgOverview,
     roleFlags.canViewPendingApprovals,
+    permissions.canReadAttendanceOwn,
+    permissions.canReadDepartments,
+    permissions.canReadEmployees,
+    permissions.canReadOnboardingProgress,
+    permissions.canReadRequests,
   ]);
 
   const departmentsFlat = useMemo(
@@ -586,75 +634,6 @@ export default function DashboardPage() {
     "bạn";
   const heroDate = formatDate(new Date());
 
-  const heroActions = useMemo(() => {
-    if (roleFlags.isEmployeeOnly) {
-      return [
-        {
-          href: "/requests/my-requests",
-          label: "Đơn của tôi",
-          variant: "primary",
-        },
-        {
-          href: "/timesheets/data",
-          label: "Bảng công cá nhân",
-          variant: "secondary",
-        },
-        {
-          href: "/settings/general",
-          label: "Cập nhật hồ sơ",
-          variant: "secondary",
-        },
-      ];
-    }
-
-    return [
-      {
-        href: roleFlags.canUseFaceCheckin
-          ? "/face/checkin"
-          : "/timesheets/data",
-        label: roleFlags.canUseFaceCheckin
-          ? "Chấm công ngay"
-          : "Bảng công cá nhân",
-        variant: "primary",
-      },
-      ...(roleFlags.canViewPendingApprovals
-        ? [
-            {
-              href: "/requests/pending-approvals",
-              label: "Xem đơn chờ duyệt",
-              variant: "secondary",
-            },
-          ]
-        : [
-            {
-              href: "/requests/my-requests",
-              label: "Đơn của tôi",
-              variant: "secondary",
-            },
-          ]),
-      ...(roleFlags.canViewOrgOverview
-        ? [
-            {
-              href: "/departments/chart",
-              label: "Cơ cấu phòng ban",
-              variant: "secondary",
-            },
-          ]
-        : [
-            {
-              href: "/shifts/personal",
-              label: "Lịch cá nhân",
-              variant: "secondary",
-            },
-          ]),
-    ];
-  }, [
-    roleFlags.canUseFaceCheckin,
-    roleFlags.canViewOrgOverview,
-    roleFlags.canViewPendingApprovals,
-    roleFlags.isEmployeeOnly,
-  ]);
-
   const kpis = useMemo(
     () =>
       [
@@ -712,7 +691,7 @@ export default function DashboardPage() {
       ].filter(Boolean),
     [
       approvalsAvailable,
-      visibleDepartments.length,
+      departmentsFlat.length,
       employeesTotal,
       onboardingStats.growthRate,
       onboardingStats.inProgress,
@@ -950,7 +929,9 @@ export default function DashboardPage() {
                       An toàn chấm công
                     </p>
                     <p className="mt-2 text-lg font-semibold text-slate-900">
-                      {attendanceContext?.isBlocked ? "Tạm khóa" : "Bình thường"}
+                      {attendanceContext?.isBlocked
+                        ? "Tạm khóa"
+                        : "Bình thường"}
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
                       {attendanceContext?.security?.requireLocationCheck

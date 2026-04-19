@@ -20,7 +20,7 @@ import {
   FileText,
   Calendar,
   RotateCcw,
-  trash2
+  Trash2,
 } from "lucide-react";
 
 // Cấu hình nhãn loại hợp đồng

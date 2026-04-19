@@ -242,7 +242,7 @@ export default function OnboardingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <PermissionGate permission="ONBOARDING_PROGRESS_EXPORT">
+            <PermissionGate permission="ONBOARDING_PLAN_EXPORT">
               <button
                 onClick={handleExport}
                 disabled={exportLoading}
@@ -253,7 +253,7 @@ export default function OnboardingPage() {
               </button>
             </PermissionGate>
 
-            <PermissionGate permission="ONBOARDING_PROGRESS_CREATE">
+            <PermissionGate permission="ONBOARDING_PLAN_CREATE">
               <button
                 onClick={() => setShowCreatePlan(true)}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
