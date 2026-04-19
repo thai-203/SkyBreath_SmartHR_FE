@@ -211,7 +211,10 @@ export default function CreatePlanModal({
   employees = [],
   departments = [],
   templates = [],
+  initialData = null,
+  mode = "create",
 }) {
+  const isEditMode = mode === "edit";
   const [isBrowser, setIsBrowser] = useState(false);
   const [formData, setFormData] = useState({
     planName: "",
@@ -228,9 +231,71 @@ export default function CreatePlanModal({
   const [submitting, setSubmitting] = useState(false);
   const { success, error } = useToast();
 
+  const resetFromInitialData = () => {
+    if (!initialData) {
+      setFormData({
+        planName: "",
+        description: "",
+        employeeId: "",
+        departmentId: "",
+        departmentName: "",
+        positionId: "",
+        positionName: "",
+        startDate: new Date().toISOString().split("T")[0],
+      });
+      setTasks([]);
+      return;
+    }
+
+    const employee = initialData.employee || {};
+    const department = employee.department || initialData.department || {};
+    const position = employee.position || initialData.position || {};
+    const planTasks = Array.isArray(initialData.tasks) ? initialData.tasks : [];
+
+    setFormData({
+      planName: initialData.planName || "",
+      description: initialData.description || "",
+      employeeId: initialData.employeeId || employee.id || "",
+      departmentId:
+        initialData.departmentId ||
+        employee.departmentId ||
+        department.id ||
+        "",
+      departmentName: department.departmentName || "---",
+      positionId:
+        initialData.positionId || employee.positionId || position.id || "",
+      positionName: position.positionName || "---",
+      startDate:
+        initialData.startDate || new Date().toISOString().split("T")[0],
+    });
+
+    setTasks(
+      planTasks.length > 0
+        ? calculateAutoDueDates(
+            planTasks.map((task, index) => ({
+              id: task.id ?? `task-${index}`,
+              isExistingTask: true,
+              category: task.category || "System",
+              description: task.description || "",
+              responsibleDepartmentId: task.responsibleDepartmentId || "",
+              isMandatory: Boolean(task.isMandatory),
+              estimatedDays: task.estimatedDays || 1,
+              dueDate: task.dueDate || "",
+            })),
+            initialData.startDate || new Date().toISOString().split("T")[0],
+          )
+        : [],
+    );
+  };
+
   useEffect(() => {
     setIsBrowser(true);
   }, []);
+
+  useEffect(() => {
+    resetFromInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData, mode]);
 
   // Hàm tiện ích tính ngày
   const addDays = (dateStr, days) => {
@@ -299,6 +364,7 @@ export default function CreatePlanModal({
     if (matchedTemplate) {
       const initialTasks = matchedTemplate.tasks.map((t, idx) => ({
         id: `task-${Date.now()}-${idx}`,
+        isExistingTask: false,
         category: t.category || "System",
         description: t.description || "",
         responsibleDepartmentId: t.responsibleDepartmentId || "",
@@ -312,6 +378,7 @@ export default function CreatePlanModal({
     } else {
       const defaultTask = {
         id: Date.now(),
+        isExistingTask: false,
         category: "Asset",
         description: "",
         responsibleDepartmentId: "",
@@ -355,11 +422,11 @@ export default function CreatePlanModal({
   };
 
   const handleSubmit = async () => {
-    if (!formData.employeeId) {
+    if (!isEditMode && !formData.employeeId) {
       error("Vui lòng chọn nhân viên!");
       return;
     }
-    if (!formData.startDate) {
+    if (!isEditMode && !formData.startDate) {
       error("Vui lòng chọn ngày bắt đầu!");
       return;
     }
@@ -376,11 +443,23 @@ export default function CreatePlanModal({
       );
       const payload = {
         ...formData,
-        status: "ACTIVE",
+        status: initialData?.status || "ACTIVE",
         durationDays: totalEstimated,
-        tasks: tasks.map(({ id, ...rest }) => rest),
+        tasks: isEditMode
+          ? tasks.map((task) => {
+              const { id, isExistingTask, ...rest } = task;
+              if (isExistingTask === true) {
+                return { ...rest, id };
+              }
+              return rest;
+            })
+          : tasks.map(({ id, isExistingTask, ...rest }) => rest),
       };
-      await onboardingsService.createPlan(payload);
+      if (isEditMode) {
+        await onboardingsService.updatePlan(initialData.id, payload);
+      } else {
+        await onboardingsService.createPlan(payload);
+      }
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -398,7 +477,9 @@ export default function CreatePlanModal({
       <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b px-8 py-4 flex justify-between items-center z-[60] shadow-sm">
         <div>
           <h2 className="text-xl font-extrabold text-slate-800">
-            Thiết Lập Lộ Trình Hội Nhập
+            {isEditMode
+              ? "Chỉnh Sửa Lộ Trình Hội Nhập"
+              : "Thiết Lập Lộ Trình Hội Nhập"}
           </h2>
           <p className="text-slate-500 text-xs flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Hệ thống tự động tính ngày theo mô
@@ -418,7 +499,11 @@ export default function CreatePlanModal({
             className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold shadow-lg flex items-center gap-2 hover:bg-indigo-700 disabled:opacity-50 transition-all active:scale-95"
           >
             <CheckCircle className="w-4 h-4" />{" "}
-            {submitting ? "Đang xử lý..." : "Kích hoạt kế hoạch"}
+            {submitting
+              ? "Đang xử lý..."
+              : isEditMode
+                ? "Lưu thay đổi"
+                : "Kích hoạt kế hoạch"}
           </button>
         </div>
       </div>
@@ -430,14 +515,20 @@ export default function CreatePlanModal({
             <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-2 tracking-widest">
               <User className="w-3 h-3" /> Nhân viên
             </label>
-            <SearchableSelect
-              options={employees}
-              value={formData.employeeId}
-              onChange={handleSelectEmployee}
-              placeholder="Tìm nhân viên..."
-              labelKey="fullName"
-              valueKey="id"
-            />
+            {isEditMode ? (
+              <div className="p-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 font-medium h-[46px] flex items-center truncate text-sm">
+                {initialData?.employee?.fullName || formData.planName || "---"}
+              </div>
+            ) : (
+              <SearchableSelect
+                options={employees}
+                value={formData.employeeId}
+                onChange={handleSelectEmployee}
+                placeholder="Tìm nhân viên..."
+                labelKey="fullName"
+                valueKey="id"
+              />
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-2 tracking-widest">
@@ -459,15 +550,21 @@ export default function CreatePlanModal({
             <label className="text-[10px] font-bold uppercase text-indigo-600 flex items-center gap-2 tracking-widest">
               <Calendar className="w-3 h-3" /> Ngày bắt đầu
             </label>
-            <input
-              type="date"
-              min={new Date().toISOString().split("T")[0]}
-              className="w-full p-3 bg-indigo-50 border border-indigo-100 rounded-xl font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
-              value={formData.startDate}
-              onChange={(e) =>
-                setFormData({ ...formData, startDate: e.target.value })
-              }
-            />
+            {isEditMode ? (
+              <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl font-bold text-indigo-700 h-[46px] flex items-center text-sm">
+                {formData.startDate || "---"}
+              </div>
+            ) : (
+              <input
+                type="date"
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full p-3 bg-indigo-50 border border-indigo-100 rounded-xl font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
+                value={formData.startDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, startDate: e.target.value })
+                }
+              />
+            )}
           </div>
         </div>
 
@@ -641,6 +738,7 @@ export default function CreatePlanModal({
               onClick={() => {
                 const newTask = {
                   id: Date.now(),
+                  isExistingTask: false,
                   category: "System",
                   description: "",
                   responsibleDepartmentId: "",

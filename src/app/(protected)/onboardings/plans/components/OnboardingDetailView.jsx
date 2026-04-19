@@ -30,6 +30,7 @@ export default function OnboardingFinalReview({
   onClose,
   onConfirm,
   onSuccess,
+  onEdit,
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
@@ -56,6 +57,7 @@ export default function OnboardingFinalReview({
 
   // Kiểm tra trạng thái tổng thể
   const isAlreadyCompleted = onboardingPlan.overallStatus === "COMPLETED";
+  const canEditPlan = canManagerEditPlan(onboardingPlan);
   const progress = onboardingPlan.progressPercentage || 0;
 
   // Có thể chốt nếu không còn tác vụ bắt buộc VÀ chưa được chốt trước đó

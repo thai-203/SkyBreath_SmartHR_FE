@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowUpRight,
-  BadgeCheck,
   Building2,
   CalendarCheck2,
   Clock3,
@@ -14,7 +13,6 @@ import {
   LogOut,
   MapPin,
   ScanFace,
-  ShieldAlert,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -38,6 +36,33 @@ import {
   onboardingsService,
   requestsService,
 } from "@/services";
+
+const DEFAULT_OVERVIEW_ROLES = ["ADMIN", "HR", "MANAGER", "DIRECTOR"];
+const DEFAULT_FACE_CHECKIN_ROLES = ["ADMIN", "HR", "MANAGER", "DIRECTOR"];
+const DEFAULT_PENDING_APPROVAL_ROLES = ["ADMIN", "HR", "MANAGER", "DIRECTOR"];
+
+function buildRoleSet(rawValue, fallbackRoles) {
+  const source = rawValue || fallbackRoles.join(",");
+  return new Set(
+    source
+      .split(",")
+      .map((role) => role.trim().toUpperCase())
+      .filter(Boolean),
+  );
+}
+
+const overviewRoleSet = buildRoleSet(
+  process.env.NEXT_PUBLIC_DASHBOARD_OVERVIEW_ROLES,
+  DEFAULT_OVERVIEW_ROLES,
+);
+const faceCheckinRoleSet = buildRoleSet(
+  process.env.NEXT_PUBLIC_DASHBOARD_FACE_CHECKIN_ROLES,
+  DEFAULT_FACE_CHECKIN_ROLES,
+);
+const pendingApprovalRoleSet = buildRoleSet(
+  process.env.NEXT_PUBLIC_DASHBOARD_APPROVAL_ROLES,
+  DEFAULT_PENDING_APPROVAL_ROLES,
+);
 
 function unwrapResponse(response) {
   return response?.data?.data ?? response?.data ?? response ?? null;
@@ -69,11 +94,144 @@ function flattenDepartments(nodes = []) {
   ]);
 }
 
+function normalizeId(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return String(value);
+}
+
+function buildCurrentUserIdSet(user) {
+  return new Set(
+    [user?.employeeId, user?.id, user?.userId, user?.employee?.id]
+      .map(normalizeId)
+      .filter(Boolean),
+  );
+}
+
+function isDepartmentManagedByUser(department, userIdSet) {
+  if (!department || userIdSet.size === 0) return false;
+
+  const manager = department.manager || {};
+  const managerIds = [
+    department.managerEmployeeId,
+    manager.id,
+    manager.employeeId,
+    manager.userId,
+    manager.user?.id,
+  ]
+    .map(normalizeId)
+    .filter(Boolean);
+
+  return managerIds.some((managerId) => userIdSet.has(managerId));
+}
+
+function getManagedDepartmentIds(departments, user) {
+  const userIdSet = buildCurrentUserIdSet(user);
+  const ids = departments
+    .filter((department) => isDepartmentManagedByUser(department, userIdSet))
+    .map((department) => normalizeId(department?.id))
+    .filter(Boolean);
+
+  return Array.from(new Set(ids));
+}
+
+function buildOnboardingStatsFromProgress(progressItems, managedDepartmentIds) {
+  const managedDepartmentIdSet = new Set(managedDepartmentIds);
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const currentWindowMs = 30 * dayMs;
+  const previousWindowMs = 60 * dayMs;
+
+  const scopedItems = progressItems.filter((item) => {
+    const departmentId = normalizeId(
+      item?.employee?.departmentId || item?.employee?.department?.id,
+    );
+    return departmentId && managedDepartmentIdSet.has(departmentId);
+  });
+
+  const inProgress = scopedItems.filter(
+    (item) => item?.overallStatus === "IN_PROGRESS",
+  ).length;
+  const completed = scopedItems.filter(
+    (item) => item?.overallStatus === "COMPLETED",
+  ).length;
+
+  const employeeCreatedAtByEmployeeId = new Map();
+  scopedItems.forEach((item) => {
+    const employeeId = normalizeId(item?.employee?.id || item?.employeeId);
+    const createdAt = item?.employee?.createdAt;
+
+    if (!employeeId || !createdAt) return;
+    if (!employeeCreatedAtByEmployeeId.has(employeeId)) {
+      employeeCreatedAtByEmployeeId.set(employeeId, createdAt);
+    }
+  });
+
+  let currentNewEmployees = 0;
+  let previousNewEmployees = 0;
+
+  employeeCreatedAtByEmployeeId.forEach((createdAt) => {
+    const createdTime = new Date(createdAt).getTime();
+    if (Number.isNaN(createdTime)) return;
+
+    const ageMs = now - createdTime;
+    if (ageMs >= 0 && ageMs <= currentWindowMs) {
+      currentNewEmployees += 1;
+      return;
+    }
+
+    if (ageMs > currentWindowMs && ageMs <= previousWindowMs) {
+      previousNewEmployees += 1;
+    }
+  });
+
+  let growthRate = 0;
+  if (previousNewEmployees > 0) {
+    growthRate = Math.round(
+      ((currentNewEmployees - previousNewEmployees) / previousNewEmployees) *
+        100,
+    );
+  } else if (currentNewEmployees > 0) {
+    growthRate = 100;
+  }
+
+  return {
+    newEmployeesLast30Days: currentNewEmployees,
+    inProgress,
+    completed,
+    growthRate,
+  };
+}
+
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Chào buổi sáng";
   if (hour < 18) return "Chào buổi chiều";
   return "Chào buổi tối";
+}
+
+function getRoleFlags(user) {
+  const normalizedRoles = (user?.roles || []).map((role) =>
+    String(role || "").toUpperCase(),
+  );
+
+  const isEmployee = normalizedRoles.includes("EMPLOYEE");
+  const hasAnyRole = (roleSet) =>
+    normalizedRoles.some((role) => roleSet.has(role));
+  const canViewOrgOverview = hasAnyRole(overviewRoleSet);
+  const canUseFaceCheckin = hasAnyRole(faceCheckinRoleSet);
+  const canViewPendingApprovals = hasAnyRole(pendingApprovalRoleSet);
+
+  return {
+    isEmployee,
+    isEmployeeOnly:
+      isEmployee &&
+      normalizedRoles.length === 1 &&
+      !canViewOrgOverview &&
+      !canViewPendingApprovals,
+    canViewOrgOverview,
+    canUseFaceCheckin,
+    canViewPendingApprovals,
+  };
 }
 
 function formatDate(value) {
@@ -194,7 +352,7 @@ function LoadingCard({ rows = 3 }) {
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser] = useState(() => authService.getCurrentUser());
   const [attendanceContext, setAttendanceContext] = useState(null);
   const [employeesTotal, setEmployeesTotal] = useState(0);
   const [departmentTree, setDepartmentTree] = useState([]);
@@ -255,6 +413,7 @@ export default function DashboardPage() {
             ? attendanceService.getTodayContext()
             : Promise.resolve(null),
         ]);
+        console.log("Dashboard data loaded:", attendanceRes);
 
         if (!active) return;
 
@@ -288,6 +447,10 @@ export default function DashboardPage() {
           const requestsPayload = unwrapResponse(requestsRes.value);
           setPendingRequests(extractItems(requestsPayload).slice(0, 5));
           setPendingApprovalsTotal(extractTotal(requestsPayload));
+          setApprovalsAvailable(true);
+        } else if (!roleFlags.canViewPendingApprovals) {
+          setPendingRequests([]);
+          setPendingApprovalsTotal(0);
           setApprovalsAvailable(true);
         } else {
           setPendingRequests([]);
@@ -336,19 +499,33 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [
+    currentUser,
+    isManagerScoped,
+    roleFlags.canViewOrgOverview,
+    roleFlags.canViewPendingApprovals,
+  ]);
 
   const departmentsFlat = useMemo(
     () => flattenDepartments(departmentTree),
     [departmentTree],
   );
 
+  const visibleDepartments = useMemo(() => {
+    if (!isManagerScoped) return departmentsFlat;
+
+    const userIdSet = buildCurrentUserIdSet(currentUser);
+    return departmentsFlat.filter((department) =>
+      isDepartmentManagedByUser(department, userIdSet),
+    );
+  }, [currentUser, departmentsFlat, isManagerScoped]);
+
   const topDepartments = useMemo(() => {
-    return departmentsFlat
+    return visibleDepartments
       .filter((department) => department?.departmentName)
       .sort((a, b) => (b.totalEmployeeCount || 0) - (a.totalEmployeeCount || 0))
       .slice(0, 4);
-  }, [departmentsFlat]);
+  }, [visibleDepartments]);
 
   const attendanceStatus = useMemo(() => {
     if (!attendanceContext) {
@@ -409,6 +586,75 @@ export default function DashboardPage() {
     "bạn";
   const heroDate = formatDate(new Date());
 
+  const heroActions = useMemo(() => {
+    if (roleFlags.isEmployeeOnly) {
+      return [
+        {
+          href: "/requests/my-requests",
+          label: "Đơn của tôi",
+          variant: "primary",
+        },
+        {
+          href: "/timesheets/data",
+          label: "Bảng công cá nhân",
+          variant: "secondary",
+        },
+        {
+          href: "/settings/general",
+          label: "Cập nhật hồ sơ",
+          variant: "secondary",
+        },
+      ];
+    }
+
+    return [
+      {
+        href: roleFlags.canUseFaceCheckin
+          ? "/face/checkin"
+          : "/timesheets/data",
+        label: roleFlags.canUseFaceCheckin
+          ? "Chấm công ngay"
+          : "Bảng công cá nhân",
+        variant: "primary",
+      },
+      ...(roleFlags.canViewPendingApprovals
+        ? [
+            {
+              href: "/requests/pending-approvals",
+              label: "Xem đơn chờ duyệt",
+              variant: "secondary",
+            },
+          ]
+        : [
+            {
+              href: "/requests/my-requests",
+              label: "Đơn của tôi",
+              variant: "secondary",
+            },
+          ]),
+      ...(roleFlags.canViewOrgOverview
+        ? [
+            {
+              href: "/departments/chart",
+              label: "Cơ cấu phòng ban",
+              variant: "secondary",
+            },
+          ]
+        : [
+            {
+              href: "/shifts/personal",
+              label: "Lịch cá nhân",
+              variant: "secondary",
+            },
+          ]),
+    ];
+  }, [
+    roleFlags.canUseFaceCheckin,
+    roleFlags.canViewOrgOverview,
+    roleFlags.canViewPendingApprovals,
+    roleFlags.isEmployeeOnly,
+  ]);
+
   const kpis = useMemo(
     () =>
       [
@@ -466,7 +712,7 @@ export default function DashboardPage() {
       ].filter(Boolean),
     [
       approvalsAvailable,
-      departmentsFlat.length,
+      visibleDepartments.length,
       employeesTotal,
       onboardingStats.growthRate,
       onboardingStats.inProgress,
@@ -522,9 +768,9 @@ export default function DashboardPage() {
                 {getGreeting()}, {heroName}
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-slate-200/85 sm:text-base">
-                Bảng điều khiển này tổng hợp tình trạng chấm công hôm nay, nhân
-                sự toàn hệ thống, đơn đang chờ duyệt và tiến độ onboarding để
-                bạn nắm nhanh tình hình vận hành.
+                {isManagerScoped
+                  ? "Bảng điều khiển này tổng hợp tình trạng chấm công hôm nay, nhân sự thuộc phòng ban bạn quản lý, đơn đang chờ duyệt và tiến độ onboarding để bạn nắm nhanh tình hình vận hành."
+                  : "Bảng điều khiển này tổng hợp tình trạng chấm công hôm nay, nhân sự toàn hệ thống, đơn đang chờ duyệt và tiến độ onboarding để bạn nắm nhanh tình hình vận hành."}
               </p>
             </div>
 
@@ -639,11 +885,13 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((stat) => (
-          <StatCard key={stat.title} stat={stat} loading={loading} />
-        ))}
-      </section>
+      {roleFlags.canViewOrgOverview && (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {kpis.map((stat) => (
+            <StatCard key={stat.title} stat={stat} loading={loading} />
+          ))}
+        </section>
+      )}
 
       <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
         <PermissionGate permission="ATTENDANCE_READ_OWN">

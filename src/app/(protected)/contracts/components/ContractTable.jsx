@@ -16,11 +16,11 @@ import { Pagination } from "@/components/common/Pagination";
 import {
   Search,
   Edit2,
-  Trash2,
   Eye,
   FileText,
   Calendar,
   RotateCcw,
+  trash2
 } from "lucide-react";
 
 // Cấu hình nhãn loại hợp đồng
@@ -63,7 +63,6 @@ export default function ContractTable({
   totalPages,
   onView,
   onEdit,
-  onDelete,
   onTerminate,
 }) {
   // ensure pageSize always 10 regardless of parent
@@ -233,7 +232,7 @@ export default function ContractTable({
         },
       },
     ],
-    [onView, onEdit, onDelete, onTerminate],
+    [onView, onEdit, onTerminate],
   );
 
   const table = useReactTable({
