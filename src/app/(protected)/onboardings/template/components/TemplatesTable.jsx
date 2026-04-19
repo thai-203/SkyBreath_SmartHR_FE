@@ -11,8 +11,15 @@ import {
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
-export default function TemplatesTable({ templates = [], loading, onEdit, onView, onDelete }) {
+export default function TemplatesTable({
+  templates = [],
+  loading,
+  onEdit,
+  onView,
+  onDelete,
+}) {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
@@ -123,18 +130,28 @@ export default function TemplatesTable({ templates = [], loading, onEdit, onView
 
                 <td className="px-5 py-4 text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => onView(template)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-indigo-600">
+                    <button
+                      onClick={() => onView(template)}
+                      className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-indigo-600"
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => onEdit(template)}
-                      className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-amber-600"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => onDelete(template)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <PermissionGate permission="ONBOARDING_PLAN_UPDATE">
+                      <button
+                        onClick={() => onEdit(template)}
+                        className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-amber-600"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </PermissionGate>
+                    <PermissionGate permission="ONBOARDING_PLAN_DELETE">
+                      <button
+                        onClick={() => onDelete(template)}
+                        className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </PermissionGate>
                     <ChevronRight className="w-4 h-4 text-slate-300 ml-1" />
                   </div>
                 </td>
@@ -149,7 +166,8 @@ export default function TemplatesTable({ templates = [], loading, onEdit, onView
             <span className="text-slate-900">
               {Math.min(startIndex + pageSize, totalItems)}
             </span>{" "}
-            trong tổng số <span className="text-slate-900">{totalItems}</span> mẫu
+            trong tổng số <span className="text-slate-900">{totalItems}</span>{" "}
+            mẫu
           </p>
 
           <div className="flex items-center gap-2">

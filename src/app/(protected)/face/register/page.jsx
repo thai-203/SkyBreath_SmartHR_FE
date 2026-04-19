@@ -13,7 +13,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/components/common/Toast";
-import { faceService, authService, faceRecognitionService } from "@/services";
+import { faceService, faceRecognitionService } from "@/services";
 import { Button } from "@/components/common/Button";
 import RegisteredFaceTable from "./components/registeredFaceTable";
 import FaceRegister from "./components/faceRegister";
@@ -38,7 +38,6 @@ const VIEW = Object.freeze({
 export default function FaceRegisterPage() {
   const { success, error } = useToast();
 
-  const [employeeId, setEmployeeId] = useState(null);
   const [registeredFaces, setRegisteredFaces] = useState([]);
 
   // 3 trạng thái loading tách biệt để UI phản hồi chính xác
@@ -57,8 +56,7 @@ export default function FaceRegisterPage() {
 
   const fetchFaceMetadata = useCallback(async () => {
     try {
-      const res = await faceRecognitionService.getConfig();
-      console.log(res.data);
+      const res = await faceRecognitionService.getConfigForPublic();
 
       setFaceConfig(res?.data);
     } catch (err) {
@@ -66,24 +64,21 @@ export default function FaceRegisterPage() {
     }
   }, []);
 
-  const fetchRegisteredFaces = useCallback(
-    async (empId) => {
-      setLoadingFaces(true);
-      try {
-        const result = await faceService.getRegisteredFaces(empId);
-        setRegisteredFaces(result?.data ?? []);
-      } catch (err) {
-        console.error("[FaceRegisterPage] fetchRegisteredFaces:", err);
-        error(
-          err?.response?.data?.message ??
-            "Không thể tải danh sách khuôn mặt đã đăng ký",
-        );
-      } finally {
-        setLoadingFaces(false);
-      }
-    },
-    [error],
-  );
+  const fetchRegisteredFaces = useCallback(async () => {
+    setLoadingFaces(true);
+    try {
+      const result = await faceService.getRegisteredFaces();
+      setRegisteredFaces(result?.data ?? []);
+    } catch (err) {
+      console.error("[FaceRegisterPage] fetchRegisteredFaces:", err);
+      error(
+        err?.response?.data?.message ??
+          "Không thể tải danh sách khuôn mặt đã đăng ký",
+      );
+    } finally {
+      setLoadingFaces(false);
+    }
+  }, [error]);
 
   // ─── Init: lấy employee hiện tại + faces ───────────────────────────────
 
@@ -92,18 +87,8 @@ export default function FaceRegisterPage() {
 
     const init = async () => {
       try {
-        const employee = await authService.getCurrentEmployeeByUserId();
-        const empId = employee?.data?.id ?? employee?.id;
-
-        if (!mounted) return;
-
-        setEmployeeId(empId);
-
         await fetchFaceMetadata();
-
-        if (empId) {
-          await fetchRegisteredFaces(empId);
-        }
+        await fetchRegisteredFaces();
       } catch (err) {
         console.error("[FaceRegisterPage] init:", err);
       } finally {
@@ -140,19 +125,19 @@ export default function FaceRegisterPage() {
   // ─── Submit ─────────────────────────────────────────────────────────────
 
   const handleSubmit = useCallback(async () => {
-    if (!employeeId || !completed || isSubmitting) return;
+    if (!completed || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
       const blobs = await Promise.all(
         captured.map((entry) => dataURLToBlob(entry.image)),
       );
-      await faceService.registerFaces(employeeId, blobs);
+      await faceService.registerFaces(blobs);
 
       success("Đăng ký khuôn mặt hoàn tất");
 
       // Refresh danh sách
-      await fetchRegisteredFaces(employeeId);
+      await fetchRegisteredFaces();
 
       // Quay về idle
       setCaptured([]);
@@ -163,15 +148,7 @@ export default function FaceRegisterPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    employeeId,
-    captured,
-    completed,
-    isSubmitting,
-    success,
-    error,
-    fetchRegisteredFaces,
-  ]);
+  }, [captured, completed, isSubmitting, success, error, fetchRegisteredFaces]);
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
@@ -202,7 +179,6 @@ export default function FaceRegisterPage() {
           faces={registeredFaces}
           loading={loadingFaces}
           onStartRegister={handleStartRegister}
-          apiBase="http://localhost:3000"
         />
       )}
 

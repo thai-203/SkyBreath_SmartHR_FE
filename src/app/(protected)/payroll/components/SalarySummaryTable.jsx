@@ -10,7 +10,7 @@ import { PlusSquare, MinusSquare, Building, Users, Wallet } from "lucide-react";
  * - Mission-critical financial reporting layout.
  */
 
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(parseFloat(n || 0)));
+const fmt = (n) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(parseFloat(n || 0)));
 
 const TREE_ROW_CLASS = "hover:bg-slate-50 transition-all divide-x divide-slate-100 group border-b border-slate-200 cursor-pointer text-[11px]";
 const CELL_CLASS = "px-3 py-3 text-center font-medium text-slate-600 whitespace-nowrap overflow-hidden truncate";
@@ -50,13 +50,13 @@ export default function SalarySummaryTable({ details = [], unitName = "CTCP cấ
                 m.p2 += parseFloat(item.p21Amount || 0) + parseFloat(item.p22Amount || 0);
                 m.pBonus += parseFloat(item.bonus || 0);
                 m.pProb += parseFloat(item.probationAmount || 0);
-                m.allowance += (parseFloat(item.totalIncome) || 0) - (parseFloat(item.p1Amount || 0) + parseFloat(item.p21Amount || 0) + parseFloat(item.p22Amount || 0) + parseFloat(item.probationAmount || 0) + parseFloat(item.overtimePay || 0));
+                m.allowance += parseFloat(item.allowanceAmount || 0);
                 m.otTotal += parseFloat(item.overtimePay || 0);
                 m.otTax += parseFloat(item.overtimePay || 0) * 0.7; // Placeholder ratio
                 m.otFree += parseFloat(item.overtimePay || 0) * 0.3; // Placeholder ratio
                 m.retroTax += parseFloat(item.otherTaxableIncome || 0);
                 m.retroFree += parseFloat(item.otherNonTaxableIncome || 0);
-                m.totalInc += (parseFloat(item.netSalary) || 0) + (parseFloat(item.insuranceDeduction) || 0) + (parseFloat(item.taxDeduction) || 0);
+                m.totalInc += (parseFloat(item.netSalary) || 0) + (parseFloat(item.insuranceDeduction) || 0) + (parseFloat(item.taxDeduction) || 0) + (parseFloat(item.penalty) || 0) + (parseFloat(item.deduction) || 0);
                 m.taxable += parseFloat(item.taxableIncomePaid || 0);
                 m.pit += parseFloat(item.taxDeduction || 0);
                 // Company
@@ -156,10 +156,10 @@ export default function SalarySummaryTable({ details = [], unitName = "CTCP cấ
                         <col width="100" /><col width="100" /><col width="100" /><col width="110" /><col width="100" /><col width="100" /><col width="100" />
                         <col width="140" /><col width="140" /><col width="160" />
                     </colgroup>
-                    <thead className="sticky top-0 z-[50] shadow-sm">
+                    <thead className="z-0 shadow-sm border-b border-slate-300">
                         {/* Row 1 */}
                         <tr>
-                            <th rowSpan={2} className={`${headerClass} sticky left-0 z-[60] bg-[#f8fafc] border-b-2 font-black !text-indigo-900`}>Bộ phận / Đơn vị</th>
+                            <th rowSpan={2} className={`${headerClass} sticky left-0 z-20 bg-[#f8fafc] border-b-2 font-black !text-indigo-900`}>Bộ phận / Đơn vị</th>
                             <th rowSpan={2} className={`${headerClass} border-b-2`}>NS</th>
                             <th rowSpan={2} className={`${headerClass} border-b-2 bg-amber-50/30`}>Lương P1</th>
                             <th rowSpan={2} className={`${headerClass} border-b-2`}>Thưởng P2</th>
@@ -178,7 +178,7 @@ export default function SalarySummaryTable({ details = [], unitName = "CTCP cấ
                             <th colSpan={7} className={`${headerClass} bg-rose-50/50 text-rose-800 font-extrabold uppercase tracking-widest`}>Người lao động đóng</th>
                             <th rowSpan={2} className={`${headerClass} border-b-2 !text-indigo-900 bg-indigo-50/50`}>Thực chi</th>
                             <th rowSpan={2} className={`${headerClass} border-b-2`}>Dự phòng P3.2</th>
-                            <th rowSpan={2} className={`${headerClass} border-b-2 !bg-indigo-600 !text-white font-black z-[55] shadow-lg`}>Tổng chi phí DN</th>
+                            <th rowSpan={2} className={`${headerClass} border-b-2 !bg-indigo-600 !text-white font-black z-10 shadow-lg`}>Tổng chi phí DN</th>
                         </tr>
                         {/* Row 2 */}
                         <tr>
@@ -204,8 +204,8 @@ export default function SalarySummaryTable({ details = [], unitName = "CTCP cấ
                     <tbody className="divide-y divide-slate-100 italic-last bg-white text-[11px]">
                         {renderRows(treeData)}
                         {/* Summary Total Row */}
-                        <tr className="bg-slate-700 text-white font-black h-12 shadow-[0_-5px_15px_rgba(0,0,0,0.1)] relative z-40">
-                            <td className="sticky left-0 bg-slate-700 z-50 px-4 py-3 border-r border-white/20">TỔNG CỘNG HỆ THỐNG</td>
+                        <tr className="bg-slate-700 text-white font-black h-12 shadow-[0_-5px_15px_rgba(0,0,0,0.1)] relative z-10">
+                            <td className="sticky left-0 bg-slate-700 z-10 px-4 py-3 border-r border-white/20">TỔNG CỘNG HỆ THỐNG</td>
                             <td className="px-2 py-3 text-center">{treeData.metrics.empCount}</td>
                             <td className="px-2 py-3 text-right">{fmt(treeData.metrics.p1)}</td>
                             <td className="px-2 py-3 text-right">{fmt(treeData.metrics.p2)}</td>

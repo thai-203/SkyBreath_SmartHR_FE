@@ -5,6 +5,10 @@ export const employeesService = {
     const response = await api.get("/employees", { params });
     return response.data;
   },
+  getAllForPublic: async (params = {}) => {
+    const response = await api.get("/employees/public", { params });
+    return response.data;
+  },
 
   getList: async (params = {}) => {
     const response = await api.get("/employees/list", { params });

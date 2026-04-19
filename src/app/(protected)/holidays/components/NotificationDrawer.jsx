@@ -130,8 +130,8 @@ export default function NotificationDrawer({ open, onOpenChange, holiday }) {
         setLoading(true);
         try {
             const [deptRes, empRes] = await Promise.all([
-                departmentsService.getChart(),
-                employeesService.getAll({ limit: 1000 })
+                departmentsService.getChartForHoliday(),
+                employeesService.getAllForPublic({ limit: 1000 })
             ]);
 
             const departments = deptRes.data || [];

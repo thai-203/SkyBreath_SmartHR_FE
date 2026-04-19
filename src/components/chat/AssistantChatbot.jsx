@@ -156,6 +156,7 @@ export default function AssistantChatbot() {
 
   const handleDeleteConversation = async (e, convId) => {
     e.stopPropagation();
+    if (!window.confirm("Bạn có chắc chắn muốn xóa cuộc trò chuyện này?")) return;
     try {
       await aiService.deleteConversation(convId);
       const remaining = conversations.filter((c) => c.id !== convId);
@@ -269,7 +270,7 @@ export default function AssistantChatbot() {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
         size="icon"
       >
         <MessageCircle className="h-6 w-6" />
@@ -282,7 +283,7 @@ export default function AssistantChatbot() {
 
   return (
     <Card
-      className="fixed bottom-6 right-6 shadow-2xl flex flex-col z-50 overflow-hidden border transition-all duration-200"
+      className="fixed bottom-6 right-6 shadow-2xl flex flex-col z-[100] overflow-hidden border transition-all duration-200"
       style={{ width: size.width, height: size.height }}
     >
       {/* Resize handle */}
@@ -303,6 +304,16 @@ export default function AssistantChatbot() {
           <CardTitle className="text-md font-medium">HR Assistant</CardTitle>
         </div>
         <div className="flex items-center gap-1">
+          {activeConvId && (
+            <Button
+              variant="ghost" size="icon"
+              className="h-7 w-7 text-primary-foreground hover:bg-red-500/80 transition-colors mr-1"
+              onClick={(e) => handleDeleteConversation(e, activeConvId)}
+              title="Xóa cuộc trò chuyện này"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost" size="icon"
             className="h-7 w-7 text-primary-foreground hover:bg-primary/80"
@@ -357,7 +368,7 @@ export default function AssistantChatbot() {
                 >
                   <span className="truncate flex-1 pr-1" title={conv.title}>{conv.title}</span>
                   <button
-                    className="shrink-0 opacity-0 group-hover:opacity-70 hover:!opacity-100 text-destructive transition-opacity"
+                    className={`shrink-0 transition-opacity text-destructive ${activeConvId === conv.id ? "opacity-100" : "opacity-0 group-hover:opacity-70 hover:!opacity-100"}`}
                     onClick={(e) => handleDeleteConversation(e, conv.id)}
                     title="Xóa"
                   >

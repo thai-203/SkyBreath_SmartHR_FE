@@ -3,17 +3,12 @@ import api from "@/lib/api";
 const BASE_URL = "/face";
 
 export const faceService = {
-  async registerFaces(employeeId, images) {
+  async registerFaces(images) {
     const formData = new FormData();
-
-    formData.append("employeeId", employeeId);
-
     images.forEach((blob, index) => {
       formData.append("images", blob, `face_${index}.jpg`);
     });
-
     const response = await api.post(`${BASE_URL}/register-faces`, formData);
-
     return response.data;
   },
 
@@ -29,10 +24,8 @@ export const faceService = {
     return response.data;
   },
 
-  async getRegisteredFaces(employeeId) {
-    const response = await api.get(`${BASE_URL}/registered`, {
-      params: { employeeId },
-    });
+  async getRegisteredFaces() {
+    const response = await api.get(`${BASE_URL}/registered`);
     return response.data;
   },
 

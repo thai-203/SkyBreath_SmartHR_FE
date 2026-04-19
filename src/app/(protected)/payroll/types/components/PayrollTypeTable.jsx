@@ -1,6 +1,7 @@
 "use client";
 
 import { Edit, Trash2 } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 export default function PayrollTypeTable({ types, onEdit, onDelete }) {
   return (
@@ -44,20 +45,24 @@ export default function PayrollTypeTable({ types, onEdit, onDelete }) {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => onEdit(type)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                      title="Sửa"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(type.id)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                      title="Xóa"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <PermissionGate permission="PAYROLL_TYPE_UPDATE">
+                      <button
+                        onClick={() => onEdit(type)}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                        title="Sửa"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </PermissionGate>
+                    <PermissionGate permission="PAYROLL_TYPE_DELETE">
+                      <button
+                        onClick={() => onDelete(type.id)}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        title="Xóa"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </PermissionGate>
                   </div>
                 </td>
               </tr>

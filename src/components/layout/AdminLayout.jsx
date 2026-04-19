@@ -24,7 +24,7 @@ export default function AdminLayout({ children }) {
     return (
         <AuthGuard>
             <SocketProvider>
-                <div className="flex h-screen bg-slate-50">
+                <div className="flex h-screen bg-slate-50 overflow-hidden">
                     {isSidebarOpen && (
                         <div
                             className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
@@ -38,9 +38,9 @@ export default function AdminLayout({ children }) {
                         )}
                         onMobileClose={() => setIsSidebarOpen(false)}
                     />
-                    <div className="flex flex-1 flex-col overflow-hidden">
+                    <div className="flex flex-1 flex-col overflow-hidden min-h-0">
                         <Header onMenuClick={() => setIsSidebarOpen(true)} />
-                        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+                        <main className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
                             {children}
                         </main>
                     </div>

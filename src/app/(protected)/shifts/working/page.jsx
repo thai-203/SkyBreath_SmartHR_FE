@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import { workingShiftsService, shiftGroupsService } from "@/services";
 
 import WorkingShiftTable from "./components/WorkingShiftTable";
@@ -247,13 +248,15 @@ export default function WorkingShiftsPage() {
           >
             <RefreshCcw size={20} className={loading ? "animate-spin" : ""} />
           </button>
-          <Button
-            onClick={handleCreate}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 border-none transition-all active:scale-95"
-          >
-            <Plus size={18} strokeWidth={2.5} />
-            <span className="font-semibold">Thêm ca mới</span>
-          </Button>
+          <PermissionGate permission="SHIFT_CREATE">
+            <Button
+              onClick={handleCreate}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl shadow-lg shadow-blue-100 flex items-center gap-2 border-none transition-all active:scale-95"
+            >
+              <Plus size={18} strokeWidth={2.5} />
+              <span className="font-semibold">Thêm ca mới</span>
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 

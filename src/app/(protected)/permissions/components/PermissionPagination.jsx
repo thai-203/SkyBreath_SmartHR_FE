@@ -64,7 +64,7 @@ export default function PermissionPagination({ currentPage, totalPages, onPageCh
     };
 
     return (
-        <Pagination className="mt-8 justify-end">
+        <Pagination className="justify-end">
             <PaginationContent>
                 <PaginationItem>
                     <PaginationPrevious

@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/common/Button";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import { Select } from "@/components/common/Select";
 import { ConfirmModal } from "@/components/common/Modal";
 import { Input } from "@/components/common/Input";
@@ -68,8 +69,8 @@ export default function DataManagementPage() {
         const fetchDeps = async () => {
             try {
                 const [deptRes, empRes] = await Promise.all([
-                    departmentsService.getAll(),
-                    employeesService.getAll({ limit: 1000 })
+                    departmentsService.getAllForTimeSheet(),
+                    employeesService.getAllForPublic({ limit: 1000 })
                 ]);
                 setDepartments(deptRes?.data || []);
                 setEmployeeList(empRes?.data?.items || []);
@@ -275,8 +276,13 @@ export default function DataManagementPage() {
     };
 
     const handleExportDetailed = async () => {
+        if (selectedEmployeeIds.size === 0) {
+            toastError("Vui lòng chọn ít nhất 1 nhân viên để xuất chi tiết");
+            return;
+        }
         try {
-            const blob = await timesheetsService.exportDetailed({ month: filters.month, year: filters.year });
+            const employeeIds = Array.from(selectedEmployeeIds).join(',');
+            const blob = await timesheetsService.exportDetailed({ month: filters.month, year: filters.year, employeeIds });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
@@ -371,41 +377,40 @@ export default function DataManagementPage() {
                 </div>
                 {!isEmployeeOnly && (
                     <div className="flex flex-wrap gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={handleSync}
-                            loading={syncLoading}
-                            className="gap-2 text-teal-700 border-teal-200"
-                            disabled={selectedEmployeeIds.size === 0}
-                        >
-                            <RefreshCw className="h-4 w-4" /> Đồng bộ ({selectedEmployeeIds.size})
-                        </Button>
-
-                        <Button variant="outline" onClick={handleFinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
-                            <Lock className="h-4 w-4" /> Chốt công
-                        </Button>
-
-                        <Button variant="outline" onClick={handleUnfinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
-                            <Unlock className="h-4 w-4" /> Bỏ chốt
-                        </Button>
-                        
-                        <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
-                            <Download className="h-4 w-4" /> Xuất chi tiết
-                        </Button>
+                        <PermissionGate permission="TIMESHEET_UPDATE">
+                            <Button variant="outline" onClick={handleSync} loading={syncLoading} className="gap-2 text-teal-700 border-teal-200">
+                                <RefreshCw className="h-4 w-4" /> Đồng bộ công
+                            </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="TIMESHEET_LOCK">
+                            <Button variant="outline" onClick={handleFinalizeMatrix} className="gap-2 text-rose-700 border-rose-200">
+                                <Lock className="h-4 w-4" /> Chốt công
+                            </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="TIMESHEET_LOCK">
+                            <Button variant="outline" onClick={handleUnfinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
+                                <Unlock className="h-4 w-4" /> Bỏ chốt công
+                            </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="TIMESHEET_EXPORT">
+                            <Button variant="outline" onClick={handleExportDetailed} className="gap-2 text-indigo-700 border-indigo-200">
+                                <Download className="h-4 w-4" /> Xuất chi tiết
+                            </Button>
+                        </PermissionGate>
                     </div>
                 )}
             </div>
 
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
                 <div className="flex flex-wrap gap-3 items-center flex-1">
-                <div className="relative">
+                    <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input placeholder="Tìm nhân viên..." value={search} onChange={(e) => { setSearch(e.target.value); setPagination(p => ({ ...p, pageIndex: 0 })); }} className="pl-9 w-full sm:w-64" />
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    
+
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border">
                         <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
                             <LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Ma trận</span>
@@ -421,7 +426,7 @@ export default function DataManagementPage() {
                         <table className="w-full text-sm text-left border-collapse" style={{ minWidth: "1500px" }}>
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-2 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-0 bg-slate-50 z-20 whitespace-nowrap text-center">
+                                    <th className="px-2 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-0 bg-slate-50 z-20 whitespace-nowrap text-center" style={{ minWidth: '45px', maxWidth: '45px' }}>
                                         <input
                                             type="checkbox"
                                             aria-label="Chọn tất cả nhân viên trong trang"
@@ -429,11 +434,11 @@ export default function DataManagementPage() {
                                             onChange={(e) => toggleSelectAllOnPage(e.target.checked)}
                                         />
                                     </th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[45px] bg-slate-50 z-10 whitespace-nowrap text-center">STT</th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[90px] bg-slate-50 z-10 whitespace-nowrap">Họ tên</th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[240px] bg-slate-50 z-10 whitespace-nowrap">Mã NS</th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[330px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-slate-50 z-10 whitespace-nowrap">Chức danh</th>
-                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[450px] bg-slate-50 z-10 whitespace-nowrap text-center">Thao tác</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[45px] bg-slate-50 z-10 whitespace-nowrap text-center" style={{ minWidth: '45px', maxWidth: '45px' }}>STT</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[90px] bg-slate-50 z-10 whitespace-nowrap text-center" style={{ minWidth: '90px', maxWidth: '90px' }}>Thao tác</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[180px] bg-slate-50 z-10 whitespace-nowrap" style={{ minWidth: '150px', maxWidth: '150px' }}>Họ tên</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[330px] bg-slate-50 z-10 whitespace-nowrap" style={{ minWidth: '90px', maxWidth: '90px' }}>Mã NS</th>
+                                    <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[420px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-slate-50 z-10 whitespace-nowrap" style={{ minWidth: '120px', maxWidth: '120px' }}>Chức danh</th>
 
                                     {dayColumns.map(col => (
                                         <th key={col.id} className={`px-1 py-1 border-r border-slate-200 font-medium text-center text-[10px] min-w-[50px] ${col.isWeekend ? 'bg-amber-50 text-amber-700' : 'text-slate-600'}`}>
@@ -455,7 +460,7 @@ export default function DataManagementPage() {
                                 ) : (
                                     matrixData.map((row, idx) => (
                                         <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                                            <td className="px-2 py-2 border-r border-slate-200 sticky left-0 bg-white group-hover:bg-slate-50 z-20 text-center">
+                                            <td className="px-2 py-2 border-r border-slate-200 sticky left-0 bg-white group-hover:bg-slate-50 z-20 text-center" style={{ minWidth: '45px', maxWidth: '45px' }}>
                                                 <input
                                                     type="checkbox"
                                                     aria-label={`Chọn ${row.fullName}`}
@@ -463,11 +468,8 @@ export default function DataManagementPage() {
                                                     onChange={(e) => toggleSelectRow(row.id, e.target.checked)}
                                                 />
                                             </td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 font-medium text-center">{pagination.pageIndex * pagination.pageSize + idx + 1}</td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[90px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-medium text-slate-800" style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.fullName}</td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[240px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-mono text-xs">{row.employeeCode}</td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[330px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
-                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[450px] bg-white group-hover:bg-slate-50 z-10 text-center">
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 font-medium text-center" style={{ minWidth: '45px', maxWidth: '45px' }}>{pagination.pageIndex * pagination.pageSize + idx + 1}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[90px] bg-white group-hover:bg-slate-50 z-10 text-center" style={{ minWidth: '90px', maxWidth: '90px' }}>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleViewAttendanceDetailFromMatrix(row)}
@@ -477,6 +479,9 @@ export default function DataManagementPage() {
                                                     <Eye className="h-4 w-4 text-slate-500" />
                                                 </button>
                                             </td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[180px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-medium text-slate-800" style={{ minWidth: '150px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.fullName}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[330px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-mono text-xs" style={{ minWidth: '90px', maxWidth: '90px' }}>{row.employeeCode}</td>
+                                            <td className="px-3 py-2 border-r border-slate-200 sticky left-[420px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ minWidth: '120px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
 
                                             {dayColumns.map(col => {
                                                 const dayData = row.dailyDetails?.find(d => {

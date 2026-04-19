@@ -7,6 +7,7 @@ import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
 import { userService } from "@/services";
 import { validate, required, email, regex } from "@/lib/validation";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 // Local components
 import UserTable from "./components/UserTable";
@@ -347,10 +348,12 @@ export default function UsersPage() {
             Danh sách tất cả người dùng trong hệ thống
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm người dùng
-        </Button>
+        <PermissionGate permission="USER_CREATE">
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm người dùng
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Filters */}

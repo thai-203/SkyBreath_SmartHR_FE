@@ -22,7 +22,7 @@ export default function TimesheetActionLogModal({ isOpen, onClose }) {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const res = await auditService.getAll({
+            const res = await auditService.getAllForTimesheet({
                 targetTable: 'timesheets',
                 limit: 50, // Get last 50 actions
                 sortOrder: 'DESC'

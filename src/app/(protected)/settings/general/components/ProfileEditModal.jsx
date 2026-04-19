@@ -16,11 +16,6 @@ import {
   fileType,
 } from "@/lib/validation";
 import { Upload, X, Lock, Info } from "lucide-react";
-import Image from "next/image";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
-const BACKEND_URL = "http://localhost:3000";
 
 export default function ProfileEditModal({
   isOpen,
@@ -227,9 +222,7 @@ export default function ProfileEditModal({
                   <div className="flex items-center gap-4 p-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm transition-shadow">
                     <div className="relative">
                       <img
-                        src={
-                          previewAvatar || `${API_BASE_URL}/${formData.avatar}`
-                        }
+                        src={previewAvatar || formData.avatar}
                         alt="Avatar hiện tại"
                         width={64}
                         height={64}
@@ -251,7 +244,7 @@ export default function ProfileEditModal({
                     <div className="flex items-center gap-2">
                       {profile?.avatar && !selectedFile && (
                         <a
-                          href={`${API_BASE_URL}/${profile.avatar}`}
+                          href={profile.avatar}
                           target="_blank"
                           rel="noreferrer"
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

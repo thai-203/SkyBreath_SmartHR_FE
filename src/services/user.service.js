@@ -87,6 +87,11 @@ export const userService = {
     return response.data;
   },
 
+  getMetadataPublic: async () => {
+    const response = await api.get("/users/meta-data/public");
+    return response.data;
+  },
+
   /**
    * Get user by ID
    * @param {string} id - User ID

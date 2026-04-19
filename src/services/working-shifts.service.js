@@ -6,10 +6,10 @@ export const workingShiftsService = {
     return response.data;
   },
 
-      getList: async () => {
-        const response = await api.get("/shifts/list");
-        return response.data;
-    },
+  getList: async () => {
+    const response = await api.get("/shifts/list");
+    return response.data;
+  },
 
   getById: async (id) => {
     const response = await api.get(`/shifts/${id}`);

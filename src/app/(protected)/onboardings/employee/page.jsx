@@ -12,18 +12,28 @@ export default function EmployeeOnboardingPage() {
   const [onboardingPlan, setOnboardingPlan] = useState(null);
   const [error, setError] = useState(null);
 
-// Hàm này dùng để lấy dữ liệu mới nhất từ Server
+  // Hàm này dùng để lấy dữ liệu mới nhất từ Server
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
-      
+
       const userRes = await authService.getCurrentEmployeeByUserId();
       setEmployeeInfo(userRes);
       if (userRes?.id) {
-        const planRes = await onboardingsService.getProgressByEmployee(userRes.id);
+        const planRes = await onboardingsService.getProgressByEmployee(
+          userRes.id,
+        );
         setOnboardingPlan(planRes.data);
+      } else {
+        setOnboardingPlan(null);
       }
     } catch (err) {
+      if (err?.response?.status === 404) {
+        setOnboardingPlan(null);
+        setError(null);
+        return;
+      }
+
       console.error("Lỗi tải dữ liệu:", err);
       setError("Không thể tải thông tin lộ trình.");
     } finally {
