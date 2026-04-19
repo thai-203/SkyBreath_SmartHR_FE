@@ -39,7 +39,7 @@ export default function GenerateTimesheetModal({
     const groupedData = useMemo(() => {
         const groups = departments.map(dept => ({
             ...dept,
-            employees: employees.filter(emp => emp.departmentId === dept.id)
+            employees: employees.filter(emp => emp.departmentId === dept.id || emp.department?.id === dept.id)
         }));
         // Auto remove empty departments
         return groups.filter(g => g.employees.length > 0);

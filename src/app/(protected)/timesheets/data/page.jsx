@@ -382,6 +382,16 @@ export default function DataManagementPage() {
                                 <RefreshCw className="h-4 w-4" /> Tính lại tất cả
                             </Button>
                         </PermissionGate>
+                        <PermissionGate permission="TIMESHEET_LOCK">
+                            <Button variant="outline" onClick={handleFinalizeMatrix} className="gap-2 text-rose-700 border-rose-200">
+                                <Lock className="h-4 w-4" /> Chốt công
+                            </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="TIMESHEET_LOCK">
+                            <Button variant="outline" onClick={handleUnfinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
+                                <Unlock className="h-4 w-4" /> Bỏ chốt công
+                            </Button>
+                        </PermissionGate>
                         <PermissionGate permission="TIMESHEET_EXPORT">
                             <Button variant="outline" onClick={handleExportSummary} className="gap-2">
                                 <FileSpreadsheet className="h-4 w-4" /> Xuất tổng hợp

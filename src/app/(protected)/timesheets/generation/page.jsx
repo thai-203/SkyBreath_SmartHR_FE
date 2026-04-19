@@ -38,11 +38,11 @@ export default function GenerationPage() {
         const fetchDeps = async () => {
             try {
                 const [deptRes, empRes] = await Promise.all([
-                    departmentsService.getAllForTimeSheet(),
+                    departmentsService.getList(),
                     employeesService.getAllForPublic({ limit: 1000 })
                 ]);
-                setDepartments(deptRes?.data || []);
-                setEmployeeList(empRes?.data?.items || []);
+                setDepartments(deptRes?.data || deptRes?.items || []);
+                setEmployeeList(empRes?.data?.items || empRes?.data || []);
             } catch (err) {
                 console.error(err);
             }
