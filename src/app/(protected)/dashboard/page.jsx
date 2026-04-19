@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowUpRight,
-  BadgeCheck,
   Building2,
   CalendarCheck2,
   Clock3,
@@ -14,7 +13,6 @@ import {
   LogOut,
   MapPin,
   ScanFace,
-  ShieldAlert,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -38,6 +36,33 @@ import {
   onboardingsService,
   requestsService,
 } from "@/services";
+
+const DEFAULT_OVERVIEW_ROLES = ["ADMIN", "HR", "MANAGER", "DIRECTOR"];
+const DEFAULT_FACE_CHECKIN_ROLES = ["ADMIN", "HR", "MANAGER", "DIRECTOR"];
+const DEFAULT_PENDING_APPROVAL_ROLES = ["ADMIN", "HR", "MANAGER", "DIRECTOR"];
+
+function buildRoleSet(rawValue, fallbackRoles) {
+  const source = rawValue || fallbackRoles.join(",");
+  return new Set(
+    source
+      .split(",")
+      .map((role) => role.trim().toUpperCase())
+      .filter(Boolean),
+  );
+}
+
+const overviewRoleSet = buildRoleSet(
+  process.env.NEXT_PUBLIC_DASHBOARD_OVERVIEW_ROLES,
+  DEFAULT_OVERVIEW_ROLES,
+);
+const faceCheckinRoleSet = buildRoleSet(
+  process.env.NEXT_PUBLIC_DASHBOARD_FACE_CHECKIN_ROLES,
+  DEFAULT_FACE_CHECKIN_ROLES,
+);
+const pendingApprovalRoleSet = buildRoleSet(
+  process.env.NEXT_PUBLIC_DASHBOARD_APPROVAL_ROLES,
+  DEFAULT_PENDING_APPROVAL_ROLES,
+);
 
 function unwrapResponse(response) {
   return response?.data?.data ?? response?.data ?? response ?? null;
@@ -69,11 +94,144 @@ function flattenDepartments(nodes = []) {
   ]);
 }
 
+function normalizeId(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return String(value);
+}
+
+function buildCurrentUserIdSet(user) {
+  return new Set(
+    [user?.employeeId, user?.id, user?.userId, user?.employee?.id]
+      .map(normalizeId)
+      .filter(Boolean),
+  );
+}
+
+function isDepartmentManagedByUser(department, userIdSet) {
+  if (!department || userIdSet.size === 0) return false;
+
+  const manager = department.manager || {};
+  const managerIds = [
+    department.managerEmployeeId,
+    manager.id,
+    manager.employeeId,
+    manager.userId,
+    manager.user?.id,
+  ]
+    .map(normalizeId)
+    .filter(Boolean);
+
+  return managerIds.some((managerId) => userIdSet.has(managerId));
+}
+
+function getManagedDepartmentIds(departments, user) {
+  const userIdSet = buildCurrentUserIdSet(user);
+  const ids = departments
+    .filter((department) => isDepartmentManagedByUser(department, userIdSet))
+    .map((department) => normalizeId(department?.id))
+    .filter(Boolean);
+
+  return Array.from(new Set(ids));
+}
+
+function buildOnboardingStatsFromProgress(progressItems, managedDepartmentIds) {
+  const managedDepartmentIdSet = new Set(managedDepartmentIds);
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const currentWindowMs = 30 * dayMs;
+  const previousWindowMs = 60 * dayMs;
+
+  const scopedItems = progressItems.filter((item) => {
+    const departmentId = normalizeId(
+      item?.employee?.departmentId || item?.employee?.department?.id,
+    );
+    return departmentId && managedDepartmentIdSet.has(departmentId);
+  });
+
+  const inProgress = scopedItems.filter(
+    (item) => item?.overallStatus === "IN_PROGRESS",
+  ).length;
+  const completed = scopedItems.filter(
+    (item) => item?.overallStatus === "COMPLETED",
+  ).length;
+
+  const employeeCreatedAtByEmployeeId = new Map();
+  scopedItems.forEach((item) => {
+    const employeeId = normalizeId(item?.employee?.id || item?.employeeId);
+    const createdAt = item?.employee?.createdAt;
+
+    if (!employeeId || !createdAt) return;
+    if (!employeeCreatedAtByEmployeeId.has(employeeId)) {
+      employeeCreatedAtByEmployeeId.set(employeeId, createdAt);
+    }
+  });
+
+  let currentNewEmployees = 0;
+  let previousNewEmployees = 0;
+
+  employeeCreatedAtByEmployeeId.forEach((createdAt) => {
+    const createdTime = new Date(createdAt).getTime();
+    if (Number.isNaN(createdTime)) return;
+
+    const ageMs = now - createdTime;
+    if (ageMs >= 0 && ageMs <= currentWindowMs) {
+      currentNewEmployees += 1;
+      return;
+    }
+
+    if (ageMs > currentWindowMs && ageMs <= previousWindowMs) {
+      previousNewEmployees += 1;
+    }
+  });
+
+  let growthRate = 0;
+  if (previousNewEmployees > 0) {
+    growthRate = Math.round(
+      ((currentNewEmployees - previousNewEmployees) / previousNewEmployees) *
+        100,
+    );
+  } else if (currentNewEmployees > 0) {
+    growthRate = 100;
+  }
+
+  return {
+    newEmployeesLast30Days: currentNewEmployees,
+    inProgress,
+    completed,
+    growthRate,
+  };
+}
+
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Chào buổi sáng";
   if (hour < 18) return "Chào buổi chiều";
   return "Chào buổi tối";
+}
+
+function getRoleFlags(user) {
+  const normalizedRoles = (user?.roles || []).map((role) =>
+    String(role || "").toUpperCase(),
+  );
+
+  const isEmployee = normalizedRoles.includes("EMPLOYEE");
+  const hasAnyRole = (roleSet) =>
+    normalizedRoles.some((role) => roleSet.has(role));
+  const canViewOrgOverview = hasAnyRole(overviewRoleSet);
+  const canUseFaceCheckin = hasAnyRole(faceCheckinRoleSet);
+  const canViewPendingApprovals = hasAnyRole(pendingApprovalRoleSet);
+
+  return {
+    isEmployee,
+    isEmployeeOnly:
+      isEmployee &&
+      normalizedRoles.length === 1 &&
+      !canViewOrgOverview &&
+      !canViewPendingApprovals,
+    canViewOrgOverview,
+    canUseFaceCheckin,
+    canViewPendingApprovals,
+  };
 }
 
 function formatDate(value) {
@@ -194,7 +352,7 @@ function LoadingCard({ rows = 3 }) {
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser] = useState(() => authService.getCurrentUser());
   const [attendanceContext, setAttendanceContext] = useState(null);
   const [employeesTotal, setEmployeesTotal] = useState(0);
   const [departmentTree, setDepartmentTree] = useState([]);
@@ -208,6 +366,7 @@ export default function DashboardPage() {
     growthRate: 0,
   });
 
+<<<<<<< Updated upstream
   const permissions = useMemo(
     () => ({
       canReadEmployees: canAccess({ permissions: ["EMPLOYEE_READ"] }),
@@ -224,6 +383,21 @@ export default function DashboardPage() {
   useEffect(() => {
     setCurrentUser(authService.getCurrentUser());
   }, []);
+=======
+  const roleFlags = useMemo(() => getRoleFlags(currentUser), [currentUser]);
+  const isManagerScoped = useMemo(() => {
+    const normalizedRoles = (currentUser?.roles || []).map((role) =>
+      String(role || "").toUpperCase(),
+    );
+
+    const hasManagerRole = normalizedRoles.includes("MANAGER");
+    const hasOrgWideRole = normalizedRoles.some((role) =>
+      ["ADMIN", "HR", "DIRECTOR"].includes(role),
+    );
+
+    return hasManagerRole && !hasOrgWideRole;
+  }, [currentUser]);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     let active = true;
@@ -239,6 +413,7 @@ export default function DashboardPage() {
           onboardingRes,
           attendanceRes,
         ] = await Promise.allSettled([
+<<<<<<< Updated upstream
           permissions.canReadEmployees
             ? employeesService.getAll({ page: 1, limit: 1 })
             : Promise.resolve(null),
@@ -254,21 +429,42 @@ export default function DashboardPage() {
           permissions.canReadAttendanceOwn
             ? attendanceService.getTodayContext()
             : Promise.resolve(null),
+=======
+          roleFlags.canViewOrgOverview
+            ? employeesService.getAll({ page: 1, limit: 1 })
+            : Promise.resolve(null),
+          roleFlags.canViewOrgOverview
+            ? departmentsService.getChart()
+            : Promise.resolve(null),
+          roleFlags.canViewPendingApprovals
+            ? requestsService.getPendingApprovals({ page: 1, limit: 5 })
+            : Promise.resolve(null),
+          roleFlags.canViewOrgOverview
+            ? onboardingsService.getProgressStats()
+            : Promise.resolve(null),
+          attendanceService.getTodayContext(),
+>>>>>>> Stashed changes
         ]);
+        console.log("Dashboard data loaded:", attendanceRes);
 
         if (!active) return;
 
+<<<<<<< Updated upstream
         if (
           permissions.canReadEmployees &&
           employeesRes.status === "fulfilled" &&
           employeesRes.value
         ) {
+=======
+        if (employeesRes.status === "fulfilled" && employeesRes.value) {
+>>>>>>> Stashed changes
           const employeesPayload = unwrapResponse(employeesRes.value);
           setEmployeesTotal(extractTotal(employeesPayload));
         } else {
           setEmployeesTotal(0);
         }
 
+<<<<<<< Updated upstream
         if (
           permissions.canReadDepartments &&
           departmentsRes.status === "fulfilled" &&
@@ -276,18 +472,92 @@ export default function DashboardPage() {
         ) {
           const departmentsPayload = unwrapResponse(departmentsRes.value);
           setDepartmentTree(extractItems(departmentsPayload));
+=======
+        if (departmentsRes.status === "fulfilled" && departmentsRes.value) {
+          const departmentsPayload = unwrapResponse(departmentsRes.value);
+          const departments = extractItems(departmentsPayload);
+          setDepartmentTree(departments);
+
+          if (isManagerScoped) {
+            const managedDepartmentIds = getManagedDepartmentIds(
+              flattenDepartments(departments),
+              currentUser,
+            );
+
+            if (managedDepartmentIds.length === 0) {
+              setEmployeesTotal(0);
+            } else {
+              const employeeCountResults = await Promise.allSettled(
+                managedDepartmentIds.map((departmentId) =>
+                  employeesService.getAll({
+                    page: 1,
+                    limit: 1,
+                    departmentId: Number(departmentId),
+                  }),
+                ),
+              );
+
+              const scopedEmployeesTotal = employeeCountResults.reduce(
+                (sum, result) => {
+                  if (result.status !== "fulfilled") return sum;
+                  const payload = unwrapResponse(result.value);
+                  return sum + extractTotal(payload);
+                },
+                0,
+              );
+
+              setEmployeesTotal(scopedEmployeesTotal);
+            }
+
+            try {
+              const onboardingProgressRes =
+                await onboardingsService.getProgress({
+                  page: 1,
+                  limit: 1000,
+                });
+              const onboardingProgressPayload = unwrapResponse(
+                onboardingProgressRes,
+              );
+              const onboardingProgressItems = extractItems(
+                onboardingProgressPayload,
+              );
+
+              setOnboardingStats(
+                buildOnboardingStatsFromProgress(
+                  onboardingProgressItems,
+                  managedDepartmentIds,
+                ),
+              );
+            } catch {
+              setOnboardingStats({
+                newEmployeesLast30Days: 0,
+                inProgress: 0,
+                completed: 0,
+                growthRate: 0,
+              });
+            }
+          }
+>>>>>>> Stashed changes
         } else {
           setDepartmentTree([]);
         }
 
+<<<<<<< Updated upstream
         if (
           permissions.canReadRequests &&
           requestsRes.status === "fulfilled" &&
           requestsRes.value
         ) {
+=======
+        if (requestsRes.status === "fulfilled" && requestsRes.value) {
+>>>>>>> Stashed changes
           const requestsPayload = unwrapResponse(requestsRes.value);
           setPendingRequests(extractItems(requestsPayload).slice(0, 5));
           setPendingApprovalsTotal(extractTotal(requestsPayload));
+          setApprovalsAvailable(true);
+        } else if (!roleFlags.canViewPendingApprovals) {
+          setPendingRequests([]);
+          setPendingApprovalsTotal(0);
           setApprovalsAvailable(true);
         } else {
           setPendingRequests([]);
@@ -296,7 +566,11 @@ export default function DashboardPage() {
         }
 
         if (
+<<<<<<< Updated upstream
           permissions.canReadOnboardingProgress &&
+=======
+          !isManagerScoped &&
+>>>>>>> Stashed changes
           onboardingRes.status === "fulfilled" &&
           onboardingRes.value
         ) {
@@ -308,7 +582,11 @@ export default function DashboardPage() {
             completed: onboardingPayload.completed ?? 0,
             growthRate: onboardingPayload.growthRate ?? 0,
           });
+<<<<<<< Updated upstream
         } else {
+=======
+        } else if (!isManagerScoped) {
+>>>>>>> Stashed changes
           setOnboardingStats({
             newEmployeesLast30Days: 0,
             inProgress: 0,
@@ -336,19 +614,33 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [
+    currentUser,
+    isManagerScoped,
+    roleFlags.canViewOrgOverview,
+    roleFlags.canViewPendingApprovals,
+  ]);
 
   const departmentsFlat = useMemo(
     () => flattenDepartments(departmentTree),
     [departmentTree],
   );
 
+  const visibleDepartments = useMemo(() => {
+    if (!isManagerScoped) return departmentsFlat;
+
+    const userIdSet = buildCurrentUserIdSet(currentUser);
+    return departmentsFlat.filter((department) =>
+      isDepartmentManagedByUser(department, userIdSet),
+    );
+  }, [currentUser, departmentsFlat, isManagerScoped]);
+
   const topDepartments = useMemo(() => {
-    return departmentsFlat
+    return visibleDepartments
       .filter((department) => department?.departmentName)
       .sort((a, b) => (b.totalEmployeeCount || 0) - (a.totalEmployeeCount || 0))
       .slice(0, 4);
-  }, [departmentsFlat]);
+  }, [visibleDepartments]);
 
   const attendanceStatus = useMemo(() => {
     if (!attendanceContext) {
@@ -409,7 +701,77 @@ export default function DashboardPage() {
     "bạn";
   const heroDate = formatDate(new Date());
 
+  const heroActions = useMemo(() => {
+    if (roleFlags.isEmployeeOnly) {
+      return [
+        {
+          href: "/requests/my-requests",
+          label: "Đơn của tôi",
+          variant: "primary",
+        },
+        {
+          href: "/timesheets/data",
+          label: "Bảng công cá nhân",
+          variant: "secondary",
+        },
+        {
+          href: "/settings/general",
+          label: "Cập nhật hồ sơ",
+          variant: "secondary",
+        },
+      ];
+    }
+
+    return [
+      {
+        href: roleFlags.canUseFaceCheckin
+          ? "/face/checkin"
+          : "/timesheets/data",
+        label: roleFlags.canUseFaceCheckin
+          ? "Chấm công ngay"
+          : "Bảng công cá nhân",
+        variant: "primary",
+      },
+      ...(roleFlags.canViewPendingApprovals
+        ? [
+            {
+              href: "/requests/pending-approvals",
+              label: "Xem đơn chờ duyệt",
+              variant: "secondary",
+            },
+          ]
+        : [
+            {
+              href: "/requests/my-requests",
+              label: "Đơn của tôi",
+              variant: "secondary",
+            },
+          ]),
+      ...(roleFlags.canViewOrgOverview
+        ? [
+            {
+              href: "/departments/chart",
+              label: "Cơ cấu phòng ban",
+              variant: "secondary",
+            },
+          ]
+        : [
+            {
+              href: "/shifts/personal",
+              label: "Lịch cá nhân",
+              variant: "secondary",
+            },
+          ]),
+    ];
+  }, [
+    roleFlags.canUseFaceCheckin,
+    roleFlags.canViewOrgOverview,
+    roleFlags.canViewPendingApprovals,
+    roleFlags.isEmployeeOnly,
+  ]);
+
   const kpis = useMemo(
+<<<<<<< Updated upstream
     () =>
       [
         permissions.canReadEmployees
@@ -464,9 +826,54 @@ export default function DashboardPage() {
             }
           : null,
       ].filter(Boolean),
+=======
+    () => [
+      {
+        title: "Tổng nhân sự",
+        value: employeesTotal.toLocaleString("vi-VN"),
+        delta: "Dữ liệu tổng hợp từ danh sách nhân viên",
+        deltaClass: "text-slate-500",
+        icon: Users,
+        iconBg: "bg-gradient-to-br from-sky-500 to-blue-600",
+        gradient: "from-sky-500 to-blue-500",
+      },
+      {
+        title: "Phòng ban",
+        value: visibleDepartments.length.toLocaleString("vi-VN"),
+        delta: topDepartments[0]?.departmentName || "Cơ cấu tổ chức",
+        deltaClass: "text-slate-500",
+        icon: Building2,
+        iconBg: "bg-gradient-to-br from-emerald-500 to-teal-600",
+        gradient: "from-emerald-500 to-teal-500",
+      },
+      {
+        title: "Đơn chờ duyệt",
+        value: pendingApprovalsTotal.toLocaleString("vi-VN"),
+        delta: approvalsAvailable
+          ? "Từ danh sách phê duyệt hiện tại"
+          : "Không có quyền xem danh sách này",
+        deltaClass: approvalsAvailable ? "text-slate-500" : "text-amber-600",
+        icon: ClipboardList,
+        iconBg: "bg-gradient-to-br from-amber-500 to-orange-600",
+        gradient: "from-amber-500 to-orange-500",
+      },
+      {
+        title: "Onboarding đang chạy",
+        value: onboardingStats.inProgress.toLocaleString("vi-VN"),
+        delta: `${onboardingStats.growthRate >= 0 ? "+" : ""}${onboardingStats.growthRate}% trong 30 ngày`,
+        deltaClass:
+          onboardingStats.growthRate >= 0
+            ? "text-emerald-600"
+            : "text-rose-600",
+        icon: TrendingUp,
+        iconBg: "bg-gradient-to-br from-violet-500 to-fuchsia-600",
+        gradient: "from-violet-500 to-fuchsia-500",
+      },
+    ],
+>>>>>>> Stashed changes
     [
       approvalsAvailable,
-      departmentsFlat.length,
+      visibleDepartments.length,
       employeesTotal,
       onboardingStats.growthRate,
       onboardingStats.inProgress,
@@ -522,13 +929,14 @@ export default function DashboardPage() {
                 {getGreeting()}, {heroName}
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-slate-200/85 sm:text-base">
-                Bảng điều khiển này tổng hợp tình trạng chấm công hôm nay, nhân
-                sự toàn hệ thống, đơn đang chờ duyệt và tiến độ onboarding để
-                bạn nắm nhanh tình hình vận hành.
+                {isManagerScoped
+                  ? "Bảng điều khiển này tổng hợp tình trạng chấm công hôm nay, nhân sự thuộc phòng ban bạn quản lý, đơn đang chờ duyệt và tiến độ onboarding để bạn nắm nhanh tình hình vận hành."
+                  : "Bảng điều khiển này tổng hợp tình trạng chấm công hôm nay, nhân sự toàn hệ thống, đơn đang chờ duyệt và tiến độ onboarding để bạn nắm nhanh tình hình vận hành."}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
+<<<<<<< Updated upstream
               <PermissionGate permission="ATTENDANCE_READ_OWN">
                 <Link
                   href="/face/checkin"
@@ -554,6 +962,24 @@ export default function DashboardPage() {
                   Cơ cấu phòng ban
                 </Link>
               </PermissionGate>
+=======
+              {heroActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className={
+                    action.variant === "primary"
+                      ? "inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-black/10 transition-transform hover:-translate-y-0.5"
+                      : "inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/10"
+                  }
+                >
+                  {action.label}
+                  {action.variant === "primary" && (
+                    <ArrowUpRight className="h-4 w-4" />
+                  )}
+                </Link>
+              ))}
+>>>>>>> Stashed changes
             </div>
           </div>
 
@@ -639,12 +1065,15 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((stat) => (
-          <StatCard key={stat.title} stat={stat} loading={loading} />
-        ))}
-      </section>
+      {roleFlags.canViewOrgOverview && (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {kpis.map((stat) => (
+            <StatCard key={stat.title} stat={stat} loading={loading} />
+          ))}
+        </section>
+      )}
 
+<<<<<<< Updated upstream
       <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
         <PermissionGate permission="ATTENDANCE_READ_OWN">
           {loading ? (
@@ -786,6 +1215,149 @@ export default function DashboardPage() {
 
         <div className="space-y-6">
           <PermissionGate permission="REQUEST_READ">
+=======
+      <section
+        className={`grid gap-6 ${roleFlags.canViewOrgOverview ? "xl:grid-cols-[1.25fr_0.75fr]" : "xl:grid-cols-1"}`}
+      >
+        {loading ? (
+          <LoadingCard rows={4} />
+        ) : (
+          <Card className="overflow-hidden border-slate-200/70 bg-white/90 shadow-sm">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/60">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle>Chấm công hôm nay</CardTitle>
+                  <CardDescription>
+                    Trạng thái sinh trắc học, lịch làm việc và các lần ghi nhận
+                    gần nhất.
+                  </CardDescription>
+                </div>
+                <Badge variant={attendanceStatus.variant}>
+                  {attendanceStatus.label}
+                </Badge>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6 pt-6">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                    Ngày làm việc
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                    {formatDate(attendanceContext?.workDate || new Date())}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {attendanceContext?.hasShift
+                      ? "Đã có ca làm được gán"
+                      : "Chưa có ca làm hôm nay"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                    Ca làm
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                    {attendanceContext?.hasShift
+                      ? `${formatTime(shiftStart)} - ${formatTime(shiftEnd)}`
+                      : "Chưa gán"}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Tổng thời lượng:{" "}
+                    {formatMinutes(attendanceContext?.totalWorkMinutes || 0)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                    An toàn chấm công
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                    {attendanceContext?.isBlocked ? "Tạm khóa" : "Bình thường"}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {attendanceContext?.security?.requireLocationCheck
+                      ? "Kiểm tra vị trí được bật"
+                      : "Kiểm tra vị trí chưa bật"}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Lịch sử gần nhất
+                  </h3>
+                  <span className="text-xs text-slate-400">
+                    {recentActivities.length} bản ghi
+                  </span>
+                </div>
+
+                {recentActivities.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-6 text-center text-sm text-slate-500">
+                    Chưa có hoạt động nào trong ngày hôm nay.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentActivities.map((record) => {
+                      const isCheckIn = record.actionType === "check_in";
+
+                      return (
+                        <div
+                          key={record.actionId}
+                          className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex h-11 w-11 items-center justify-center rounded-2xl ${isCheckIn ? "bg-sky-50 text-sky-600" : "bg-amber-50 text-amber-600"}`}
+                            >
+                              {isCheckIn ? (
+                                <LogIn className="h-5 w-5" />
+                              ) : (
+                                <LogOut className="h-5 w-5" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900">
+                                {isCheckIn ? "Check-in" : "Check-out"}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                {formatRelativeTime(record.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right text-xs text-slate-500">
+                            <p>
+                              {record.deviceInfo?.device ||
+                                "Thiết bị không xác định"}
+                            </p>
+                            <Badge
+                              variant={
+                                record.status === "SUCCESS"
+                                  ? "success"
+                                  : "danger"
+                              }
+                            >
+                              {record.status === "SUCCESS"
+                                ? "Thành công"
+                                : "Thất bại"}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {roleFlags.canViewOrgOverview && (
+          <div className="space-y-6">
+>>>>>>> Stashed changes
             {loading ? (
               <LoadingCard rows={3} />
             ) : (
@@ -850,9 +1422,13 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             )}
+<<<<<<< Updated upstream
           </PermissionGate>
 
           <PermissionGate permission="ONBOARDING_PROGRESS_READ">
+=======
+
+>>>>>>> Stashed changes
             {loading ? (
               <LoadingCard rows={3} />
             ) : (
@@ -928,9 +1504,13 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             )}
+<<<<<<< Updated upstream
           </PermissionGate>
 
           <PermissionGate permission="DEPARTMENT_READ">
+=======
+
+>>>>>>> Stashed changes
             {loading ? (
               <LoadingCard rows={4} />
             ) : (
@@ -938,14 +1518,26 @@ export default function DashboardPage() {
                 <CardHeader className="border-b border-slate-100 bg-slate-50/60">
                   <CardTitle>Phòng ban nổi bật</CardTitle>
                   <CardDescription>
+<<<<<<< Updated upstream
                     Thứ tự theo quy mô nhân sự, dựa trên cây phòng ban hiện tại.
+=======
+                    {isManagerScoped
+                      ? "Chỉ hiển thị các phòng ban bạn đang quản lý."
+                      : "Thứ tự theo quy mô nhân sự, dựa trên cây phòng ban hiện tại."}
+>>>>>>> Stashed changes
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-4 pt-6">
                   {topDepartments.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-5 text-sm text-slate-500">
+<<<<<<< Updated upstream
                       Chưa có dữ liệu phòng ban.
+=======
+                      {isManagerScoped
+                        ? "Bạn chưa được gán quản lý phòng ban nào."
+                        : "Chưa có dữ liệu phòng ban."}
+>>>>>>> Stashed changes
                     </div>
                   ) : (
                     topDepartments.map((department) => {
@@ -1004,8 +1596,13 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             )}
+<<<<<<< Updated upstream
           </PermissionGate>
         </div>
+=======
+          </div>
+        )}
+>>>>>>> Stashed changes
       </section>
     </div>
   );

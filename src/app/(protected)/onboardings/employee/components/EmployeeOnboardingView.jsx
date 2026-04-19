@@ -20,6 +20,10 @@ import {
 import { onboardingsService } from "@/services";
 import { useToast } from "@/components/common/Toast";
 import { resolveAssetUrl } from "@/lib/utils";
+import {
+  getProgressDisplayMeta,
+  getTaskOverdueMeta,
+} from "@/lib/onboarding-status";
 
 const CATEGORY_CONFIG = {
   Asset: {
@@ -56,7 +60,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
   const [previewUrl, setPreviewUrl] = useState(null);
 
   const [editForm, setEditForm] = useState({
-    status: "",
+    status: "PENDING",
     assetCode: "",
     notes: "",
   });
@@ -85,7 +89,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
       setSelectedFile(null);
       setPreviewUrl(resolveAssetUrl(task.evidencePath));
       setEditForm({
-        status: task.status || "NOT_STARTED",
+        status: task.status || "PENDING",
         assetCode: task.assetCode || "",
         notes: task.notes || "",
       });
@@ -141,6 +145,8 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
   };
 
   if (!onboardingData) return null;
+
+  const progressDisplayMeta = getProgressDisplayMeta(onboardingData);
 
   return (
     <div className="relative min-h-screen bg-[#f8fafc] flex flex-col animate-in fade-in duration-500 font-sans">
@@ -216,10 +222,19 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
           </span>
         </h2>
 
+        {progressDisplayMeta.isOverdue &&
+          onboardingData.overallStatus !== "COMPLETED" && (
+            <div className="mb-6 p-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 font-bold text-sm">
+              Lộ trình onboarding đang quá hạn {progressDisplayMeta.overdueDays}{" "}
+              ngày. Vui lòng ưu tiên hoàn thành các nhiệm vụ còn lại.
+            </div>
+          )}
+
         <div className="space-y-5">
           {onboardingData.taskAssignments?.map((task) => {
             const isExpanded = expandedTaskId === task.id;
             const isSaving = updatingId === task.id;
+            const overdueMeta = getTaskOverdueMeta(task);
             const config = CATEGORY_CONFIG[task.task?.category] || {
               label: "Chung",
               icon: FileText,
@@ -266,18 +281,22 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                   <div className="flex items-center gap-6">
                     <span
                       className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                        task.status === "COMPLETED"
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                          : task.status === "IN_PROGRESS"
-                            ? "bg-amber-50 text-amber-600 border-amber-100"
-                            : "bg-slate-50 text-slate-400 border-slate-100"
+                        overdueMeta.isOverdue
+                          ? "bg-rose-50 text-rose-600 border-rose-100"
+                          : task.status === "COMPLETED"
+                            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                            : task.status === "IN_PROGRESS"
+                              ? "bg-amber-50 text-amber-600 border-amber-100"
+                              : "bg-slate-50 text-slate-400 border-slate-100"
                       }`}
                     >
-                      {task.status === "COMPLETED"
-                        ? "Hoàn thành"
-                        : task.status === "IN_PROGRESS"
-                          ? "Đang làm"
-                          : "Chờ xử lý"}
+                      {overdueMeta.isOverdue
+                        ? `Quá hạn ${overdueMeta.overdueDays} ngày`
+                        : task.status === "COMPLETED"
+                          ? "Hoàn thành"
+                          : task.status === "IN_PROGRESS"
+                            ? "Đang làm"
+                            : "Chờ xử lý"}
                     </span>
                     <div
                       className={`p-2 rounded-full bg-slate-50 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
@@ -297,7 +316,7 @@ export default function EmployeeOnboardingView({ onboardingData, onRefresh }) {
                           </label>
                           <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit">
                             {[
-                              { val: "NOT_STARTED", label: "Chờ xử lý" },
+                              { val: "PENDING", label: "Chờ xử lý" },
                               { val: "IN_PROGRESS", label: "Đang làm" },
                               { val: "COMPLETED", label: "Đã xong" },
                             ].map((s) => (

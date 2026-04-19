@@ -16,7 +16,6 @@ import { Pagination } from "@/components/common/Pagination";
 import {
   Search,
   Edit2,
-  Trash2,
   Eye,
   FileText,
   Calendar,
@@ -63,7 +62,6 @@ export default function ContractTable({
   totalPages,
   onView,
   onEdit,
-  onDelete,
   onTerminate,
 }) {
   // ensure pageSize always 10 regardless of parent
@@ -218,6 +216,7 @@ export default function ContractTable({
                   </Button>
                 </PermissionGate>
               )}
+<<<<<<< Updated upstream
               <PermissionGate permission="CONTRACT_DELETE">
                 <Button
                   size="icon"
@@ -228,12 +227,14 @@ export default function ContractTable({
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </PermissionGate>
+=======
+>>>>>>> Stashed changes
             </div>
           );
         },
       },
     ],
-    [onView, onEdit, onDelete, onTerminate],
+    [onView, onEdit, onTerminate],
   );
 
   const table = useReactTable({

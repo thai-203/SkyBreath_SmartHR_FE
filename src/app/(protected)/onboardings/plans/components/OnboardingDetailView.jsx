@@ -23,13 +23,18 @@ import {
 } from "lucide-react";
 import { onboardingsService } from "@/services";
 import { resolveAssetUrl } from "@/lib/utils";
+<<<<<<< Updated upstream
 import { PermissionGate } from "@/components/common/AuthGuard";
+=======
+import { canManagerEditPlan } from "@/lib/onboarding-status";
+>>>>>>> Stashed changes
 
 export default function OnboardingFinalReview({
   onboardingPlan,
   onClose,
   onConfirm,
   onSuccess,
+  onEdit,
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
@@ -56,6 +61,7 @@ export default function OnboardingFinalReview({
 
   // Kiểm tra trạng thái tổng thể
   const isAlreadyCompleted = onboardingPlan.overallStatus === "COMPLETED";
+  const canEditPlan = canManagerEditPlan(onboardingPlan);
   const progress = onboardingPlan.progressPercentage || 0;
 
   // Có thể chốt nếu không còn tác vụ bắt buộc VÀ chưa được chốt trước đó
@@ -184,11 +190,25 @@ export default function OnboardingFinalReview({
           <span className="text-indigo-600">Đánh giá cuối cùng</span>
         </div>
         <div className="flex items-center gap-3">
+<<<<<<< Updated upstream
           <PermissionGate permission="ONBOARDING_PROGRESS_EXPORT">
             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
               <Printer className="w-4 h-4" /> In bản tóm tắt
             </button>
           </PermissionGate>
+=======
+          {canEditPlan && onEdit && (
+            <button
+              onClick={() => onEdit(onboardingPlan)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+            >
+              Sửa kế hoạch
+            </button>
+          )}
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
+            <Printer className="w-4 h-4" /> In bản tóm tắt
+          </button>
+>>>>>>> Stashed changes
           <button
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-full transition-colors"

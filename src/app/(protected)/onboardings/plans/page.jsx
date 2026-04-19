@@ -6,6 +6,7 @@ import {
   employeesService,
   departmentsService,
 } from "@/services";
+import { getProgressDisplayMeta } from "@/lib/onboarding-status";
 import { useToast } from "@/components/common/Toast";
 import { PermissionGate } from "@/components/common/AuthGuard";
 import {
@@ -54,6 +55,7 @@ export default function OnboardingPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [editingPlan, setEditingPlan] = useState(null);
   const [exportLoading, setExportLoading] = useState(false);
 
   // pagination state handled inside table; server will return full list
@@ -102,9 +104,39 @@ export default function OnboardingPage() {
   };
 
   const handlePlanUpdate = () => {
-    setSelectedPlan(false);
+    setEditingPlan(null);
+    setSelectedPlan(null);
     setRefreshKey((prev) => prev + 1);
     toast.success("Kiểm tra và cập nhật kế hoạch thành công");
+  };
+
+  const handleEditPlan = async (progressItem) => {
+    if (!progressItem?.id || !getProgressDisplayMeta(progressItem).status) {
+      return;
+    }
+
+    try {
+      const planId = progressItem.planId || progressItem.plan?.id;
+      if (!planId) {
+        toast.error("Không tìm thấy dữ liệu kế hoạch để chỉnh sửa");
+        return;
+      }
+
+      const planRes = await onboardingsService.getPlanById(planId);
+      const planData = planRes?.data || {};
+
+      setEditingPlan({
+        ...planData,
+        employee: progressItem.employee,
+        employeeId: progressItem.employeeId,
+        startDate: progressItem.startDate,
+        planId,
+      });
+      setSelectedPlan(null);
+    } catch (err) {
+      console.error("Load edit plan error:", err);
+      toast.error("Không thể mở màn hình chỉnh sửa kế hoạch");
+    }
   };
 
   /* ===================== SAFE DATA ===================== */
@@ -143,20 +175,30 @@ export default function OnboardingPage() {
       {
         id: "NOT_STARTED",
         label: "Chưa bắt đầu",
-        count: safeProgress.filter((p) => p.overallStatus === "NOT_STARTED")
-          .length,
+        count: safeProgress.filter(
+          (p) => getProgressDisplayMeta(p).status === "NOT_STARTED",
+        ).length,
       },
       {
         id: "IN_PROGRESS",
         label: "Đang thực hiện",
-        count: safeProgress.filter((p) => p.overallStatus === "IN_PROGRESS")
-          .length,
+        count: safeProgress.filter(
+          (p) => getProgressDisplayMeta(p).status === "IN_PROGRESS",
+        ).length,
       },
       {
         id: "COMPLETED",
         label: "Đã hoàn thành",
-        count: safeProgress.filter((p) => p.overallStatus === "COMPLETED")
-          .length,
+        count: safeProgress.filter(
+          (p) => getProgressDisplayMeta(p).status === "COMPLETED",
+        ).length,
+      },
+      {
+        id: "OVERDUE",
+        label: "Quá hạn",
+        count: safeProgress.filter(
+          (p) => getProgressDisplayMeta(p).status === "OVERDUE",
+        ).length,
       },
     ],
     [safeProgress],
@@ -168,7 +210,9 @@ export default function OnboardingPage() {
     let result = safeProgress;
 
     if (activeFilter !== "all") {
-      result = result.filter((p) => p.overallStatus === activeFilter);
+      result = result.filter(
+        (p) => getProgressDisplayMeta(p).status === activeFilter,
+      );
     }
 
     if (searchTerm.trim()) {
@@ -302,6 +346,19 @@ export default function OnboardingPage() {
         <OnboardingDetailView
           onboardingPlan={selectedPlan}
           onClose={() => setSelectedPlan(null)}
+          onEdit={handleEditPlan}
+          onSuccess={handlePlanUpdate}
+        />
+      )}
+
+      {editingPlan && (
+        <CreatePlanModal
+          initialData={editingPlan}
+          mode="edit"
+          employees={employees}
+          departments={departments}
+          templates={templates}
+          onClose={() => setEditingPlan(null)}
           onSuccess={handlePlanUpdate}
         />
       )}
