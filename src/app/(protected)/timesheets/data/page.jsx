@@ -276,8 +276,13 @@ export default function DataManagementPage() {
     };
 
     const handleExportDetailed = async () => {
+        if (selectedEmployeeIds.size === 0) {
+            toastError("Vui lòng chọn ít nhất 1 nhân viên để xuất chi tiết");
+            return;
+        }
         try {
-            const blob = await timesheetsService.exportDetailed({ month: filters.month, year: filters.year });
+            const employeeIds = Array.from(selectedEmployeeIds).join(',');
+            const blob = await timesheetsService.exportDetailed({ month: filters.month, year: filters.year, employeeIds });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
@@ -377,11 +382,6 @@ export default function DataManagementPage() {
                                 <RefreshCw className="h-4 w-4" /> Đồng bộ công
                             </Button>
                         </PermissionGate>
-                        <PermissionGate permission="TIMESHEET_UPDATE">
-                            <Button variant="outline" onClick={handleBulkRecalculate} className="gap-2 text-amber-600 border-amber-200">
-                                <RefreshCw className="h-4 w-4" /> Tính lại tất cả
-                            </Button>
-                        </PermissionGate>
                         <PermissionGate permission="TIMESHEET_LOCK">
                             <Button variant="outline" onClick={handleFinalizeMatrix} className="gap-2 text-rose-700 border-rose-200">
                                 <Lock className="h-4 w-4" /> Chốt công
@@ -390,11 +390,6 @@ export default function DataManagementPage() {
                         <PermissionGate permission="TIMESHEET_LOCK">
                             <Button variant="outline" onClick={handleUnfinalizeMatrix} className="gap-2 text-slate-700 border-slate-200">
                                 <Unlock className="h-4 w-4" /> Bỏ chốt công
-                            </Button>
-                        </PermissionGate>
-                        <PermissionGate permission="TIMESHEET_EXPORT">
-                            <Button variant="outline" onClick={handleExportSummary} className="gap-2">
-                                <FileSpreadsheet className="h-4 w-4" /> Xuất tổng hợp
                             </Button>
                         </PermissionGate>
                         <PermissionGate permission="TIMESHEET_EXPORT">
