@@ -105,6 +105,11 @@ export const onboardingsService = {
     return response.data;
   },
 
+  getPersonalProgress: async () => {
+    const response = await api.get(`/onboarding/progress/personal`);
+    return response.data;
+  },
+
   getProgressByDepartment: async (departmentId) => {
     const response = await api.get(
       `/onboarding/progress/department/${departmentId}`,

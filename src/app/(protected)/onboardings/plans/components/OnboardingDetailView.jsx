@@ -5,6 +5,7 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  Pencil,
   X,
   Clock,
   CheckCircle2,
@@ -23,15 +24,23 @@ import {
 } from "lucide-react";
 import { onboardingsService } from "@/services";
 import { resolveAssetUrl } from "@/lib/utils";
+import { canManagerEditPlan } from "@/lib/onboarding-status";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 export default function OnboardingFinalReview({
   onboardingPlan,
   onClose,
   onConfirm,
   onSuccess,
+  onEdit,
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
+
+  const normalizeStatus = (value) =>
+    String(value || "")
+      .trim()
+      .toUpperCase();
 
   // Khóa cuộn trang khi mở modal
   useEffect(() => {
@@ -45,20 +54,43 @@ export default function OnboardingFinalReview({
 
   // Xử lý dữ liệu
   const taskAssignments = onboardingPlan.taskAssignments || [];
-  const pendingTasks = taskAssignments.filter((t) => t.status !== "COMPLETED");
+  const pendingTasks = taskAssignments.filter(
+    (t) => normalizeStatus(t.status) !== "COMPLETED",
+  );
   const mandatoryPendingTasks = pendingTasks.filter(
     (t) => t.task?.isMandatory === true,
   );
   const completedTasks = taskAssignments.filter(
-    (t) => t.status === "COMPLETED",
+    (t) => normalizeStatus(t.status) === "COMPLETED",
   );
+  const totalTasks = taskAssignments.length;
+  const completedTasksCount = completedTasks.length;
 
   // Kiểm tra trạng thái tổng thể
-  const isAlreadyCompleted = onboardingPlan.overallStatus === "COMPLETED";
-  const progress = onboardingPlan.progressPercentage || 0;
+  const isAlreadyCompleted =
+    normalizeStatus(onboardingPlan.overallStatus) === "COMPLETED";
+  const canEditPlan = canManagerEditPlan(onboardingPlan);
+  const progress = Number(onboardingPlan.progressPercentage || 0);
+  const completedFromSummary = Number(onboardingPlan.completedTasksCount || 0);
+  const totalFromSummary = Number(onboardingPlan.totalTasksCount || 0);
 
   // Có thể chốt nếu không còn tác vụ bắt buộc VÀ chưa được chốt trước đó
-  const canFinalize = mandatoryPendingTasks.length === 0 && !isAlreadyCompleted;
+  const allTasksCompleted =
+    totalTasks > 0 && completedTasksCount === totalTasks;
+  const allTasksCompletedFromSummary =
+    totalFromSummary > 0 && completedFromSummary >= totalFromSummary;
+  const isFullyCompleteByProgress = progress >= 100;
+  const canFinalize =
+    !isAlreadyCompleted &&
+    (mandatoryPendingTasks.length === 0 ||
+      allTasksCompleted ||
+      allTasksCompletedFromSummary ||
+      isFullyCompleteByProgress);
+  const finalizeButtonText = isSubmitting
+    ? "Đang xử lý..."
+    : isAlreadyCompleted
+      ? "Đã xác nhận hoàn thành"
+      : "Xác nhận hoàn thành";
 
   const formatUpdatedAt = (dateString) => {
     if (!dateString) return "Chưa có dữ liệu";
@@ -183,9 +215,21 @@ export default function OnboardingFinalReview({
           <span className="text-indigo-600">Đánh giá cuối cùng</span>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
-            <Printer className="w-4 h-4" /> In bản tóm tắt
-          </button>
+          {canEditPlan && typeof onEdit === "function" && (
+            <PermissionGate permission="ONBOARDING_PLAN_UPDATE">
+              <button
+                onClick={() => onEdit(onboardingPlan)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+              >
+                <Pencil className="w-4 h-4" /> Sửa kế hoạch
+              </button>
+            </PermissionGate>
+          )}
+          <PermissionGate permission="ONBOARDING_PROGRESS_EXPORT">
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
+              <Printer className="w-4 h-4" /> In bản tóm tắt
+            </button>
+          </PermissionGate>
           <button
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-full transition-colors"
@@ -259,7 +303,7 @@ export default function OnboardingFinalReview({
               <div className="flex gap-12">
                 <div>
                   <p className="text-2xl font-black text-slate-800">
-                    {completedTasks.length} / {taskAssignments.length}
+                    {completedTasksCount} / {totalTasks}
                   </p>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     Nhiệm vụ xong
@@ -470,10 +514,36 @@ export default function OnboardingFinalReview({
                   : "Vui lòng hoàn thành các nhiệm vụ 'Bắt buộc' trước khi chốt hồ sơ."}
             </p>
           </div>
-          <button
-            disabled={!canFinalize || isSubmitting}
-            onClick={handleUpdate}
-            className={`flex items-center gap-3 px-12 py-5 rounded-[24px] font-black text-lg transition-all 
+          <PermissionGate
+            permission={[
+              "ONBOARDING_PROGRESS_COMPLETE",
+              "ONBOARDING_PROGRESS_UPDATE",
+              "ONBOARDING_PROGRESS_UPDATE_OWN",
+            ]}
+            fallback={
+              <button
+                disabled
+                title={
+                  isAlreadyCompleted
+                    ? "Lộ trình đã hoàn tất"
+                    : "Bạn không có quyền xác nhận hoàn thành"
+                }
+                className={`flex items-center gap-3 px-12 py-5 rounded-[24px] font-black text-lg transition-all cursor-not-allowed ${
+                  isAlreadyCompleted
+                    ? "bg-green-100 text-green-700"
+                    : "bg-slate-200 text-slate-400"
+                }`}
+              >
+                {isAlreadyCompleted
+                  ? "Đã xác nhận hoàn thành"
+                  : "Xác nhận hoàn thành"}
+              </button>
+            }
+          >
+            <button
+              disabled={!canFinalize || isSubmitting}
+              onClick={handleUpdate}
+              className={`flex items-center gap-3 px-12 py-5 rounded-[24px] font-black text-lg transition-all 
     ${
       isAlreadyCompleted
         ? "bg-green-100 text-green-700 cursor-not-allowed"
@@ -481,19 +551,16 @@ export default function OnboardingFinalReview({
           ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100"
           : "bg-slate-200 text-slate-400 cursor-not-allowed"
     }`}
-          >
-            {isSubmitting
-              ? "Đang xử lý..."
-              : isAlreadyCompleted
-                ? "Đã xác nhận hoàn thành"
-                : "Xác nhận hoàn thành"}
+            >
+              {finalizeButtonText}
 
-            {!isAlreadyCompleted && (
-              <CheckCircle2
-                className={`w-6 h-6 ${canFinalize ? "animate-bounce" : ""}`}
-              />
-            )}
-          </button>
+              {!isAlreadyCompleted && (
+                <CheckCircle2
+                  className={`w-6 h-6 ${canFinalize ? "animate-bounce" : ""}`}
+                />
+              )}
+            </button>
+          </PermissionGate>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { Button } from "@/components/common/Button";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { Edit2, Trash2, Layers, Info } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 export default function ShiftGroupTable({
   data,
@@ -97,24 +98,28 @@ export default function ShiftGroupTable({
             >
               <Info size={16} />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              onClick={() => onEdit(row.original)}
-              title="Chỉnh sửa"
-            >
-              <Edit2 size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              onClick={() => onDelete(row.original)}
-              title="Xóa"
-            >
-              <Trash2 size={16} />
-            </Button>
+            <PermissionGate permission="SHIFT_GROUP_UPDATE">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                onClick={() => onEdit(row.original)}
+                title="Chỉnh sửa"
+              >
+                <Edit2 size={16} />
+              </Button>
+            </PermissionGate>
+            <PermissionGate permission="SHIFT_GROUP_DELETE">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                onClick={() => onDelete(row.original)}
+                title="Xóa"
+              >
+                <Trash2 size={16} />
+              </Button>
+            </PermissionGate>
           </div>
         ),
       },

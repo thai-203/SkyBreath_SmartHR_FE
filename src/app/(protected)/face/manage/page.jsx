@@ -4,12 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Camera, ShieldCheck, Users } from "lucide-react";
 import { useToast } from "@/components/common/Toast";
 import { faceService } from "@/services";
-
 import FaceDataTable from "./components/FaceDataTable";
 import FaceDataDetailModal from "./components/FaceDataDetailModal";
 import FaceDataDeleteModal from "./components/FaceDataDeleteModal";
-
-const TOTAL_EMPLOYEES = 12;
 
 // ─── Stat Card ──────────────────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, sub, colorClass }) {

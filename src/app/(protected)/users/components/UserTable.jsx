@@ -18,6 +18,7 @@ import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { Search, Edit2, Trash2, Eye, Lock, LockOpen } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 export default function UserTable({
   data,
@@ -129,49 +130,55 @@ export default function UserTable({
             >
               <Eye className="h-4 w-4 text-slate-500" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(row.original)}
-              title="Chỉnh sửa"
-              disabled={row.original.isCurrentUser}
-              className="h-8 w-8 p-0"
-            >
-              <Edit2 className="h-4 w-4 text-blue-500" />
-            </Button>
-            {row.original.status === "LOCKED" ? (
+            <PermissionGate permission="USER_UPDATE">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onUnlock && onUnlock(row.original)}
-                title="Mở khóa"
+                onClick={() => onEdit(row.original)}
+                title="Chỉnh sửa"
                 disabled={row.original.isCurrentUser}
                 className="h-8 w-8 p-0"
               >
-                <LockOpen className="h-4 w-4 text-green-500" />
+                <Edit2 className="h-4 w-4 text-blue-500" />
               </Button>
-            ) : (
+            </PermissionGate>
+            <PermissionGate permission="USER_LOCK">
+              {row.original.status === "LOCKED" ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onUnlock && onUnlock(row.original)}
+                  title="Mở khóa"
+                  disabled={row.original.isCurrentUser}
+                  className="h-8 w-8 p-0"
+                >
+                  <LockOpen className="h-4 w-4 text-green-500" />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onLock && onLock(row.original)}
+                  title="Khóa tài khoản"
+                  disabled={row.original.isCurrentUser}
+                  className="h-8 w-8 p-0"
+                >
+                  <Lock className="h-4 w-4 text-orange-500" />
+                </Button>
+              )}
+            </PermissionGate>
+            <PermissionGate permission="USER_DELETE">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onLock && onLock(row.original)}
-                title="Khóa tài khoản"
+                onClick={() => onDelete(row.original)}
+                title="Xóa"
                 disabled={row.original.isCurrentUser}
                 className="h-8 w-8 p-0"
               >
-                <Lock className="h-4 w-4 text-orange-500" />
+                <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(row.original)}
-              title="Xóa"
-              disabled={row.original.isCurrentUser}
-              className="h-8 w-8 p-0"
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
+            </PermissionGate>
           </div>
         ),
       },

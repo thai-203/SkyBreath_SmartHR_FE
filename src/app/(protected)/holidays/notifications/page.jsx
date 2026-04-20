@@ -121,8 +121,8 @@ export default function HolidayNotificationPage() {
         setLoading(true);
         try {
             const [deptRes, empRes, holidayRes] = await Promise.all([
-                departmentsService.getChart(),
-                employeesService.getAll({ limit: 1000 }),
+                departmentsService.getChartForHoliday(),
+                employeesService.getAllForPublic({ limit: 1000 }),
                 holidayService.findAll({ limit: 100 })
             ]);
 

@@ -5,27 +5,45 @@ import { X } from "lucide-react";
 import { Button } from "@/components/common/Button";
 
 const fmt = (n) =>
-    new Intl.NumberFormat("vi-VN").format(parseFloat(n || 0));
+    new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Math.round(parseFloat(n || 0)));
 
 export default function PayrollDetailEditModal({ isOpen, onClose, onSubmit, loading, detail }) {
     const [form, setForm] = useState({
         bonus: parseFloat(detail?.bonus || 0),
         deduction: parseFloat(detail?.deduction || 0),
         penalty: parseFloat(detail?.penalty || 0),
+        p1p2Percentage: parseFloat(detail?.kpiPercentage || 0),
         note: detail?.note || "",
     });
 
     if (!isOpen || !detail) return null;
 
-    const netPreview = (
-        parseFloat(detail.baseSalary || 0) +
-        parseFloat(detail.overtimePay || 0) +
-        form.bonus -
-        form.deduction -
-        form.penalty -
-        parseFloat(detail.insuranceDeduction || 0) -
-        parseFloat(detail.taxDeduction || 0)
-    ).toFixed(0);
+    const netPreview = Math.round((() => {
+        const ncChuẩn = parseFloat(detail.standardDays || 26);
+        const ncChínhThức = parseFloat(detail.officialDays || 0);
+        const ncKhác = (parseFloat(detail.benefitLeaveDays) || 0) + (parseFloat(detail.annualLeaveDays) || 0) + (parseFloat(detail.holidayDays) || 0) + (parseFloat(detail.businessTripDays) || 0);
+        const kpi = (form.kpiPercentage || 0) / 100;
+        
+        const p1 = parseFloat(detail.p1Salary || detail.baseSalary || 0);
+        const p21 = parseFloat(detail.p21Salary || 0);
+        const p22 = parseFloat(detail.p22Salary || 0);
+        
+        const lvtThực = ncChuẩn > 0 ? (p1 / ncChuẩn) * (ncChínhThức + ncKhác) : 0;
+        const t21Thực = ncChuẩn > 0 ? (p21 / ncChuẩn) * (ncChínhThức + ncKhác) * kpi : 0;
+        const t22Thực = p22 * kpi;
+        const ltvThực = ncChuẩn > 0 ? (parseFloat(detail.probationSalary || 0) / ncChuẩn) * parseFloat(detail.probationDays || 0) : 0;
+        
+        const totalInc = lvtThực + t21Thực + t22Thực + ltvThực + 
+                        parseFloat(detail.overtimePay || 0) + 
+                        parseFloat(detail.allowanceAmount || 0) + 
+                        form.bonus + 
+                        (parseFloat(detail.adjustmentTaxable || 0) + parseFloat(detail.adjustmentNonTaxable || 0) + parseFloat(detail.otherIncomeNonTaxable || 0));
+        
+        const bhxh = 0.105 * parseFloat(detail.baseSalary || 0) + (parseFloat(detail.insuranceAdjustment || 0) + parseFloat(detail.unionFee || 0) + parseFloat(detail.partyFee || 0));
+        const tax = parseFloat(detail.taxDeduction || 0) + parseFloat(detail.taxAdjustment || 0);
+        
+        return totalInc - bhxh - tax - form.deduction - form.penalty;
+    })());
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -67,6 +85,24 @@ export default function PayrollDetailEditModal({ isOpen, onClose, onSubmit, load
                     </div>
 
                     {/* Editable fields */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-1">
+                            <label className="block text-xs font-medium mb-1 text-indigo-600">KPI / Hiệu quả (P2.1) %</label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="200"
+                                    step="1"
+                                    value={form.kpiPercentage}
+                                    onChange={(e) => setForm({ ...form, kpiPercentage: parseFloat(e.target.value) || 0 })}
+                                    className="w-full border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold text-indigo-700"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">%</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-3 gap-3">
                         {[
                             { key: "bonus", label: "Thưởng (₫)", color: "text-emerald-600" },

@@ -64,7 +64,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
             setRequestTypes(arr.filter(Item => !Item.isDeleted && Item.status === 'ACTIVE'));
         });
         
-        employeesService.getAll({ limit: 500 }).then((res) => {
+        employeesService.getAllForPublic({ limit: 500 }).then((res) => {
             const arr = res?.data?.data || res?.data?.items || res?.items || [];
             setEmployees(arr.filter(Item => !Item.isDeleted));
         }).catch((err) => {

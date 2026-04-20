@@ -9,7 +9,7 @@ import PayslipDetailModal from "./PayslipDetailModal";
  * Premium Payroll Slip Management Table (Phát hành phiếu lương)
  */
 
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(parseFloat(n || 0)));
+const fmt = (n) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(parseFloat(n || 0)));
 
 export default function PayrollSlipTable({ details = [], onSendEmail, onRecalculate, onUpdateDetail }) {
     const [selectedIds, setSelectedIds] = useState(new Set());
@@ -73,7 +73,7 @@ export default function PayrollSlipTable({ details = [], onSendEmail, onRecalcul
     return (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header / Actions bar */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm sticky top-0 z-[100]">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm z-[0]">
                 <div className="flex items-center gap-2 text-slate-800 font-bold">
                     <CheckCircle2 className="h-5 w-5 text-indigo-500" />
                     <span>Kết quả tìm kiếm ({allMatches.length})</span>

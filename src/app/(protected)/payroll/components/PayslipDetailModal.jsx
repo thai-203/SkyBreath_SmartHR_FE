@@ -11,7 +11,7 @@ import { Button } from "@/components/common/Button";
  * - Editable notes (Ghi chú) field.
  */
 
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(parseFloat(n || 0)));
+const fmt = (n) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(parseFloat(n || 0)));
 
 export default function PayslipDetailModal({ 
     detail, 
@@ -40,48 +40,81 @@ export default function PayslipDetailModal({
     const deptName = employee.department?.departmentName || "CTCP CẤP THOÁT NƯỚC SA PA";
 
     // --- Dynamic Sub-totals ---
-    const totalAgreement = (parseFloat(detail.baseSalary) || 0) + (parseFloat(detail.p1Amount) || 0) + (parseFloat(detail.p21Amount) || 0) + (parseFloat(detail.p22Amount) || 0) + (parseFloat(detail.probationAmount) || 0);
-    const totalDays = (parseFloat(detail.officialDays) || 0) + (parseFloat(detail.probationDays) || 0) + (parseFloat(detail.businessTripDays) || 0) + (parseFloat(detail.benefitLeaveDays) || 0) + (parseFloat(detail.annualLeaveDays) || 0) + (parseFloat(detail.holidayDays) || 0);
+    // --- Synchronized 36-Indicator Calculation Logic ---
+    const ncChuẩn = parseFloat(detail.standardDays || 26);
+    const ncChínhThức = parseFloat(detail.officialDays || 0);
+    const ncThửViệc = parseFloat(detail.probationDays || 0);
+    const ncKhác = (parseFloat(detail.benefitLeaveDays) || 0) + (parseFloat(detail.annualLeaveDays) || 0) + (parseFloat(detail.holidayDays) || 0) + (parseFloat(detail.businessTripDays) || 0);
     
-    // 3.1 calculation: (P1 / Standard) * (Official + Holiday + Paid Leave)
-    const paidDays = (parseFloat(detail.officialDays) || 0) + (parseFloat(detail.holidayDays) || 0) + (parseFloat(detail.benefitLeaveDays) || 0) + (parseFloat(detail.annualLeaveDays) || 0);
-    const dailyPay = detail.standardDays > 0 ? (parseFloat(detail.p1Amount) || 0) / parseFloat(detail.standardDays) : 0;
-    const workdaySalary = dailyPay * paidDays;
+    const p1 = parseFloat(detail.p1Salary || detail.baseSalary || 0);
+    const p21 = parseFloat(detail.p21Salary || 0);
+    const p22 = parseFloat(detail.p22Salary || 0);
+    const pProb = parseFloat(detail.probationSalary || 0);
+    const kpi = parseFloat(detail.kpiPercentage || 0) / 100;
 
-    const totalActualEarnings = workdaySalary + (parseFloat(detail.p21Amount) || 0) + (parseFloat(detail.p22Amount) || 0) + (parseFloat(detail.overtimePay) || 0);
-    const totalDeductions = (parseFloat(detail.insuranceDeduction) || 0) + (parseFloat(detail.taxDeduction) || 0) + (parseFloat(detail.penalty) || 0) + (parseFloat(detail.deduction) || 0);
+    // Indicators 31, 32, 33, 34
+    const lvtThực = ncChuẩn > 0 ? (p1 / ncChuẩn) * (ncChínhThức + ncKhác) : 0;
+    const t21Thực = ncChuẩn > 0 ? (p21 / ncChuẩn) * (ncChínhThức + ncKhác) * kpi : 0;
+    const t22Thực = p22 * kpi;
+    const ltvThực = ncChuẩn > 0 ? (pProb / ncChuẩn) * ncThửViệc : 0;
+    
+    // Indicator 36: Tổng lương chính
+    const tongLuongChinh = lvtThực + t21Thực + t22Thực + ltvThực;
+    
+    // Indicator 37, 38, 39: Phụ cấp, OT, Thưởng khác
+    const phụCấp = parseFloat(detail.allowanceAmount || 0);
+    const ot = parseFloat(detail.overtimePay || 0);
+    const thưởngP3 = parseFloat(detail.bonus || 0);
+    const truyThuTínhThuế = parseFloat(detail.adjustmentTaxable || 0);
+    const truyThuKoThuế = parseFloat(detail.adjustmentNonTaxable || 0);
+    const khácKoThuế = parseFloat(detail.otherIncomeNonTaxable || 0);
+
+    // Indicator 40: TỔNG THU NHẬP
+    const totalActualEarnings = tongLuongChinh + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
+
+    // Deductions (Synchronized with indicators 52-65.1)
+    const bhxhNLĐ = 0.105 * parseFloat(detail.baseSalary || 0);
+    const thuếTNCN = parseFloat(detail.taxDeduction || 0);
+    const khấuTrừKhác = parseFloat(detail.penalty || 0) + parseFloat(detail.deduction || 0);
+    const adjustedInsurance = bhxhNLĐ + parseFloat(detail.insuranceAdjustment || 0) + parseFloat(detail.unionFee || 0) + parseFloat(detail.partyFee || 0);
+    const adjustedTax = thuếTNCN + parseFloat(detail.taxAdjustment || 0);
+
+    const totalDeductions = adjustedInsurance + adjustedTax + khấuTrừKhác;
+    const netSalary = totalActualEarnings - totalDeductions;
+
+    const totalAgreement = (parseFloat(detail.baseSalary) || 0) + p1 + p21 + p22 + pProb;
 
     const rows = [
         { stt: "1", label: "Thu nhập thỏa thuận", value: totalAgreement, isHeader: true },
         { stt: "1.1", label: "Lương cơ bản (đóng BHXH)", value: detail.baseSalary, formula: "Hợp đồng" },
-        { stt: "1.2", label: "Lương vị trí (P1)", value: detail.p1Amount, formula: "Phân bổ P1" },
-        { stt: "1.3", label: "Thưởng hiệu quả công việc (P2.1)", value: detail.p21Amount, formula: "Phân bổ P2.1" },
-        { stt: "1.4", label: "Khoán công việc (P2.2)", value: detail.p22Amount, formula: "Phân bổ P2.2" },
-        { stt: "1.5", label: "Lương trong thời gian thử việc", value: detail.probationAmount, formula: "85% Lương" },
+        { stt: "1.2", label: "Lương vị trí (P1)", value: p1, formula: "Hợp đồng" },
+        { stt: "1.3", label: "Thưởng hiệu quả công việc (P2.1)", value: p21, formula: "Hợp đồng" },
+        { stt: "1.4", label: "Khoán công việc (P2.2)", value: p22, formula: "Hợp đồng" },
+        { stt: "1.5", label: "Lương trong thời gian thử việc", value: pProb, formula: "Hợp đồng" },
         
-        { stt: "2", label: "Ngày công", value: totalDays, isHeader: true, isDays: true },
-        { stt: "2.1", label: "Ngày công chuẩn", value: detail.standardDays, formula: "Hệ thống", isDays: true },
-        { stt: "2.2", label: "Ngày công đi làm chính thức", value: detail.officialDays, formula: "Máy chấm công", isDays: true },
-        { stt: "2.3", label: "Ngày công đi làm thử việc", value: detail.probationDays, formula: "Máy chấm công", isDays: true },
-        { stt: "2.4", label: "Ngày công đi công tác", value: detail.businessTripDays, formula: "Đơn từ", isDays: true },
-        { stt: "2.5", label: "Ngày công nghỉ phép", value: (parseFloat(detail.benefitLeaveDays) || 0) + (parseFloat(detail.annualLeaveDays) || 0), formula: "Đơn từ", isDays: true },
-        { stt: "2.6", label: "Ngày công nghỉ lễ", value: detail.holidayDays, formula: "Lịch lễ", isDays: true },
-        { stt: "2.7", label: "Ngày công nghỉ không lương", value: detail.unpaidLeaveDays, formula: "Đơn từ", isDays: true },
+        { stt: "2", label: "Ngày công", value: ncChínhThức + ncThửViệc + ncKhác, isHeader: true, isDays: true },
+        { stt: "2.1", label: "Ngày công chuẩn", value: ncChuẩn, formula: "Hệ thống", isDays: true },
+        { stt: "2.2", label: "Ngày công đi làm chính thức", value: ncChínhThức, formula: "Máy chấm công", isDays: true },
+        { stt: "2.3", label: "Ngày công đi làm thử việc", value: ncThửViệc, formula: "Máy chấm công", isDays: true },
+        { stt: "2.4", label: "Ngày công tính lương khác", value: ncKhác, formula: "Phép/Lễ/Công tác", isDays: true },
         
         { stt: "I", label: "TỔNG THU NHẬP TRONG THÁNG", value: totalActualEarnings, isSummary: true },
         
         { stt: "3", label: "Lương, thưởng thực tế hưởng", value: totalActualEarnings, isHeader: true },
-        { stt: "3.1", label: "Lương theo ngày công", value: workdaySalary, formula: "P1 / Chuẩn * Công" },
-        { stt: "3.2", label: "Thưởng hiệu quả công việc (P2.1)", value: detail.p21Amount, formula: "Đạt KPI" },
-        { stt: "3.3", label: "Khoán công việc (P2.2)", value: detail.p22Amount, formula: "Sản phẩm" },
-        { stt: "3.4", label: "Tiền lương làm thêm giờ (OT)", value: detail.overtimePay, formula: "Bảng OT" },
+        { stt: "3.1", label: "Lương vị trí thực nhận", value: lvtThực, formula: "P1 / Chuẩn * Công" },
+        { stt: "3.2", label: "Thưởng HQCV thực nhận", value: t21Thực, formula: "P2.1 / Chuẩn * Công * KPI" },
+        { stt: "3.3", label: "Khoán công việc thực nhận", value: t22Thực, formula: "P2.2 * KPI" },
+        { stt: "3.4", label: "Lương thử việc thực nhận", value: ltvThực, formula: "Lương TV / Chuẩn * Công" },
+        { stt: "3.5", label: "Tiền lương làm thêm giờ (OT)", value: ot, formula: "Bảng OT" },
+        { stt: "3.6", label: "Phụ cấp & Thưởng khác", value: phụCấp + thưởngP3 + khácKoThuế, formula: "Hợp đồng & Phát sinh" },
+        { stt: "3.7", label: "Truy thu / Truy lĩnh", value: truyThuTínhThuế + truyThuKoThuế, formula: "Điều chỉnh" },
         
         { stt: "4", label: "Các khoản trừ", value: totalDeductions, isHeader: true },
-        { stt: "4.1", label: "Bảo hiểm (Công ty đóng thay NV)", value: detail.insuranceDeduction, formula: "10.5% * Base" },
-        { stt: "4.2", label: "Thuế TNCN (Công ty đóng thay NV)", value: detail.taxDeduction, formula: "Biểu thuế" },
-        { stt: "4.3", label: "Các khoản trừ khác (Phạt/Deduction)", value: (parseFloat(detail.penalty) || 0) + (parseFloat(detail.deduction) || 0), formula: "Phát sinh" },
+        { stt: "4.1", label: "Bảo hiểm & Phí (Công đoàn/Đảng)", value: adjustedInsurance, formula: "10.5% + Phí" },
+        { stt: "4.2", label: "Thuế TNCN & Điều chỉnh thuế", value: adjustedTax, formula: "Biểu thuế" },
+        { stt: "4.3", label: "Khấu trừ & Phạt", value: khấuTrừKhác, formula: "Phát sinh" },
         
-        { stt: "NET", label: "THỰC LĨNH (Hợp đồng Net)", value: totalActualEarnings - (parseFloat(detail.penalty) || 0) - (parseFloat(detail.deduction) || 0), isSummary: true, color: "bg-emerald-600 shadow-xl shadow-emerald-100" },
+        { stt: "NET", label: "THỰC LĨNH (NET)", value: netSalary, isSummary: true, color: "bg-emerald-600 shadow-xl shadow-emerald-100" },
     ];
 
     return (

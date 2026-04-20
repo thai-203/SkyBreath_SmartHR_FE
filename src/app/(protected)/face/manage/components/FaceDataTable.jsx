@@ -13,6 +13,7 @@ import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
 import { Search, Eye, Trash2, User, Clock } from "lucide-react";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
 function getInitials(name = "") {
@@ -88,7 +89,7 @@ export default function FaceDataTable({
           <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-xs font-medium text-indigo-600 overflow-hidden">
             {row.original.avatar ? (
               <img
-                src={`http://localhost:3000/${row.original.avatar}`}
+                src={row.original.avatar}
                 alt={row.original.fullName}
                 className="h-full w-full object-cover"
                 onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
@@ -153,14 +154,16 @@ export default function FaceDataTable({
             >
               <Eye className="h-4 w-4 text-slate-500" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDeleteEmployee(row.original)}
-              title="Xoá toàn bộ"
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
+            <PermissionGate permission="ATTENDANCE_FACE_DATA_DELETE">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDeleteEmployee(row.original)}
+                title="Xoá toàn bộ"
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </PermissionGate>
           </div>
         ),
       },

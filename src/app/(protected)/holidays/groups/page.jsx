@@ -15,6 +15,7 @@ import { PageTitle } from "@/components/common/PageTitle";
 import { Button } from "@/components/common/Button";
 import { Card } from "@/components/common/Card";
 import { useToast } from "@/components/common/Toast";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import { holidayConfigService, holidayService } from "@/services";
 import { HolidayGroupModal } from "../components/HolidayGroupModal";
 import { HolidayModal } from "../components/HolidayModal";
@@ -182,10 +183,12 @@ export default function HolidayGroupsPage() {
               <p className="text-sm text-slate-500 mt-0.5">Quản lý và thiết lập các nhóm ngày lễ theo năm.</p>
             </div>
           </div>
-          <Button onClick={() => handleOpenGroupModal()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm nhóm mới
-          </Button>
+          <PermissionGate permission="HOLIDAY_GROUP_CREATE">
+            <Button onClick={() => handleOpenGroupModal()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm nhóm mới
+            </Button>
+          </PermissionGate>
         </div>
 
         <div className="overflow-hidden">

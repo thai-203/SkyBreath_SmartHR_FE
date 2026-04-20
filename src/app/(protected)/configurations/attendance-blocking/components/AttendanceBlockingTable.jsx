@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { PermissionGate } from "@/components/common/AuthGuard";
 
 export const ERROR_TYPE_LABELS = {
   FACE: "Sai khuôn mặt",
@@ -68,28 +69,34 @@ export function AttendanceBlockingTable({ rules, onToggle, onEdit, onDelete }) {
               {formatDuration(rule?.blockDurationMinutes)}
             </TableCell>
             <TableCell className="text-center">
-              <Switch
-                checked={rule?.isActive}
-                onCheckedChange={(checked) => onToggle(rule?.id, checked)}
-              />
+              <PermissionGate permission="ATTENDANCE_BLOCKING_CONFIG_STATUS_CHANGE" fallback={<Switch disabled checked={rule?.isActive} />}>
+                <Switch
+                  checked={rule?.isActive}
+                  onCheckedChange={(checked) => onToggle(rule?.id, checked)}
+                />
+              </PermissionGate>
             </TableCell>
             <TableCell className="pr-6 text-right">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEdit(rule)}
-                className="gap-1.5 text-muted-foreground hover:text-foreground"
-              >
-                <Pencil className="h-4 w-4 text-blue-500" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(rule?.id)}
-                className="gap-1.5 text-muted-foreground hover:text-foreground"
-              >
-                <Trash2 className="h-4 w-4 text-red-500" />
-              </Button>
+              <PermissionGate permission="ATTENDANCE_BLOCKING_CONFIG_UPDATE">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit(rule)}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="h-4 w-4 text-blue-500" />
+                </Button>
+              </PermissionGate>
+              <PermissionGate permission="ATTENDANCE_BLOCKING_CONFIG_DELETE">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(rule?.id)}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </PermissionGate>
             </TableCell>
           </TableRow>
         ))}

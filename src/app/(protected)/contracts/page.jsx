@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
+import { PermissionGate } from "@/components/common/AuthGuard";
 import {
   contractsService,
   employeesService,
@@ -202,7 +202,7 @@ export default function ContractsPage() {
 
   const fetchDepartmentList = async () => {
     try {
-      const response = await departmentsService.getAll();
+      const response = await departmentsService.getList();
       const departments = Array.isArray(response.data) ? response.data : [];
       const mappedData = departments.map((dept) => ({
         value: dept.id,
@@ -644,18 +644,22 @@ export default function ContractsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleExport}
-            loading={exportLoading}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Xuất Excel
-          </Button>
-          <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Tạo hợp đồng
-          </Button>
+          <PermissionGate permission="CONTRACT_EXPORT">
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              loading={exportLoading}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Xuất Excel
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission="CONTRACT_CREATE">
+            <Button onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Tạo hợp đồng
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 

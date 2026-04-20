@@ -5,11 +5,13 @@ export const metadata = {
     title: "Dashboard",
 };
 
-export default function Layout({ children }) {
+export default function Layout({ children  }) {
     return (
-        <AdminLayout>
-            {children}
+        <>
+            <AdminLayout>
+                {children}
+            </AdminLayout>
             <AssistantChatbot />
-        </AdminLayout>
+        </>
     );
 }

@@ -88,7 +88,7 @@ export default function PermissionTable({
                 </div>
             </div>
 
-            <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-x-auto">
                 <Table>
                     <TableHeader className="bg-gray-50/50">
                         <TableRow className="hover:bg-transparent border-gray-100">
