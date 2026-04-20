@@ -16,6 +16,7 @@ export default function EmployeeOnboardingPage() {
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
+      setError(null);
 
       const userRes = await authService.getCurrentEmployeeByUserId();
       setEmployeeInfo(userRes);

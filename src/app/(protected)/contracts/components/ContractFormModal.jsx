@@ -41,6 +41,8 @@ export default function ContractFormModal({
   positionsList = [],
   departmentsList = [],
   loading,
+  importing = false,
+  onImportFile,
   mode = "create",
   selectedContract = null,
 }) {
@@ -48,8 +50,14 @@ export default function ContractFormModal({
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [errors, setErrors] = useState({});
+  const [importState, setImportState] = useState({
+    fileName: "",
+    warnings: [],
+    employeeName: "",
+  });
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
+  const importInputRef = useRef(null);
 
   const contractTypeLabels = {
     probation: "Hợp đồng thử việc",
@@ -116,6 +124,8 @@ export default function ContractFormModal({
       otherAllowance: "",
       note: "",
       attachments: [],
+      employeeDisplayName: "",
+      importSource: "",
     });
     setSearchTerm("");
     setErrors({});
@@ -134,13 +144,14 @@ export default function ContractFormModal({
         const currentEmp = employeeList.find(
           (e) => String(e.value) === String(formData.employeeId),
         );
-        setSearchTerm(currentEmp ? currentEmp.label : "");
+        setSearchTerm(formData.employeeDisplayName || currentEmp?.label || "");
       }
 
       setActiveTab("general");
     } else {
       setErrors({});
       setSearchTerm("");
+      setImportState({ fileName: "", warnings: [], employeeName: "" });
     }
   }, [isOpen, formData.employeeId, employeeList, mode, selectedContract]);
 
@@ -228,6 +239,8 @@ export default function ContractFormModal({
     onFormChange({
       ...formData,
       employeeId: emp.value,
+      employeeDisplayName: emp.label,
+      importSource: "",
       departmentId,
       positionId,
       jobGradeId,
@@ -248,6 +261,83 @@ export default function ContractFormModal({
     const files = Array.from(e.target.files);
     const currentFiles = formData.attachments || [];
     onFormChange({ ...formData, attachments: [...currentFiles, ...files] });
+  };
+
+  const handleImportChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || typeof onImportFile !== "function") {
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      const draft = await onImportFile(file);
+      if (!draft) return;
+
+      const toStringValue = (value, fallback = "") =>
+        value === undefined || value === null || value === ""
+          ? fallback
+          : String(value);
+
+      const nextData = {
+        ...formData,
+        employeeId: toStringValue(draft.employeeId),
+        employeeDisplayName:
+          draft.employeeName ||
+          draft.employeeCode ||
+          formData.employeeDisplayName ||
+          "",
+        importSource: "file",
+        contractNumber: toStringValue(draft.contractNumber),
+        contractType: draft.contractType || "fixed_term",
+        signedDate: toStringValue(draft.signedDate),
+        startDate: toStringValue(draft.startDate),
+        endDate: toStringValue(draft.endDate),
+        workingHours: toStringValue(draft.workingHours, "40"),
+        departmentId: toStringValue(draft.departmentId),
+        positionId: toStringValue(draft.positionId),
+        jobGradeId: toStringValue(draft.jobGradeId),
+        baseSalary: toStringValue(draft.baseSalary),
+        performanceSalary: toStringValue(draft.performanceSalary),
+        lunchAllowance: toStringValue(draft.lunchAllowance),
+        fuelAllowance: toStringValue(draft.fuelAllowance),
+        phoneAllowance: toStringValue(draft.phoneAllowance),
+        otherAllowance: toStringValue(draft.otherAllowance),
+        note: draft.note || "",
+      };
+
+      if (nextData.contractType === "permanent") {
+        nextData.endDate = "";
+      }
+      if (nextData.contractType === "probation" && nextData.startDate) {
+        nextData.endDate = calculateProbationEndDate(nextData.startDate);
+      }
+
+      onFormChange(nextData);
+      setSearchTerm(draft.employeeName || draft.employeeCode || "");
+      setImportState({
+        fileName: draft.sourceFileName || file.name,
+        warnings: Array.isArray(draft.warnings) ? draft.warnings : [],
+        employeeName: draft.employeeName || draft.employeeCode || "",
+      });
+      setActiveTab("general");
+      setErrors({});
+    } catch (error) {
+      setImportState({
+        fileName: file.name,
+        warnings: [],
+        employeeName: "",
+      });
+      setErrors((prev) => ({
+        ...prev,
+        import:
+          error.response?.data?.message ||
+          error.message ||
+          "Không thể import file",
+      }));
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const removeFile = (index) => {
@@ -384,6 +474,74 @@ export default function ContractFormModal({
 
         {/* Form Content */}
         <div className="flex-1 min-h-[480px] pr-2">
+          {mode === "create" && (
+            <div className="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-indigo-900">
+                    Import hợp đồng từ file
+                  </div>
+                  <div className="text-xs text-indigo-700/80 mt-1">
+                    Hỗ trợ ảnh, PDF, .docx và .doc theo cơ chế trích xuất
+                    best-effort.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.webp,.pdf,.doc,.docx,.txt"
+                    className="hidden"
+                    onChange={handleImportChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => importInputRef.current?.click()}
+                    disabled={importing || loading}
+                    loading={importing}
+                    className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Chọn file để import
+                  </Button>
+                </div>
+              </div>
+
+              {(importState.fileName || errors.import) && (
+                <div className="mt-3 space-y-2 rounded-xl bg-white/70 border border-indigo-100 p-3 text-xs text-slate-600">
+                  {importState.fileName && (
+                    <div>
+                      File đã xử lý:{" "}
+                      <span className="font-semibold">
+                        {importState.fileName}
+                      </span>
+                    </div>
+                  )}
+                  {importState.employeeName && (
+                    <div>
+                      Nhân viên gợi ý:{" "}
+                      <span className="font-semibold">
+                        {importState.employeeName}
+                      </span>
+                    </div>
+                  )}
+                  {Array.isArray(importState.warnings) &&
+                    importState.warnings.length > 0 && (
+                      <ul className="space-y-1 text-amber-700">
+                        {importState.warnings.map((warning, index) => (
+                          <li key={`${warning}-${index}`}>• {warning}</li>
+                        ))}
+                      </ul>
+                    )}
+                  {errors.import && (
+                    <div className="text-red-600">{errors.import}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "general" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
               <div
@@ -403,7 +561,9 @@ export default function ContractFormModal({
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       setIsDropdownOpen(true);
-                      if (!e.target.value) resetFormData();
+                      if (!e.target.value) {
+                        resetFormData();
+                      }
                     }}
                     onFocus={() => setIsDropdownOpen(true)}
                     className={`w-full rounded-lg border pl-10 pr-10 py-2 text-sm outline-none transition-all ${
