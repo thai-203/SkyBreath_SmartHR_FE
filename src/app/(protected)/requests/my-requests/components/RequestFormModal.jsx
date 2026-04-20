@@ -494,15 +494,6 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                             {/* Thời gian: Từ giờ, Từ ngày, Đến giờ, Đến ngày */}
                             <div className="grid grid-cols-4 gap-3">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-600 mb-1">Từ giờ</label>
-                                    <input
-                                        type="time"
-                                        value={form.startTime}
-                                        onChange={(e) => setForm((p) => ({ ...p, startTime: e.target.value }))}
-                                        className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    />
-                                </div>
-                                <div>
                                     <label className="block text-xs font-medium text-slate-600 mb-1">
                                         Từ ngày <span className="text-red-500">*</span>
                                     </label>
@@ -515,15 +506,6 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                                     {errors.startDate && <p className="text-xs text-red-500 mt-1">{errors.startDate}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-600 mb-1">Đến giờ</label>
-                                    <input
-                                        type="time"
-                                        value={form.endTime}
-                                        onChange={(e) => setForm((p) => ({ ...p, endTime: e.target.value }))}
-                                        className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    />
-                                </div>
-                                <div>
                                     <label className="block text-xs font-medium text-slate-600 mb-1">
                                         Đến ngày <span className="text-red-500">*</span>
                                     </label>
@@ -534,6 +516,24 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                                         className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                                     />
                                     {errors.endDate && <p className="text-xs text-red-500 mt-1">{errors.endDate}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Từ giờ</label>
+                                    <input
+                                        type="time"
+                                        value={form.startTime}
+                                        onChange={(e) => setForm((p) => ({ ...p, startTime: e.target.value }))}
+                                        className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Đến giờ</label>
+                                    <input
+                                        type="time"
+                                        value={form.endTime}
+                                        onChange={(e) => setForm((p) => ({ ...p, endTime: e.target.value }))}
+                                        className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    />
                                 </div>
                             </div>
 
