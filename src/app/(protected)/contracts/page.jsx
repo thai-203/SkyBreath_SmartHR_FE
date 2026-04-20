@@ -611,7 +611,11 @@ export default function ContractsPage() {
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const blob = await contractsService.export();
+      const blob = await contractsService.export({
+        search: search || undefined,
+        contractType: filterType || undefined,
+        contractStatus: filterStatus || undefined,
+      });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

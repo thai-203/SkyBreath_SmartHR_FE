@@ -41,8 +41,9 @@ export const contractsService = {
     return response.data;
   },
 
-  export: async () => {
+  export: async (params = {}) => {
     const response = await api.get("/contracts/export", {
+      params,
       responseType: "blob",
     });
     return response.data;
