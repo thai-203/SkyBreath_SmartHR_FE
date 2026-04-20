@@ -48,6 +48,8 @@ const initialFormData = {
   // Thông tin khác
   note: "",
   attachments: [],
+  employeeDisplayName: "",
+  importSource: "",
 };
 
 const initialTerminationData = {
@@ -77,6 +79,7 @@ export default function ContractsPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
   // Form state
@@ -251,6 +254,8 @@ export default function ContractsPage() {
 
   useEffect(() => {
     if (isCreateOpen || isEditOpen) {
+      if (formData.importSource === "file") return;
+
       if (formData.employeeId) {
         fetchEmployeeDetailById(formData.employeeId);
         fetchSalaryByEmployeeId(formData.employeeId);
@@ -274,6 +279,20 @@ export default function ContractsPage() {
     setFormData({ ...initialFormData });
     setErrors({});
     setIsCreateOpen(true);
+  };
+
+  const handleImportContractFile = async (file) => {
+    if (!file) return null;
+
+    setImportLoading(true);
+    try {
+      const payload = new FormData();
+      payload.append("file", file);
+      const response = await contractsService.importFromFile(payload);
+      return response.data || null;
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   const handleView = (contract) => {
@@ -323,6 +342,9 @@ export default function ContractsPage() {
     setFormData({
       ...initialFormData,
       employeeId: contract.employeeId?.toString(),
+      employeeDisplayName:
+        contract.employee?.fullName || contract.employeeName || "",
+      importSource: "",
       contractNumber: contract.contractNumber,
       contractType: contract.contractType,
       departmentId: contract.departmentId,
@@ -589,7 +611,11 @@ export default function ContractsPage() {
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const blob = await contractsService.export();
+      const blob = await contractsService.export({
+        search: search || undefined,
+        contractType: filterType || undefined,
+        contractStatus: filterStatus || undefined,
+      });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -695,6 +721,8 @@ export default function ContractsPage() {
         positionsList={positionsList}
         departmentsList={departmentsList}
         loading={formLoading}
+        importing={importLoading}
+        onImportFile={handleImportContractFile}
         mode="create"
       />
 
