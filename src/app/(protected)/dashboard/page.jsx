@@ -691,7 +691,7 @@ export default function DashboardPage() {
       ].filter(Boolean),
     [
       approvalsAvailable,
-      departmentsFlat.length,
+      visibleDepartments.length,
       employeesTotal,
       onboardingStats.growthRate,
       onboardingStats.inProgress,
