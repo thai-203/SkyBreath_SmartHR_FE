@@ -154,6 +154,25 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                             timesheets.map((ts, idx) => {
                                 const detail = payrollDetails.find(d => d.employeeId === ts.id);
                                 const hourlyRate = (detail?.baseSalary || 0) / (ts.standardDays || 26) / 8;
+                                
+                                // Calculate OT values for immediate feedback
+                                const currentTotalHours = 
+                                   Number(ts.otWeekday || 0) + 
+                                   Number(ts.otWeekdayNight || 0) + 
+                                   Number(ts.otWeekend || 0) + 
+                                   Number(ts.otWeekendNight || 0) + 
+                                   Number(ts.otHoliday || 0) + 
+                                   Number(ts.otHolidayNight || 0);
+
+                                const currentOtPay = (
+                                   (Number(ts.otWeekday || 0) * 1.5) +
+                                   (Number(ts.otWeekdayNight || 0) * 2.1) +
+                                   (Number(ts.otWeekend || 0) * 2.0) +
+                                   (Number(ts.otWeekendNight || 0) * 2.7) +
+                                   (Number(ts.otHoliday || 0) * 3.0) +
+                                   (Number(ts.otHolidayNight || 0) * 3.9)
+                                ) * hourlyRate;
+
                                 return (
                                     <tr key={ts.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="px-2 py-3 text-center text-slate-400 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/50 z-[5]">{idx + 1}</td>
@@ -166,6 +185,7 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                             {isEditing ? (
                                                 <input 
                                                     type="number" 
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekday || 0}
                                                     onChange={(e) => onChange(ts.id, 'otWeekday', e.target.value)}
@@ -178,6 +198,7 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                             {isEditing ? (
                                                 <input 
                                                     type="number" 
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekdayNight || 0}
                                                     onChange={(e) => onChange(ts.id, 'otWeekdayNight', e.target.value)}
@@ -190,6 +211,7 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                             {isEditing ? (
                                                 <input 
                                                     type="number" 
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekend || 0}
                                                     onChange={(e) => onChange(ts.id, 'otWeekend', e.target.value)}
@@ -202,6 +224,7 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                             {isEditing ? (
                                                 <input 
                                                     type="number" 
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekendNight || 0}
                                                     onChange={(e) => onChange(ts.id, 'otWeekendNight', e.target.value)}
@@ -214,6 +237,7 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                             {isEditing ? (
                                                 <input 
                                                     type="number" 
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otHoliday || 0}
                                                     onChange={(e) => onChange(ts.id, 'otHoliday', e.target.value)}
@@ -226,6 +250,7 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                             {isEditing ? (
                                                 <input 
                                                     type="number" 
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otHolidayNight || 0}
                                                     onChange={(e) => onChange(ts.id, 'otHolidayNight', e.target.value)}
@@ -235,8 +260,8 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                         <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-300">3.9</td>
 
                                         <td className="px-2 py-3 text-right border-r border-slate-50 text-slate-500 font-medium">{fmt(hourlyRate)}</td>
-                                        <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600">{ts.totalOtHours || 0}</td>
-                                        <td className="px-3 py-3 text-right font-bold text-emerald-600 bg-emerald-50/30 whitespace-nowrap">{fmt(detail?.overtimePay || 0)}</td>
+                                        <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600">{currentTotalHours || 0}</td>
+                                        <td className="px-3 py-3 text-right font-bold text-emerald-600 bg-emerald-50/30 whitespace-nowrap">{fmt(currentOtPay || 0)}</td>
                                     </tr>
                                 );
                             })
@@ -388,8 +413,8 @@ const PayrollDetailView = React.memo(({
                     // Editable fields
                     performanceSalary: detail?.performanceSalary ?? (ts.performanceSalary || 0),
                     p1p2Percentage: detail?.p1p2Percentage ?? 100,
-                    p3Percentage: detail?.p3Percentage ?? 100,
-                    bonus: detail?.bonus ?? 0,
+                    p3Percentage: detail?.p1p2Percentage ?? 100,
+                    bonus: detail?.performanceSalary ?? (ts.performanceSalary || 0),
                     allowanceAmount: detail?.allowanceAmount ?? 0,
                     penalty: detail?.penalty ?? 0,
                     deduction: detail?.deduction ?? 0,
@@ -406,9 +431,27 @@ const PayrollDetailView = React.memo(({
     }, [timesheetData, payroll?.details]);
 
     const handleInputRowChange = (id, field, value) => {
-        setInputRows(prev => prev.map(row => 
-            row.id === id ? { ...row, [field]: value } : row
-        ));
+        // Validation: Prevent negative values for numeric fields
+        const isNumeric = !isNaN(parseFloat(value)) && isFinite(value);
+        if (isNumeric && parseFloat(value) < 0) {
+            toast.error("Vui lòng nhập giá trị dương (>= 0)");
+            return;
+        }
+
+        setInputRows(prev => prev.map(row => {
+            if (row.id === id) {
+                const newRow = { ...row, [field]: value };
+                // Sync P3 amount with KPI base (P2) and P3 percentage with KPI percentage (P2.1)
+                if (field === 'performanceSalary') {
+                    newRow.bonus = value;
+                }
+                if (field === 'p1p2Percentage') {
+                    newRow.p3Percentage = value;
+                }
+                return newRow;
+            }
+            return row;
+        }));
     };
 
     const handleExportExcel = () => {
@@ -514,6 +557,13 @@ const PayrollDetailView = React.memo(({
     };
 
     const handleTimesheetChange = (id, field, value) => {
+        // Validation: Prevent negative values for numeric fields
+        const isNumeric = !isNaN(parseFloat(value)) && isFinite(value);
+        if (isNumeric && parseFloat(value) < 0) {
+            toast.error("Vui lòng nhập giá trị dương (>= 0)");
+            return;
+        }
+
         setTimesheetData(prev => prev.map(item =>
             item.id === id ? { ...item, [field]: value } : item
         ));
@@ -1332,6 +1382,7 @@ const PayrollDetailView = React.memo(({
                                                                             {isEditingData ? (
                                                                                 <input
                                                                                     type="number"
+                                                                                    min={0}
                                                                                     className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-center focus:ring-1 focus:ring-indigo-500 outline-none"
                                                                                     value={item.standardDays || 26}
                                                                                     onChange={(e) => handleTimesheetChange(item.id, 'standardDays', e.target.value)}
@@ -1350,6 +1401,7 @@ const PayrollDetailView = React.memo(({
                                                                             {isEditingData ? (
                                                                                 <input
                                                                                     type="number"
+                                                                                    min={0}
                                                                                     className="w-16 px-1 py-0.5 border border-emerald-300 rounded text-center focus:ring-1 focus:ring-emerald-500 outline-none"
                                                                                     value={item.officialDays || 0}
                                                                                     onChange={(e) => handleTimesheetChange(item.id, 'officialDays', e.target.value)}
@@ -1362,6 +1414,7 @@ const PayrollDetailView = React.memo(({
                                                                             {isEditingData ? (
                                                                                 <input
                                                                                     type="number"
+                                                                                    min={0}
                                                                                     className="w-16 px-1 py-0.5 border border-slate-300 rounded text-center focus:ring-1 focus:ring-indigo-500 outline-none"
                                                                                     value={item.probationDays || 0}
                                                                                     onChange={(e) => handleTimesheetChange(item.id, 'probationDays', e.target.value)}
@@ -1586,6 +1639,7 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 focus:ring-2 focus:ring-amber-500 outline-none"
                                                             value={row.performanceSalary ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'performanceSalary', e.target.value)}
@@ -1594,32 +1648,33 @@ const PayrollDetailView = React.memo(({
                                                     <td className="px-3 py-2 bg-indigo-50/20">
                                                         <input
                                                             type="number"
+                                                            min={0}
                                                             className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
                                                             value={row.p1p2Percentage ?? 100}
                                                             onChange={(e) => handleInputRowChange(row.id, 'p1p2Percentage', e.target.value)}
                                                         />
                                                     </td>
-                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                    <td className="px-3 py-2 bg-slate-50/50">
                                                         <input
                                                             type="number"
-                                                            className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                            value={row.p3Percentage ?? 100}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'p3Percentage', e.target.value)}
+                                                            disabled
+                                                            className="w-full bg-slate-100/50 border border-slate-200 rounded text-center py-1 font-bold text-slate-400 outline-none cursor-not-allowed"
+                                                            value={row.p1p2Percentage ?? 100}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-slate-50/50">
+                                                        <input
+                                                            type="number"
+                                                            disabled
+                                                            className="w-full bg-slate-100/50 border border-slate-200 rounded text-right py-1 px-2 font-bold text-slate-400 outline-none cursor-not-allowed"
+                                                            value={row.performanceSalary ?? 0}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-emerald-50/20">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            className="w-full bg-white border border-emerald-200 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
-                                                            value={row.bonus ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'bonus', e.target.value)}
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-2 bg-emerald-50/20">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-emerald-200 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
                                                             value={row.allowanceAmount ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'allowanceAmount', e.target.value)}
@@ -1629,6 +1684,7 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-600 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.penalty ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'penalty', e.target.value)}
@@ -1638,6 +1694,7 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-600 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.deduction ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'deduction', e.target.value)}
@@ -1647,6 +1704,7 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.socialInsurancePercentage ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'socialInsurancePercentage', e.target.value)}
@@ -1656,6 +1714,7 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.healthInsurancePercentage ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'healthInsurancePercentage', e.target.value)}
@@ -1665,6 +1724,7 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.unemploymentInsurancePercentage ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'unemploymentInsurancePercentage', e.target.value)}
@@ -1674,6 +1734,7 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.unionFeePercentage ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'unionFeePercentage', e.target.value)}
@@ -1683,6 +1744,7 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-300 rounded text-right py-1 px-2 font-black text-rose-950 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.taxDeduction ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'taxDeduction', e.target.value)}

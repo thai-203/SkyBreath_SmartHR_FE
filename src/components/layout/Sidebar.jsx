@@ -142,17 +142,12 @@ const menuItems = [
     title: "Bảng lương",
     icon: DollarSign,
     href: "/payroll",
-    permissions: ["PAYROLL_READ", "PAYROLL_TYPE_READ"],
+    permissions: ["PAYROLL_READ"],
     children: [
       {
         title: "Bảng lương tháng",
         href: "/payroll",
         permissions: ["PAYROLL_READ"],
-      },
-      {
-        title: "Loại bảng lương",
-        href: "/payroll/types",
-        permissions: ["PAYROLL_TYPE_READ"],
       },
     ],
   },

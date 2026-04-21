@@ -1,24 +1,24 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/common/Button";
 import { PermissionGate } from "@/components/common/AuthGuard";
-import { Select } from "@/components/common/Select";
-import { ConfirmModal } from "@/components/common/Modal";
+import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
+import { ConfirmModal } from "@/components/common/Modal";
 import { Pagination } from "@/components/common/Pagination";
+import { Select } from "@/components/common/Select";
 import { useToast } from "@/components/common/Toast";
-import { timesheetsService } from "@/services/timesheets.service";
+import { authService } from "@/services/auth.service";
 import { departmentsService } from "@/services/departments.service";
 import { employeesService } from "@/services/employees.service";
-import { authService } from "@/services/auth.service";
-import CalendarView from "../components/CalendarView";
+import { timesheetsService } from "@/services/timesheets.service";
+import { Download, Eye, FileSpreadsheet, LayoutGrid, Lock, RefreshCw, Search, Unlock } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import AttendanceDetailModal from "../components/AttendanceDetailModal";
+import CalendarView from "../components/CalendarView";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
-import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
-import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search, Eye, Lock, Unlock } from "lucide-react";
 import ProcessedRecordEditModal from "../components/ProcessedRecordEditModal";
+import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
 
 const currentDate = new Date();
 

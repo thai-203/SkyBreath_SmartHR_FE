@@ -47,7 +47,7 @@ export default function SalaryDetailTable({
                     <thead className="bg-[#f8fafc] text-slate-700 uppercase z-0 border-b border-slate-200">
                         {/* Group Headers */}
                         <tr className="border-b border-slate-300 bg-slate-100/50">
-                            <th colSpan={3} className="bg-slate-100 z-40 border-r border-slate-300 py-4">Thông tin nhân sự</th>
+                            <th colSpan={3} className="sticky left-0 bg-slate-100 z-[60] border-r border-slate-300 py-4 shadow-sm">Thông tin nhân sự</th>
                             <th colSpan={5} className="bg-amber-50 border-r border-slate-300">I. Định mức Hợp đồng & Công (1-5)</th>
                             <th colSpan={4} className="bg-slate-50 border-r border-slate-300">II. Dữ liệu công chốt (6-9)</th>
                             <th colSpan={6} className="bg-blue-50 border-r border-slate-300">III. Thu nhập thực nhận (10-15)</th>
@@ -61,9 +61,9 @@ export default function SalaryDetailTable({
                         
                         {/* Column Names (36 Indicators) */}
                         <tr className="bg-white text-slate-600 divide-x divide-slate-200 shadow-sm">
-                            <th className="w-[45px] text-center">STT</th>
-                            <th className="w-[100px] text-center">Mã NV</th>
-                            <th className="w-[200px] text-left px-4">Họ tên</th>
+                            <th className="sticky left-0 bg-white z-[60] w-[45px] text-center border-r border-slate-100">STT</th>
+                            <th className="sticky left-[45px] bg-white z-[60] w-[100px] text-center border-r border-slate-100">Mã NV</th>
+                            <th className="sticky left-[145px] bg-white z-[60] w-[200px] text-left px-4 border-r border-slate-200 shadow-[2px_0_10px_rgba(0,0,0,0.02)]">Họ tên</th>
                             
                             {/* Group I */}
                             <th className="w-[150px] bg-amber-50/30">Lương đóng BHXH (1.1)</th>
