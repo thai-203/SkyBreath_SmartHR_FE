@@ -5,6 +5,7 @@ import { authService } from "@/services/auth.service";
 import { payrollService } from "@/services/payroll.service";
 import { timesheetsService } from "@/services/timesheets.service";
 import { employeesService } from "@/services/employees.service";
+import { employeeSalariesService } from "@/services/employee-salaries.service";
 import {
     Dialog,
     DialogContent,
@@ -336,57 +337,28 @@ const PayrollDetailView = React.memo(({
     const [isFetchingEmployees, setIsFetchingEmployees] = useState(false);
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
     const [empSearch, setEmpSearch] = useState("");
+    const [salaryData, setSalaryData] = useState(null);
 
     // Derived active period (from payroll or from edit form)
     const activeMonth = isEditingHeader ? (formData.payrollMonth || payroll?.payrollMonth) : payroll?.payrollMonth;
     const activeYear = isEditingHeader ? (formData.payrollYear || payroll?.payrollYear) : payroll?.payrollYear;
 
-    const handleRefreshSection = (sectionId) => {
+    const handleRefreshSection = async (sectionId) => {
         setIsRefreshing(true);
         if (sectionId === "timesheet") {
             setTimesheetData(null);
         } else if (sectionId === "input") {
-            // Reset input rows from current payroll details
-            if (payroll?.details) {
-                const rows = [];
-                payroll.details.forEach(d => {
-                    // KPI Row
-                    if (d.p1p2Percentage > 0 || d.p21Salary > 0) {
-                        rows.push({
-                            id: `kpi-${d.id}`,
-                            employeeCode: d.employee?.employeeCode,
-                            fullName: d.employee?.fullName,
-                            item: "Thưởng KPI",
-                            kpiPercentage: d.p1p2Percentage || 100,
-                            maxKpiSalary: d.p21Salary || 0,
-                            amount: (d.p1p2Percentage / 100) * d.p21Salary || 0,
-                            note: d.note || ""
-                        });
-                    }
-                    // Penalty Row
-                    if (d.penalty > 0) {
-                        rows.push({
-                            id: `penalty-${d.id}`,
-                            employeeCode: d.employee?.employeeCode,
-                            fullName: d.employee?.fullName,
-                            item: "Phạt vi phạm",
-                            amount: d.penalty,
-                            note: d.note || ""
-                        });
-                    }
-                    // Deduction Row
-                    if (d.deduction > 0) {
-                        rows.push({
-                            id: `deduction-${d.id}`,
-                            employeeCode: d.employee?.employeeCode,
-                            fullName: d.employee?.fullName,
-                            item: "Truy thu thuế",
-                            amount: d.deduction,
-                            note: d.note || ""
-                        });
-                    }
-                });
-                setInputRows(rows);
+            try {
+                setInputRows([]);
+                setTimesheetData(null);
+                // Fetch fresh salary data to get actual KPI salary
+                const res = await employeeSalariesService.getAll();
+                const salaries = res?.data || res || [];
+                setSalaryData(salaries);
+                toast.success("Đã đồng bộ lại dữ liệu từ hệ thống lương");
+            } catch (err) {
+                console.error("Error refreshing salary data:", err);
+                toast.error("Không thể lấy dữ liệu lương");
             }
         } else if (sectionId === "payroll") {
             window.location.reload();
@@ -396,9 +368,21 @@ const PayrollDetailView = React.memo(({
 
     // Matrix-based input rows for all employees
     useEffect(() => {
-        if (timesheetData && timesheetData.length > 0 && payroll?.details && inputRows.length === 0) {
+        if (timesheetData && timesheetData.length > 0 && payroll?.details && salaryData && (inputRows.length === 0)) {
             const rows = timesheetData.map(ts => {
                 const detail = payroll.details.find(d => d.employeeId === ts.id);
+                // Match with salary record
+                const salary = salaryData?.find(s => 
+                    Number(s.employeeId) === Number(ts.id) || 
+                    s.employee?.id === ts.id || 
+                    s.employee?.employeeCode === ts.employeeCode
+                );
+                
+                // P2 is for manual input (preserved from saved detail or ts)
+                const p2Base = (detail?.p21Salary || detail?.performanceSalary || ts.p21Salary || ts.performanceSalary || 0);
+                // P3 is always queried from database (salary record)
+                const p3Base = (salary?.performanceSalary || 0);
+
                 return {
                     id: ts.id,
                     employeeId: ts.id,
@@ -411,10 +395,10 @@ const PayrollDetailView = React.memo(({
                     officialDays: ts.officialDays || 0,
                     probationDays: ts.probationDays || 0,
                     // Editable fields
-                    performanceSalary: detail?.performanceSalary ?? (ts.performanceSalary || 0),
+                    p21Salary: p2Base,
                     p1p2Percentage: detail?.p1p2Percentage ?? 100,
-                    p3Percentage: detail?.p1p2Percentage ?? 100,
-                    bonus: detail?.performanceSalary ?? (ts.performanceSalary || 0),
+                    p3Percentage: detail?.p3Percentage ?? 100,
+                    bonus: p3Base,
                     allowanceAmount: detail?.allowanceAmount ?? 0,
                     penalty: detail?.penalty ?? 0,
                     deduction: detail?.deduction ?? 0,
@@ -428,7 +412,7 @@ const PayrollDetailView = React.memo(({
             });
             setInputRows(rows);
         }
-    }, [timesheetData, payroll?.details]);
+    }, [timesheetData, payroll?.details, salaryData, inputRows.length]);
 
     const handleInputRowChange = (id, field, value) => {
         // Validation: Prevent negative values for numeric fields
@@ -440,15 +424,7 @@ const PayrollDetailView = React.memo(({
 
         setInputRows(prev => prev.map(row => {
             if (row.id === id) {
-                const newRow = { ...row, [field]: value };
-                // Sync P3 amount with KPI base (P2) and P3 percentage with KPI percentage (P2.1)
-                if (field === 'performanceSalary') {
-                    newRow.bonus = value;
-                }
-                if (field === 'p1p2Percentage') {
-                    newRow.p3Percentage = value;
-                }
-                return newRow;
+                return { ...row, [field]: value };
             }
             return row;
         }));
@@ -580,8 +556,13 @@ const PayrollDetailView = React.memo(({
                 const updates = timesheetData.map(item => {
                     const detail = payroll?.details?.find(d => d.employeeId === item.id);
                     if (!detail) return null;
+                    
+                    // Merge with data from inputRows
+                    const inputRow = inputRows.find(ir => ir.id === item.id);
+
                     return {
                         id: detail.id,
+                        // Attendance fields
                         standardDays: item.standardDays,
                         workingDays: item.workingDays,
                         officialDays: item.officialDays,
@@ -596,6 +577,20 @@ const PayrollDetailView = React.memo(({
                         otWeekendNight: item.otWeekendNight,
                         otHoliday: item.otHoliday,
                         otHolidayNight: item.otHolidayNight,
+                        // Financial fields from inputRow
+                        performanceSalary: inputRow?.p21Salary, // Matrix P2 total
+                        p1p2Percentage: inputRow?.p1p2Percentage,
+                        p3Percentage: inputRow?.p3Percentage,
+                        bonus: inputRow?.bonus, // Matrix P3
+                        allowanceAmount: inputRow?.allowanceAmount,
+                        penalty: inputRow?.penalty,
+                        deduction: inputRow?.deduction,
+                        socialInsurancePercentage: inputRow?.socialInsurancePercentage,
+                        healthInsurancePercentage: inputRow?.healthInsurancePercentage,
+                        unemploymentInsurancePercentage: inputRow?.unemploymentInsurancePercentage,
+                        unionFeePercentage: inputRow?.unionFeePercentage,
+                        taxDeduction: inputRow?.taxDeduction,
+                        note: inputRow?.note
                     };
                 }).filter(Boolean);
 
@@ -626,71 +621,86 @@ const PayrollDetailView = React.memo(({
         
         return timesheetData.map(tsItem => {
             const existingDetail = payroll.details.find(d => d.employeeId === tsItem.id);
-            if (existingDetail) {
-                return {
-                    ...existingDetail,
-                    // Ensure fresh attendance data from timesheet is used for calculations
-                    standardDays: tsItem.standardDays,
-                    officialDays: tsItem.officialDays,
-                    probationDays: tsItem.probationDays,
-                    benefitLeaveDays: tsItem.benefitLeaveDays,
-                    holidayDays: tsItem.holidayDays,
-                    businessTripDays: tsItem.businessTripDays,
-                    annualLeaveDays: tsItem.annualLeaveDays,
-                    kpiPercentage: tsItem.kpiPercentage,
-                    otWeekday: tsItem.otWeekday,
-                    otWeekdayNight: tsItem.otWeekdayNight,
-                    otWeekend: tsItem.otWeekend,
-                    otWeekendNight: tsItem.otWeekendNight,
-                    otHoliday: tsItem.otHoliday,
-                    otHolidayNight: tsItem.otHolidayNight,
-                };
-            }
+            const inputRow = inputRows.find(ir => ir.id === tsItem.id);
             
-            // Create virtual detail record for employees missing from payroll batch
+            // Financial bases
+            const p1Base = existingDetail?.baseSalary || tsItem.baseSalary || 0;
+            
+            // inputRow.p21Salary is the TOTAL P2 amount entered by user in the matrix.
+            // It is initialized to 0 by default, so we only use it if the user has actually
+            // entered a positive value. Otherwise fall back to server-saved amounts.
+            const totalP2Input = inputRow?.p21Salary !== undefined ? Number(inputRow.p21Salary) : 0;
+            const hasP2Input = totalP2Input > 0;
+            
+            // P2.1 = 80% of total P2 input, P2.2 = 20%
+            // Fall back to server-saved computed amounts if user hasn't entered anything
+            const p21Base = hasP2Input
+                ? totalP2Input * 0.8
+                : (existingDetail?.p21Amount ?? existingDetail?.p21Salary ?? 0);
+            const p22Base = hasP2Input
+                ? totalP2Input * 0.2
+                : (existingDetail?.p22Amount ?? existingDetail?.p22Salary ?? 0);
+            
+            const perfSalaryBase = hasP2Input
+                ? totalP2Input
+                : (existingDetail?.performanceSalary || 0);
+
+            // Calculate OT Pay for the table view based on current hours in timesheet matrix
+            const hourlyRate = p1Base / (tsItem.standardDays || 26) / 8;
+            const currentOtPay = (
+                (Number(tsItem.otWeekday || 0) * 1.5) +
+                (Number(tsItem.otWeekdayNight || 0) * 2.1) +
+                (Number(tsItem.otWeekend || 0) * 2.0) +
+                (Number(tsItem.otWeekendNight || 0) * 2.7) +
+                (Number(tsItem.otHoliday || 0) * 3.0) +
+                (Number(tsItem.otHolidayNight || 0) * 3.9)
+            ) * hourlyRate;
+
             return {
-                id: `temp-${tsItem.id}`,
+                ...(existingDetail || {}),
+                id: existingDetail?.id || `temp-${tsItem.id}`,
                 employeeId: tsItem.id,
-                employee: {
+                employee: existingDetail?.employee || {
                     id: tsItem.id,
                     fullName: tsItem.fullName,
                     employeeCode: tsItem.employeeCode,
                     department: { departmentName: tsItem.departmentName },
                     position: { positionName: tsItem.positionName }
                 },
-                baseSalary: tsItem.baseSalary || 0,
-                p1Salary: tsItem.p1Salary || tsItem.baseSalary || 0,
-                p21Salary: tsItem.p21Salary || 0,
-                p22Salary: tsItem.p22Salary || 0,
-                probationSalary: tsItem.probationSalary || 0,
-                standardDays: tsItem.standardDays || 26,
-                officialDays: tsItem.officialDays || 0,
-                probationDays: tsItem.probationDays || 0,
-                benefitLeaveDays: tsItem.benefitLeaveDays || 0,
-                holidayDays: tsItem.holidayDays || 0,
-                businessTripDays: tsItem.businessTripDays || 0,
-                annualLeaveDays: tsItem.annualLeaveDays || 0,
-                kpiPercentage: tsItem.kpiPercentage || 100,
-                otWeekday: tsItem.otWeekday || 0,
-                otWeekdayNight: tsItem.otWeekdayNight || 0,
-                otWeekend: tsItem.otWeekend || 0,
-                otWeekendNight: tsItem.otWeekendNight || 0,
-                otHoliday: tsItem.otHoliday || 0,
-                otHolidayNight: tsItem.otHolidayNight || 0,
-                bonus: 0,
-                allowanceAmount: 0,
-                overtimePay: 0,
-                adjustmentTaxable: 0,
-                adjustmentNonTaxable: 0,
-                otherIncomeNonTaxable: 0,
-                insuranceDeduction: 0,
-                taxDeduction: 0,
-                penalty: 0,
-                deduction: 0,
-                note: "Chưa được tính toán"
+                // Fresh attendance from timesheetData
+                standardDays: tsItem.standardDays,
+                officialDays: tsItem.officialDays,
+                probationDays: tsItem.probationDays,
+                benefitLeaveDays: tsItem.benefitLeaveDays,
+                holidayDays: tsItem.holidayDays,
+                businessTripDays: tsItem.businessTripDays,
+                annualLeaveDays: tsItem.annualLeaveDays,
+                otWeekday: tsItem.otWeekday,
+                otWeekdayNight: tsItem.otWeekdayNight,
+                otWeekend: tsItem.otWeekend,
+                otWeekendNight: tsItem.otWeekendNight,
+                otHoliday: tsItem.otHoliday,
+                otHolidayNight: tsItem.otHolidayNight,
+                overtimePay: currentOtPay,
+                // Fresh financial from inputRows
+                performanceSalary: perfSalaryBase,
+                p21Salary: p21Base,
+                p22Salary: p22Base,
+                bonus: inputRow?.bonus !== undefined ? inputRow.bonus : (existingDetail?.bonus || 0),
+                p1p2Percentage: inputRow?.p1p2Percentage ?? existingDetail?.p1p2Percentage ?? 100,
+                p3Percentage: inputRow?.p3Percentage ?? existingDetail?.p3Percentage ?? 100,
+                allowanceAmount: inputRow?.allowanceAmount ?? existingDetail?.allowanceAmount ?? 0,
+                penalty: inputRow?.penalty ?? existingDetail?.penalty ?? 0,
+                deduction: inputRow?.deduction ?? existingDetail?.deduction ?? 0,
+                socialInsurancePercentage: inputRow?.socialInsurancePercentage ?? existingDetail?.socialInsurancePercentage ?? 0,
+                healthInsurancePercentage: inputRow?.healthInsurancePercentage ?? existingDetail?.healthInsurancePercentage ?? 0,
+                unemploymentInsurancePercentage: inputRow?.unemploymentInsurancePercentage ?? existingDetail?.unemploymentInsurancePercentage ?? 0,
+                unionFeePercentage: inputRow?.unionFeePercentage ?? existingDetail?.unionFeePercentage ?? 0,
+                taxDeduction: inputRow?.taxDeduction ?? existingDetail?.taxDeduction ?? 0,
+                note: inputRow?.note ?? (existingDetail?.note || "")
             };
         });
-    }, [timesheetData, payroll?.details]);
+    }, [timesheetData, payroll?.details, inputRows]);
 
     const filteredTimesheetData = useMemo(() => {
         if (!timesheetData) return [];
@@ -782,22 +792,26 @@ const PayrollDetailView = React.memo(({
             // Only fetch if data is missing
             if (timesheetData) return;
 
-            const fetchTs = async () => {
+            const fetchData = async () => {
                 setTimesheetLoading(true);
                 try {
-                    const res = await timesheetsService.getSummaryMatrix({
-                        month: activeMonth,
-                        year: activeYear,
-                        limit: 1000
-                    });
-                    setTimesheetData(res?.data?.items || res?.items || []);
+                    const [tsRes, salaryRes] = await Promise.all([
+                        timesheetsService.getSummaryMatrix({
+                            month: activeMonth,
+                            year: activeYear,
+                            limit: 1000
+                        }),
+                        employeeSalariesService.getAll()
+                    ]);
+                    setTimesheetData(tsRes?.data?.items || tsRes?.items || []);
+                    setSalaryData(salaryRes?.data || salaryRes || []);
                 } catch (err) {
-                    console.error("Error fetching timesheet data:", err);
+                    console.error("Error fetching initial data:", err);
                 } finally {
                     setTimesheetLoading(false);
                 }
             };
-            fetchTs();
+            fetchData();
         }
     }, [payroll?.id, activeMonth, activeYear, timesheetData]);
 
@@ -827,7 +841,8 @@ const PayrollDetailView = React.memo(({
 
                 return {
                     id: detail.id,
-                    performanceSalary: parseFloat(row.performanceSalary) || 0,
+                    p21Salary: parseFloat(row.p21Salary) || 0,
+                    performanceSalary: parseFloat(row.p21Salary) || 0,
                     p1p2Percentage: parseFloat(row.p1p2Percentage) || 0,
                     p3Percentage: parseFloat(row.p3Percentage) || 0,
                     bonus: parseFloat(row.bonus) || 0,
@@ -1641,8 +1656,8 @@ const PayrollDetailView = React.memo(({
                                                             step="0.01"
                                                             min={0}
                                                             className="w-full bg-white border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 focus:ring-2 focus:ring-amber-500 outline-none"
-                                                            value={row.performanceSalary ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'performanceSalary', e.target.value)}
+                                                            value={row.p21Salary ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'p21Salary', e.target.value)}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-indigo-50/20">
@@ -1654,12 +1669,13 @@ const PayrollDetailView = React.memo(({
                                                             onChange={(e) => handleInputRowChange(row.id, 'p1p2Percentage', e.target.value)}
                                                         />
                                                     </td>
-                                                    <td className="px-3 py-2 bg-slate-50/50">
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
                                                         <input
                                                             type="number"
-                                                            disabled
-                                                            className="w-full bg-slate-100/50 border border-slate-200 rounded text-center py-1 font-bold text-slate-400 outline-none cursor-not-allowed"
-                                                            value={row.p1p2Percentage ?? 100}
+                                                            min={0}
+                                                            className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                            value={row.p3Percentage ?? 100}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'p3Percentage', e.target.value)}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-slate-50/50">
@@ -1667,7 +1683,7 @@ const PayrollDetailView = React.memo(({
                                                             type="number"
                                                             disabled
                                                             className="w-full bg-slate-100/50 border border-slate-200 rounded text-right py-1 px-2 font-bold text-slate-400 outline-none cursor-not-allowed"
-                                                            value={row.performanceSalary ?? 0}
+                                                            value={row.bonus ?? 0}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-emerald-50/20">

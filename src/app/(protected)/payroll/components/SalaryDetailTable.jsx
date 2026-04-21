@@ -158,20 +158,38 @@ export default function SalaryDetailTable({
                                     // Note: Using fields mapped from item or provided in formulas
                                     const phụCấp = parseFloat(item.allowanceAmount || 0);
                                     const ot = parseFloat(item.overtimePay || 0);
-                                    const thưởngP3 = parseFloat(item.bonus || 0);
+                                    const kpiP3 = parseFloat(item.p3Percentage || 0) / 100;
+                                    const thưởngP3 = (parseFloat(item.bonus || 0) / ncChuẩn) * (ncChínhThức + ncKhác) * kpiP3;
                                     const truyThuTínhThuế = parseFloat(item.adjustmentTaxable || 0);
                                     const truyThuKoThuế = parseFloat(item.adjustmentNonTaxable || 0);
                                     const khácKoThuế = parseFloat(item.otherIncomeNonTaxable || 0);
 
                                     const tổngThuNhập = tổngLươngChính + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
 
-                                    // (52) = 10.5% * (1.1)
-                                    const bhxhNLĐ = 0.105 * parseFloat(item.baseSalary || 0);
+                                    // Insurance base (capped at 20 x minimum wage per law)
+                                    const insuranceBase = Math.min(parseFloat(item.baseSalary || 0), 20 * 2340000);
                                     
+                                    // Use percentage rates from item if available, otherwise default Vietnamese rates
+                                    const siRate = parseFloat(item.socialInsurancePercentage || 8);    // 8% BHXH
+                                    const hiRate = parseFloat(item.healthInsurancePercentage || 1.5);   // 1.5% BHYT
+                                    const uiRate = parseFloat(item.unemploymentInsurancePercentage || 1); // 1% BHTN
+                                    const ufRate = parseFloat(item.unionFeePercentage || 0);            // CĐ phí
+
+                                    // (52) Use saved computed amounts if available, otherwise calculate from rates
+                                    const bhxhNLĐ = parseFloat(item.socialInsurance) > 0
+                                        ? parseFloat(item.socialInsurance)
+                                        : parseFloat(item.healthInsurance) > 0 || parseFloat(item.unemploymentInsurance) > 0
+                                            ? parseFloat(item.socialInsurance || 0) + parseFloat(item.healthInsurance || 0) + parseFloat(item.unemploymentInsurance || 0)
+                                            : insuranceBase * (siRate + hiRate + uiRate) / 100;
+
+                                    const unionFeeAmount = parseFloat(item.unionFee) > 0
+                                        ? parseFloat(item.unionFee)
+                                        : insuranceBase * ufRate / 100;
+
                                     // Total Deductions (65.1)
                                     const thuếTNCN = parseFloat(item.taxDeduction || 0);
                                     const khấuTrừKhác = parseFloat(item.penalty || 0) + parseFloat(item.deduction || 0);
-                                    const tổngKhấuTrừ = bhxhNLĐ + parseFloat(item.insuranceAdjustment || 0) + parseFloat(item.unionFee || 0) + parseFloat(item.partyFee || 0) + thuếTNCN + parseFloat(item.taxAdjustment || 0) + khấuTrừKhác;
+                                    const tổngKhấuTrừ = bhxhNLĐ + parseFloat(item.insuranceAdjustment || 0) + unionFeeAmount + parseFloat(item.partyFee || 0) + thuếTNCN + parseFloat(item.taxAdjustment || 0) + khấuTrừKhác;
 
                                     // (66) = (51) - (65.1)
                                     const thựcLĩnh = tổngThuNhập - tổngKhấuTrừ;
