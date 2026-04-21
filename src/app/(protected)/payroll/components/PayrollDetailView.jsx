@@ -508,25 +508,43 @@ const PayrollDetailView = React.memo(({
             return;
         }
 
+        const month = parseInt(activeMonth);
+        const year = parseInt(activeYear);
+
+        if (isNaN(month) || isNaN(year)) {
+            toast.error("Không xác định được kỳ lương (tháng/năm)");
+            return;
+        }
+
         setIsSaving(true);
         try {
             // Add employees to timesheet period
-            await Promise.all(selectedEmployeeIds.map(empId => 
+            const results = await Promise.allSettled(selectedEmployeeIds.map(empId => 
                 timesheetsService.addEmployee({
-                    employeeId: empId,
-                    month: activeMonth,
-                    year: activeYear
+                    employeeId: parseInt(empId),
+                    month: month,
+                    year: year
                 })
             ));
             
-            toast.success(`Đã thêm ${selectedEmployeeIds.length} nhân sự thành công`);
+            const failed = results.filter(r => r.status === 'rejected');
+            if (failed.length > 0) {
+                console.error("Some employees failed to add:", failed);
+                if (failed.length === selectedEmployeeIds.length) {
+                    throw new Error(failed[0].reason?.message || "Tất cả nhân sự đều lỗi khi thêm");
+                }
+                toast.warning(`Đã thêm thành công ${results.length - failed.length} nhân sự, ${failed.length} nhân sự bị lỗi.`);
+            } else {
+                toast.success(`Đã thêm ${selectedEmployeeIds.length} nhân sự thành công`);
+            }
+            
             setIsAddModalOpen(false);
             
             // Refresh timesheet data
             handleRefreshSection("timesheet");
         } catch (err) {
             console.error("Error adding employees:", err);
-            toast.error("Lỗi khi thêm nhân sự: " + (err.message || "Unknown error"));
+            toast.error("Lỗi khi thêm nhân sự: " + (err.response?.data?.message || err.message || "Unknown error"));
         } finally {
             setIsSaving(false);
         }
@@ -1895,7 +1913,7 @@ const PayrollDetailView = React.memo(({
 
             {/* Add Personnel Modal */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white">
                     <DialogHeader className="px-6 py-4 border-b">
                         <DialogTitle className="text-xl font-bold text-slate-800">Thêm nhân sự vào bảng chấm công</DialogTitle>
                     </DialogHeader>
@@ -1970,7 +1988,7 @@ const PayrollDetailView = React.memo(({
                         </div>
                     </div>
 
-                    <DialogFooter className="px-6 py-4 border-t bg-slate-50/50">
+                    <DialogFooter className="px-6 py-4 border-t bg-slate-50">
                         <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Hủy</Button>
                         <Button 
                             className="bg-indigo-600 hover:bg-indigo-700 font-bold"
