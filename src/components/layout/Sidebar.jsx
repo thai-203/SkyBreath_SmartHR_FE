@@ -103,6 +103,12 @@ const menuItems = [
     permissions: ["CONTRACT_READ"],
   },
   {
+    title: "Đánh giá KPI",
+    icon: ClipboardCheck,
+    href: "/performance-reviews",
+    roles: ["ADMIN", "HR", "MANAGER"],
+  },
+  {
     title: "Bảng chấm công",
     icon: Clock,
     href: "/timesheets",

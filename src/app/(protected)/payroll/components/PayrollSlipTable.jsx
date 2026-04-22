@@ -167,7 +167,7 @@ export default function PayrollSlipTable({ details = [], onSendEmail, onRecalcul
                                             <td className="px-3 py-3 text-left border-r text-slate-500 italic lowercase">{item.employee?.companyEmail}</td>
                                             <td className="px-3 py-3 text-center border-r">
                                                 {item.payslipSentAt ? (
-                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black border border-emerald-100 shadow-sm">Đã gửi</span>
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black border border-emerald-100 shadow-sm">Đã đánh giá</span>
                                                 ) : (
                                                     <span className="text-indigo-600 italic font-black text-[12px] tracking-tight">Chưa gửi</span>
                                                 )}

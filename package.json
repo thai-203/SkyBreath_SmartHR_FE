@@ -30,6 +30,8 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/nprogress": "^0.2.3",
     "axios": "^1.13.3",
+    "browserslist": "^4.28.2",
+    "caniuse-lite": "^1.0.30001790",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",
