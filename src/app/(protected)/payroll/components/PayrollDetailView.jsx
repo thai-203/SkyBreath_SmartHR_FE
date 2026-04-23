@@ -6,6 +6,7 @@ import { payrollService } from "@/services/payroll.service";
 import { timesheetsService } from "@/services/timesheets.service";
 import { employeesService } from "@/services/employees.service";
 import { employeeSalariesService } from "@/services/employee-salaries.service";
+import { performanceReviewsService } from "@/services/performance-reviews.service";
 import {
     Dialog,
     DialogContent,
@@ -338,10 +339,26 @@ const PayrollDetailView = React.memo(({
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
     const [empSearch, setEmpSearch] = useState("");
     const [salaryData, setSalaryData] = useState(null);
+    const [performanceData, setPerformanceData] = useState([]);
 
     // Derived active period (from payroll or from edit form)
     const activeMonth = isEditingHeader ? (formData.payrollMonth || payroll?.payrollMonth) : payroll?.payrollMonth;
     const activeYear = isEditingHeader ? (formData.payrollYear || payroll?.payrollYear) : payroll?.payrollYear;
+
+    // Fetch performance reviews when payroll loads
+    useEffect(() => {
+        if (payroll?.payrollMonth && payroll?.payrollYear) {
+            performanceReviewsService.getByPeriod(payroll.payrollMonth, payroll.payrollYear)
+                .then(res => {
+                    const reviews = res?.data?.data || res?.data || [];
+                    setPerformanceData(reviews);
+                })
+                .catch(err => {
+                    console.error("Error fetching performance reviews:", err);
+                    setPerformanceData([]);
+                });
+        }
+    }, [payroll?.payrollMonth, payroll?.payrollYear]);
 
     const handleRefreshSection = async (sectionId) => {
         setIsRefreshing(true);
@@ -371,17 +388,51 @@ const PayrollDetailView = React.memo(({
         if (timesheetData && timesheetData.length > 0 && payroll?.details && salaryData && (inputRows.length === 0)) {
             const rows = timesheetData.map(ts => {
                 const detail = payroll.details.find(d => d.employeeId === ts.id);
-                // Match with salary record
-                const salary = salaryData?.find(s => 
-                    Number(s.employeeId) === Number(ts.id) || 
-                    s.employee?.id === ts.id || 
+
+                // Lấy performance review để tính % KPI
+                const perf = performanceData.find(p => p.employeeId === ts.id);
+
+                // Lấy performanceSalary từ employee_salaries (đây là Lương P2 gốc)
+                const salary = salaryData?.find(s =>
+                    Number(s.employeeId) === Number(ts.id) ||
+                    s.employee?.id === ts.id ||
                     s.employee?.employeeCode === ts.employeeCode
                 );
+                const performanceSalary = parseFloat(salary?.performanceSalary || 0);
+
+                // Tính % KPI từ performance_reviews
+                // Cấu trúc điểm: 1.1-1.5 (max 5.0) + 2.1 (max 5.0) = Total max 10.0
+                // ── KPI % CHỈ CHIẾM 50% MỖI PHẦN ──
+                // P2.1: sum(1.1-1.5) / max(5) * 50%
+                // P2.2: scoreResult / max(5) * 50%
+                // Total KPI = P2.1% + P2.2% (max = 100%)
+                let p21Percent = 0;
+                let p22Percent = 0;
+                let totalKpiPercent = 0;
                 
-                // P2 is for manual input (preserved from saved detail or ts)
-                const p2Base = (detail?.p21Salary || detail?.performanceSalary || ts.p21Salary || ts.performanceSalary || 0);
-                // P3 is always queried from database (salary record)
-                const p3Base = (salary?.performanceSalary || 0);
+                if (perf) {
+                    const sumScore11to15 = 
+                        (parseFloat(perf.scoreCompliance || 0) +
+                        parseFloat(perf.scoreAttitude || 0) +
+                        parseFloat(perf.scoreLearning || 0) +
+                        parseFloat(perf.scoreTeamwork || 0) +
+                        parseFloat(perf.scoreSkills || 0));
+                    
+                    p21Percent = sumScore11to15 / 5 * 50;  // P2.1 chiếm 50%
+                    p22Percent = parseFloat(perf.scoreResult || 0) / 5 * 50;  // P2.2 chiếm 50%
+                    totalKpiPercent = p21Percent + p22Percent;  // Tổng KPI (max = 100%)
+                }
+
+                // Tính P2.1 thực và P2.2 thực
+                // P2.1 thực = performanceSalary × %P2.1 / 100 × hệ số ngày công
+                // P2.2 thực = performanceSalary × %P2.2 / 100 × hệ số ngày công
+                const standardDays = parseFloat(ts.standardDays) || 22;
+                const workingDays = (parseFloat(ts.officialDays || 0) + parseFloat(ts.probationDays || 0) +
+                    parseFloat(ts.businessTripDays || 0) + parseFloat(ts.holidayDays || 0) + parseFloat(ts.benefitLeaveDays || 0));
+                const dayFactor = standardDays > 0 ? workingDays / standardDays : 0;
+
+                const p21Actual = performanceSalary * (p21Percent / 100) * dayFactor;
+                const p22Actual = performanceSalary * (p22Percent / 100) * dayFactor;
 
                 return {
                     id: ts.id,
@@ -394,25 +445,31 @@ const PayrollDetailView = React.memo(({
                     standardDays: ts.standardDays || 26,
                     officialDays: ts.officialDays || 0,
                     probationDays: ts.probationDays || 0,
-                    // Editable fields
-                    p21Salary: p2Base,
-                    p1p2Percentage: detail?.p1p2Percentage ?? 100,
-                    p3Percentage: detail?.p3Percentage ?? 100,
-                    bonus: p3Base,
+                    // P2 từ employee_salaries (performanceSalary)
+                    performanceSalary: performanceSalary,
+                    // % KPI từ performance_reviews (P2.1 + P2.2 = 100%)
+                    kpiPercent: totalKpiPercent,
+                    p1p2Percentage: p21Percent,
+                    p3Percentage: p22Percent,
+                    // P2.1 thực và P2.2 thực (đã tính)
+                    p21Actual: p21Actual,
+                    p22Actual: p22Actual,
+                    bonus: 0,
                     allowanceAmount: detail?.allowanceAmount ?? 0,
                     penalty: detail?.penalty ?? 0,
                     deduction: detail?.deduction ?? 0,
-                    socialInsurancePercentage: detail?.socialInsurancePercentage ?? 0,
-                    healthInsurancePercentage: detail?.healthInsurancePercentage ?? 0,
-                    unemploymentInsurancePercentage: detail?.unemploymentInsurancePercentage ?? 0,
-                    unionFeePercentage: detail?.unionFeePercentage ?? 0,
+                    // Insurance rates cố định
+                    socialInsurancePercentage: 8,
+                    healthInsurancePercentage: 1.5,
+                    unemploymentInsurancePercentage: 1,
+                    unionFeePercentage: 0,
                     taxDeduction: detail?.taxDeduction ?? 0,
                     note: detail?.note || ""
                 };
             });
             setInputRows(rows);
         }
-    }, [timesheetData, payroll?.details, salaryData, inputRows.length]);
+    }, [timesheetData, payroll?.details, salaryData, performanceData, inputRows.length]);
 
     const handleInputRowChange = (id, field, value) => {
         // Validation: Prevent negative values for numeric fields
@@ -469,7 +526,7 @@ const PayrollDetailView = React.memo(({
             employeeCode: "",
             fullName: "",
             item: "Thưởng KPI",
-            kpiPercentage: 100,
+            dummyPercent: 100,
             maxKpiSalary: 0,
             amount: 0,
             note: ""
@@ -641,30 +698,53 @@ const PayrollDetailView = React.memo(({
             const existingDetail = payroll.details.find(d => d.employeeId === tsItem.id);
             const inputRow = inputRows.find(ir => ir.id === tsItem.id);
             
-            // Financial bases
-            const p1Base = existingDetail?.baseSalary || tsItem.baseSalary || 0;
+            // ── LẤY PERFORMANCE REVIEW ĐỂ TÍNH % KPI ──
+            // Cấu trúc điểm: 1.1-1.5 (max 5.0) + 2.1 (max 5.0) = Total max 10.0
+            const perf = performanceData.find(p => p.employeeId === tsItem.id);
             
-            // inputRow.p21Salary is the TOTAL P2 amount entered by user in the matrix.
-            // It is initialized to 0 by default, so we only use it if the user has actually
-            // entered a positive value. Otherwise fall back to server-saved amounts.
-            const totalP2Input = inputRow?.p21Salary !== undefined ? Number(inputRow.p21Salary) : 0;
-            const hasP2Input = totalP2Input > 0;
+            // ── KPI % CHỈ CHIẾM 50% MỖI PHẦN ──
+            // P2.1: sum(1.1-1.5) / max(5) * 50%
+            // P2.2: scoreResult / max(5) * 50%
+            let p21Percent = 0;
+            let p22Percent = 0;
             
-            // P2.1 = 80% of total P2 input, P2.2 = 20%
-            // Fall back to server-saved computed amounts if user hasn't entered anything
-            const p21Base = hasP2Input
-                ? totalP2Input * 0.8
-                : (existingDetail?.p21Amount ?? existingDetail?.p21Salary ?? 0);
-            const p22Base = hasP2Input
-                ? totalP2Input * 0.2
-                : (existingDetail?.p22Amount ?? existingDetail?.p22Salary ?? 0);
+            if (perf) {
+                const sumScore11to15 = 
+                    (parseFloat(perf.scoreCompliance || 0) +
+                    parseFloat(perf.scoreAttitude || 0) +
+                    parseFloat(perf.scoreLearning || 0) +
+                    parseFloat(perf.scoreTeamwork || 0) +
+                    parseFloat(perf.scoreSkills || 0));
+                
+                p21Percent = sumScore11to15 / 5 * 50;  // P2.1 chiếm 50%
+                p22Percent = parseFloat(perf.scoreResult || 0) / 5 * 50;  // P2.2 chiếm 50%
+            }
+
+            // ── TÍNH LƯƠNG THỰC NHẬN ──
+            const performanceSalary = parseFloat(existingDetail?.performanceSalary || tsItem.performanceSalary || 0);
+            const standardDays = parseFloat(tsItem.standardDays || 26);
+            const officialDays = parseFloat(tsItem.officialDays || 0);
+            const probationDays = parseFloat(tsItem.probationDays || 0);
+            const businessTripDays = parseFloat(tsItem.businessTripDays || 0);
+            const holidayDays = parseFloat(tsItem.holidayDays || 0);
+            const benefitLeaveDays = parseFloat(tsItem.benefitLeaveDays || 0);
             
-            const perfSalaryBase = hasP2Input
-                ? totalP2Input
-                : (existingDetail?.performanceSalary || 0);
+            const fullPayDays = officialDays + businessTripDays + holidayDays + benefitLeaveDays;
+            const dayFactor = standardDays > 0 ? fullPayDays / standardDays : 0;
+
+            // P2.1 thực = performanceSalary × %P2.1 / 100 × hệ số ngày công
+            const p21Amount = performanceSalary * (p21Percent / 100) * dayFactor;
+            // P2.2 thực = performanceSalary × %P2.2 / 100 × hệ số ngày công
+            const p22Amount = performanceSalary * (p22Percent / 100) * dayFactor;
+            // P1 thực = baseSalary × hệ số ngày công
+            const p1Amount = parseFloat(existingDetail?.baseSalary || tsItem.baseSalary || 0) * dayFactor;
+            // Lương TV thực = baseSalary × ngày công TV / standardDays × 0.85
+            const probationAmount = standardDays > 0 ? 
+                (parseFloat(existingDetail?.baseSalary || tsItem.baseSalary || 0) / standardDays) * probationDays * 0.85 : 0;
 
             // Calculate OT Pay for the table view based on current hours in timesheet matrix
-            const hourlyRate = p1Base / (tsItem.standardDays || 26) / 8;
+            const p1Base = parseFloat(existingDetail?.baseSalary || tsItem.baseSalary || 0);
+            const hourlyRate = standardDays > 0 ? p1Base / standardDays / 8 : 0;
             const currentOtPay = (
                 (Number(tsItem.otWeekday || 0) * 1.5) +
                 (Number(tsItem.otWeekdayNight || 0) * 2.1) +
@@ -700,16 +780,21 @@ const PayrollDetailView = React.memo(({
                 otHoliday: tsItem.otHoliday,
                 otHolidayNight: tsItem.otHolidayNight,
                 overtimePay: currentOtPay,
-                // Fresh financial from inputRows
-                performanceSalary: perfSalaryBase,
-                p21Salary: p21Base,
-                p22Salary: p22Base,
+                // Lương P2 từ employee_salaries
+                performanceSalary: performanceSalary,
+                // % KPI từ performance_reviews (P2.1 = 1.1-1.5, P2.2 = scoreResult)
+                p1p2Percentage: p21Percent,
+                p3Percentage: p22Percent,
+                // Lương thực nhận đã tính lại từ performance
+                p1Amount: p1Amount,
+                p21Amount: p21Amount,
+                p22Amount: p22Amount,
+                probationAmount: probationAmount,
+                // Bonus, penalty, deduction từ inputRows hoặc existingDetail
                 bonus: inputRow?.bonus !== undefined ? inputRow.bonus : (existingDetail?.bonus || 0),
-                p1p2Percentage: inputRow?.p1p2Percentage ?? existingDetail?.p1p2Percentage ?? 100,
-                p3Percentage: inputRow?.p3Percentage ?? existingDetail?.p3Percentage ?? 100,
+                penalty: inputRow?.penalty !== undefined ? inputRow.penalty : (existingDetail?.penalty || 0),
+                deduction: inputRow?.deduction !== undefined ? inputRow.deduction : (existingDetail?.deduction || 0),
                 allowanceAmount: inputRow?.allowanceAmount ?? existingDetail?.allowanceAmount ?? 0,
-                penalty: inputRow?.penalty ?? existingDetail?.penalty ?? 0,
-                deduction: inputRow?.deduction ?? existingDetail?.deduction ?? 0,
                 socialInsurancePercentage: inputRow?.socialInsurancePercentage ?? existingDetail?.socialInsurancePercentage ?? 0,
                 healthInsurancePercentage: inputRow?.healthInsurancePercentage ?? existingDetail?.healthInsurancePercentage ?? 0,
                 unemploymentInsurancePercentage: inputRow?.unemploymentInsurancePercentage ?? existingDetail?.unemploymentInsurancePercentage ?? 0,
@@ -718,7 +803,7 @@ const PayrollDetailView = React.memo(({
                 note: inputRow?.note ?? (existingDetail?.note || "")
             };
         });
-    }, [timesheetData, payroll?.details, inputRows]);
+    }, [timesheetData, payroll?.details, inputRows, performanceData]);
 
     const filteredTimesheetData = useMemo(() => {
         if (!timesheetData) return [];
@@ -1616,14 +1701,18 @@ const PayrollDetailView = React.memo(({
                                                 {/* Attendance Group */}
                                                 <th colSpan={3} className="px-3 py-3 text-center bg-blue-50/50 text-blue-700 border-r border-slate-200 italic">Dữ liệu công (Tham chiếu)</th>
                                                 
-                                                {/* Editable Columns */}
+                                                {/* P2 từ employee_salaries & performance_reviews */}
                                                 <th className="px-3 py-3 text-right w-[130px] bg-amber-50 text-amber-800">Lương P2</th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-amber-50 text-amber-800">% KPI</th>
                                                 <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700">% P2.1</th>
                                                 <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700">% P2.2</th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-indigo-50 text-indigo-700">Thưởng P2.1</th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-indigo-50 text-indigo-700">Khoán P2.2</th>
                                                 <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700">Thưởng P3</th>
                                                 <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700">Phụ cấp</th>
                                                 <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700">Phạt</th>
                                                 <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700">K.Trừ khác</th>
+                                                {/* Insurance rates cố định */}
                                                 <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHXH</th>
                                                 <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHYT</th>
                                                 <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHTN</th>
@@ -1636,9 +1725,12 @@ const PayrollDetailView = React.memo(({
                                                 <th className="px-2 py-1 text-center bg-blue-50/20">Công chuẩn</th>
                                                 <th className="px-2 py-1 text-center bg-blue-50/20">Chính thức</th>
                                                 <th className="px-2 py-1 text-center bg-blue-50/20 border-r border-slate-200">Thử việc</th>
-                                                <th className="px-2 py-1 text-center italic bg-amber-50/20">(P2 base)</th>
-                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(10)</th>
-                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2.2%)</th>
+                                                <th className="px-2 py-1 text-center italic bg-amber-50/20">(VND)</th>
+                                                <th className="px-2 py-1 text-center italic bg-amber-50/20">(kpiScore/10)</th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(1.1-1.5)</th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(2.1)</th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2×%÷100)</th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2×%÷100)</th>
                                                 <th className="px-2 py-1 text-center italic bg-emerald-50/20">(36.1)</th>
                                                 <th className="px-2 py-1 text-center italic bg-emerald-50/20">(43)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-50/20">(65)</th>
@@ -1667,33 +1759,64 @@ const PayrollDetailView = React.memo(({
                                                     <td className="px-3 py-2 text-center font-bold text-blue-600 bg-blue-50/10">{row.officialDays}</td>
                                                     <td className="px-3 py-2 text-center text-slate-400 bg-blue-50/10 border-r border-slate-100">{row.probationDays}</td>
 
-                                                    {/* Editable Performance/Allowance */}
+                                                    {/* Lương P2 (từ employee_salaries.performanceSalary) */}
                                                     <td className="px-3 py-2 bg-amber-50/20">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 focus:ring-2 focus:ring-amber-500 outline-none"
-                                                            value={row.p21Salary ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'p21Salary', e.target.value)}
+                                                            disabled
+                                                            className="w-full bg-amber-50 border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 outline-none cursor-not-allowed"
+                                                            value={row.performanceSalary ?? 0}
                                                         />
                                                     </td>
+                                                    {/* % KPI (từ performance_reviews.kpiScore / 10 * 100) */}
+                                                    <td className="px-3 py-2 bg-amber-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-amber-50 border border-amber-200 rounded text-center py-1 font-bold text-amber-700 outline-none cursor-not-allowed"
+                                                            value={row.kpiPercent ?? 0}
+                                                        />
+                                                    </td>
+                                                    {/* % P2.1 (từ performance_reviews, đã tính %) */}
                                                     <td className="px-3 py-2 bg-indigo-50/20">
                                                         <input
                                                             type="number"
-                                                            min={0}
-                                                            className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                            value={row.p1p2Percentage ?? 100}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'p1p2Percentage', e.target.value)}
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-indigo-50 border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 outline-none cursor-not-allowed"
+                                                            value={row.p1p2Percentage ?? 0}
                                                         />
                                                     </td>
+                                                    {/* % P2.2 (từ performance_reviews, đã tính %) */}
                                                     <td className="px-3 py-2 bg-indigo-50/20">
                                                         <input
                                                             type="number"
-                                                            min={0}
-                                                            className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                            value={row.p3Percentage ?? 100}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'p3Percentage', e.target.value)}
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-indigo-50 border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 outline-none cursor-not-allowed"
+                                                            value={row.p3Percentage ?? 0}
+                                                        />
+                                                    </td>
+                                                    {/* Thưởng P2.1 thực = performanceSalary × %P2.1 / 100 × hệ số ngày công */}
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-indigo-50 border border-indigo-200 rounded text-right py-1 px-2 font-bold text-indigo-700 outline-none cursor-not-allowed"
+                                                            value={(row.p21Actual ?? 0).toFixed(2)}
+                                                        />
+                                                    </td>
+                                                    {/* Khoán P2.2 thực = performanceSalary × %P2.2 / 100 × hệ số ngày công */}
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-indigo-50 border border-indigo-200 rounded text-right py-1 px-2 font-bold text-indigo-700 outline-none cursor-not-allowed"
+                                                            value={(row.p22Actual ?? 0).toFixed(2)}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-slate-50/50">
@@ -1734,44 +1857,44 @@ const PayrollDetailView = React.memo(({
                                                             onChange={(e) => handleInputRowChange(row.id, 'deduction', e.target.value)}
                                                         />
                                                     </td>
+                                                    {/* % BHXH (cố định - không chỉnh sửa) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
-                                                            value={row.socialInsurancePercentage ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'socialInsurancePercentage', e.target.value)}
+                                                            disabled
+                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-center py-1 font-bold text-rose-800 outline-none cursor-not-allowed"
+                                                            value={row.socialInsurancePercentage ?? 8}
                                                         />
                                                     </td>
+                                                    {/* % BHYT (cố định - không chỉnh sửa) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
-                                                            value={row.healthInsurancePercentage ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'healthInsurancePercentage', e.target.value)}
+                                                            disabled
+                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-center py-1 font-bold text-rose-800 outline-none cursor-not-allowed"
+                                                            value={row.healthInsurancePercentage ?? 1.5}
                                                         />
                                                     </td>
+                                                    {/* % BHTN (cố định - không chỉnh sửa) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
-                                                            value={row.unemploymentInsurancePercentage ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'unemploymentInsurancePercentage', e.target.value)}
+                                                            disabled
+                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-center py-1 font-bold text-rose-800 outline-none cursor-not-allowed"
+                                                            value={row.unemploymentInsurancePercentage ?? 1}
                                                         />
                                                     </td>
+                                                    {/* % KPCĐ (cố định - không chỉnh sửa) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
+                                                            disabled
+                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-center py-1 font-bold text-rose-800 outline-none cursor-not-allowed"
                                                             value={row.unionFeePercentage ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'unionFeePercentage', e.target.value)}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-rose-200/20">

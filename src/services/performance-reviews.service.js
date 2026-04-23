@@ -11,6 +11,13 @@ export const performanceReviewsService = {
         return response.data;
     },
 
+    getByPeriod: async (month, year) => {
+        const response = await api.get("/performance-reviews", {
+            params: { month, year, limit: 1000 }
+        });
+        return response.data;
+    },
+
     getManagedEmployees: async () => {
         const response = await api.get("/performance-reviews/managed-employees");
         return response.data;
