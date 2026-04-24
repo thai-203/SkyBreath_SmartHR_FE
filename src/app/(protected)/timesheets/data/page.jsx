@@ -352,7 +352,7 @@ export default function DataManagementPage() {
         });
 
         if (!dayData) return '-';
-        if (dayData.attendanceStatus === 'WEEKEND') return 'N';
+        if (dayData.attendanceStatus === 'WEEKEND' || dayData.attendanceStatus === 'N') return 'N';
         if (['X', 'KL', 'ABSENT', '0'].includes(dayData.attendanceStatus)) {
             return dayData.workingHours !== undefined && dayData.workingHours !== null ? dayData.workingHours : 0;
         }
