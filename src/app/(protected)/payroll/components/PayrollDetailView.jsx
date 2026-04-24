@@ -156,23 +156,23 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                             timesheets.map((ts, idx) => {
                                 const detail = payrollDetails.find(d => d.employeeId === ts.id);
                                 const hourlyRate = (detail?.baseSalary || 0) / (ts.standardDays || 26) / 8;
-                                
+
                                 // Calculate OT values for immediate feedback
-                                const currentTotalHours = 
-                                   Number(ts.otWeekday || 0) + 
-                                   Number(ts.otWeekdayNight || 0) + 
-                                   Number(ts.otWeekend || 0) + 
-                                   Number(ts.otWeekendNight || 0) + 
-                                   Number(ts.otHoliday || 0) + 
-                                   Number(ts.otHolidayNight || 0);
+                                const currentTotalHours =
+                                    Number(ts.otWeekday || 0) +
+                                    Number(ts.otWeekdayNight || 0) +
+                                    Number(ts.otWeekend || 0) +
+                                    Number(ts.otWeekendNight || 0) +
+                                    Number(ts.otHoliday || 0) +
+                                    Number(ts.otHolidayNight || 0);
 
                                 const currentOtPay = (
-                                   (Number(ts.otWeekday || 0) * 1.5) +
-                                   (Number(ts.otWeekdayNight || 0) * 2.1) +
-                                   (Number(ts.otWeekend || 0) * 2.0) +
-                                   (Number(ts.otWeekendNight || 0) * 2.7) +
-                                   (Number(ts.otHoliday || 0) * 3.0) +
-                                   (Number(ts.otHolidayNight || 0) * 3.9)
+                                    (Number(ts.otWeekday || 0) * 1.5) +
+                                    (Number(ts.otWeekdayNight || 0) * 2.1) +
+                                    (Number(ts.otWeekend || 0) * 2.0) +
+                                    (Number(ts.otWeekendNight || 0) * 2.7) +
+                                    (Number(ts.otHoliday || 0) * 3.0) +
+                                    (Number(ts.otHolidayNight || 0) * 3.9)
                                 ) * hourlyRate;
 
                                 return (
@@ -183,10 +183,10 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                         <td className="px-3 py-3 border-r border-slate-50 text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">{ts.positionName || "—"}</td>
                                         <td className="px-4 py-3 border-r border-slate-100 text-slate-500 whitespace-nowrap font-medium">{ts.departmentName || "—"}</td>
 
-                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
+                                        <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
                                                     min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekday || 0}
@@ -198,8 +198,8 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
                                                     min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekdayNight || 0}
@@ -211,8 +211,8 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
                                                     min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekend || 0}
@@ -224,8 +224,8 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
                                                     min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekendNight || 0}
@@ -237,8 +237,8 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
                                                     min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otHoliday || 0}
@@ -250,8 +250,8 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
                                                     min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otHolidayNight || 0}
@@ -331,7 +331,7 @@ const PayrollDetailView = React.memo(({
     });
     const [isEditingData, setIsEditingData] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     // Add Personnel Modal State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [availableEmployees, setAvailableEmployees] = useState([]);
@@ -409,15 +409,15 @@ const PayrollDetailView = React.memo(({
                 let p21Percent = 0;
                 let p22Percent = 0;
                 let totalKpiPercent = 0;
-                
+
                 if (perf) {
-                    const sumScore11to15 = 
+                    const sumScore11to15 =
                         (parseFloat(perf.scoreCompliance || 0) +
-                        parseFloat(perf.scoreAttitude || 0) +
-                        parseFloat(perf.scoreLearning || 0) +
-                        parseFloat(perf.scoreTeamwork || 0) +
-                        parseFloat(perf.scoreSkills || 0));
-                    
+                            parseFloat(perf.scoreAttitude || 0) +
+                            parseFloat(perf.scoreLearning || 0) +
+                            parseFloat(perf.scoreTeamwork || 0) +
+                            parseFloat(perf.scoreSkills || 0));
+
                     p21Percent = sumScore11to15 / 5 * 50;  // P2.1 chiếm 50%
                     p22Percent = parseFloat(perf.scoreResult || 0) / 5 * 50;  // P2.2 chiếm 50%
                     totalKpiPercent = p21Percent + p22Percent;  // Tổng KPI (max = 100%)
@@ -539,11 +539,11 @@ const PayrollDetailView = React.memo(({
         try {
             const res = await employeesService.getAll({ limit: 2000, status: 'ACTIVE' });
             const allEmp = res?.data?.items || res?.items || [];
-            
+
             // Filter out employees already in the timesheet
             const currentIds = new Set(timesheetData?.map(ts => ts.id) || []);
             const filtered = allEmp.filter(emp => !currentIds.has(emp.id));
-            
+
             setAvailableEmployees(filtered);
         } catch (err) {
             console.error("Error fetching employees:", err);
@@ -576,14 +576,14 @@ const PayrollDetailView = React.memo(({
         setIsSaving(true);
         try {
             // Add employees to timesheet period
-            const results = await Promise.allSettled(selectedEmployeeIds.map(empId => 
+            const results = await Promise.allSettled(selectedEmployeeIds.map(empId =>
                 timesheetsService.addEmployee({
                     employeeId: parseInt(empId),
                     month: month,
                     year: year
                 })
             ));
-            
+
             const failed = results.filter(r => r.status === 'rejected');
             if (failed.length > 0) {
                 console.error("Some employees failed to add:", failed);
@@ -594,9 +594,9 @@ const PayrollDetailView = React.memo(({
             } else {
                 toast.success(`Đã thêm ${selectedEmployeeIds.length} nhân sự thành công`);
             }
-            
+
             setIsAddModalOpen(false);
-            
+
             // Refresh timesheet data
             handleRefreshSection("timesheet");
         } catch (err) {
@@ -631,7 +631,7 @@ const PayrollDetailView = React.memo(({
                 const updates = timesheetData.map(item => {
                     const detail = payroll?.details?.find(d => d.employeeId === item.id);
                     if (!detail) return null;
-                    
+
                     // Merge with data from inputRows
                     const inputRow = inputRows.find(ir => ir.id === item.id);
 
@@ -693,29 +693,29 @@ const PayrollDetailView = React.memo(({
     // Constructed full details list to ensure all personnel from timesheet appear in Salary/Slip tabs
     const fullPayrollDetails = useMemo(() => {
         if (!timesheetData || !payroll?.details) return payroll?.details || [];
-        
+
         return timesheetData.map(tsItem => {
             const existingDetail = payroll.details.find(d => d.employeeId === tsItem.id);
             const inputRow = inputRows.find(ir => ir.id === tsItem.id);
-            
+
             // ── LẤY PERFORMANCE REVIEW ĐỂ TÍNH % KPI ──
             // Cấu trúc điểm: 1.1-1.5 (max 5.0) + 2.1 (max 5.0) = Total max 10.0
             const perf = performanceData.find(p => p.employeeId === tsItem.id);
-            
+
             // ── KPI % CHỈ CHIẾM 50% MỖI PHẦN ──
             // P2.1: sum(1.1-1.5) / max(5) * 50%
             // P2.2: scoreResult / max(5) * 50%
             let p21Percent = 0;
             let p22Percent = 0;
-            
+
             if (perf) {
-                const sumScore11to15 = 
+                const sumScore11to15 =
                     (parseFloat(perf.scoreCompliance || 0) +
-                    parseFloat(perf.scoreAttitude || 0) +
-                    parseFloat(perf.scoreLearning || 0) +
-                    parseFloat(perf.scoreTeamwork || 0) +
-                    parseFloat(perf.scoreSkills || 0));
-                
+                        parseFloat(perf.scoreAttitude || 0) +
+                        parseFloat(perf.scoreLearning || 0) +
+                        parseFloat(perf.scoreTeamwork || 0) +
+                        parseFloat(perf.scoreSkills || 0));
+
                 p21Percent = sumScore11to15 / 5 * 50;  // P2.1 chiếm 50%
                 p22Percent = parseFloat(perf.scoreResult || 0) / 5 * 50;  // P2.2 chiếm 50%
             }
@@ -728,7 +728,7 @@ const PayrollDetailView = React.memo(({
             const businessTripDays = parseFloat(tsItem.businessTripDays || 0);
             const holidayDays = parseFloat(tsItem.holidayDays || 0);
             const benefitLeaveDays = parseFloat(tsItem.benefitLeaveDays || 0);
-            
+
             const fullPayDays = officialDays + businessTripDays + holidayDays + benefitLeaveDays;
             const dayFactor = standardDays > 0 ? fullPayDays / standardDays : 0;
 
@@ -739,7 +739,7 @@ const PayrollDetailView = React.memo(({
             // P1 thực = baseSalary × hệ số ngày công
             const p1Amount = parseFloat(existingDetail?.baseSalary || tsItem.baseSalary || 0) * dayFactor;
             // Lương TV thực = baseSalary × ngày công TV / standardDays × 0.85
-            const probationAmount = standardDays > 0 ? 
+            const probationAmount = standardDays > 0 ?
                 (parseFloat(existingDetail?.baseSalary || tsItem.baseSalary || 0) / standardDays) * probationDays * 0.85 : 0;
 
             // Calculate OT Pay for the table view based on current hours in timesheet matrix
@@ -807,7 +807,7 @@ const PayrollDetailView = React.memo(({
 
     const filteredTimesheetData = useMemo(() => {
         if (!timesheetData) return [];
-        
+
         let data = [...timesheetData];
 
         // User wants to show all personnel, so we comment out the filter
@@ -832,7 +832,7 @@ const PayrollDetailView = React.memo(({
 
         if (tsSearch.trim()) {
             const term = tsSearch.toLowerCase();
-            data = data.filter(item => 
+            data = data.filter(item =>
                 item.fullName?.toLowerCase().includes(term) ||
                 item.employeeCode?.toLowerCase().includes(term) ||
                 item.departmentName?.toLowerCase().includes(term)
@@ -843,12 +843,12 @@ const PayrollDetailView = React.memo(({
 
     const filteredOvertimeData = useMemo(() => {
         if (!timesheetData) return [];
-        
+
         let data = [...timesheetData];
 
         if (otSearch.trim()) {
             const term = otSearch.toLowerCase();
-            data = data.filter(item => 
+            data = data.filter(item =>
                 item.fullName?.toLowerCase().includes(term) ||
                 item.employeeCode?.toLowerCase().includes(term)
             );
@@ -1174,7 +1174,7 @@ const PayrollDetailView = React.memo(({
                                                     <XCircle className="h-3.5 w-3.5" /> Từ chối
                                                 </Button>
                                             </div>
-                                            
+
                                             <div className="h-6 w-[1px] bg-slate-200 mx-1" />
 
                                             <div className="flex items-center gap-1.5">
@@ -1315,7 +1315,7 @@ const PayrollDetailView = React.memo(({
                                         )}
                                         {isEditingData ? (isSaving ? 'Đang lưu...' : 'Lưu thay đổi') : 'Chỉnh sửa'}
                                     </button>
-                                    <button 
+                                    <button
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
                                         onClick={handleOpenAddModal}
                                     >
@@ -1336,7 +1336,7 @@ const PayrollDetailView = React.memo(({
                                             <RefreshCw className={`h-3 w-3 ${actionLoading ? 'animate-spin' : ''}`} /> Cập nhật lại & Tính lương
                                         </button>
                                     )}
-                                    <label 
+                                    <label
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                                         onClick={() => document.getElementById("excel-import-input").click()}
                                     >
@@ -1349,8 +1349,8 @@ const PayrollDetailView = React.memo(({
                                         <Download className="h-3 w-3" /> Xuất Excel
                                     </button>
                                     <div className="ml-auto flex items-center gap-1">
-                                        <button 
-                                            className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" 
+                                        <button
+                                            className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                                             title="Làm mới"
                                             onClick={() => handleRefreshSection("timesheet")}
                                         >
@@ -1577,7 +1577,7 @@ const PayrollDetailView = React.memo(({
                             {/* ── Consolidated Header Block ── */}
                             <div className="sticky top-0 bg-white/95 backdrop-blur-md z-[30] border-b border-slate-200 shadow-sm transition-all duration-300 px-4 pt-3 pb-2 space-y-3 -mx-4 -mt-4 mb-4 rounded-t-xl">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <button 
+                                    <button
                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${isEditingData ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}`}
                                         onClick={handleToggleEditData}
                                         disabled={isSaving}
@@ -1646,12 +1646,12 @@ const PayrollDetailView = React.memo(({
                             onToggle={toggleSection}
                         >
                             <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
+                                {/* <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
                                     <Pencil className="h-3 w-3" /> Chỉnh sửa hàng loạt
-                                </button>
-                                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
+                                </button> */}
+                                {/* <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
                                     <Upload className="h-3 w-3" /> Import Excel
-                                </button>
+                                </button> */}
                                 {canEdit && payroll?.payrollStatus === "DRAFT" && (
                                     <button
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors shadow-sm"
@@ -1697,10 +1697,10 @@ const PayrollDetailView = React.memo(({
                                                 <th className="px-3 py-3 text-center w-[50px] sticky left-0 bg-slate-50 z-20">STT</th>
                                                 <th className="px-3 py-3 text-left w-[100px] sticky left-[50px] bg-slate-50 z-20">Mã NV</th>
                                                 <th className="px-3 py-3 text-left w-[200px] sticky left-[150px] bg-slate-50 z-20 border-r border-slate-200">Họ tên nhân sự</th>
-                                                
+
                                                 {/* Attendance Group */}
                                                 <th colSpan={3} className="px-3 py-3 text-center bg-blue-50/50 text-blue-700 border-r border-slate-200 italic">Dữ liệu công (Tham chiếu)</th>
-                                                
+
                                                 {/* P2 từ employee_salaries & performance_reviews */}
                                                 <th className="px-3 py-3 text-right w-[130px] bg-amber-50 text-amber-800">Lương P2</th>
                                                 <th className="px-3 py-3 text-center w-[90px] bg-amber-50 text-amber-800">% KPI</th>
@@ -1753,7 +1753,7 @@ const PayrollDetailView = React.memo(({
                                                     <td className="px-3 py-2 text-center text-slate-400 sticky left-0 bg-white group-hover:bg-slate-50 z-10">{idx + 1}</td>
                                                     <td className="px-3 py-2 font-bold text-slate-700 sticky left-[50px] bg-white group-hover:bg-slate-50 z-10">{row.employeeCode}</td>
                                                     <td className="px-3 py-2 font-medium text-slate-900 sticky left-[150px] bg-white group-hover:bg-slate-50 z-10 border-r border-slate-100">{row.fullName}</td>
-                                                    
+
                                                     {/* Attendance Reference */}
                                                     <td className="px-3 py-2 text-center text-slate-500 bg-blue-50/10">{row.standardDays}</td>
                                                     <td className="px-3 py-2 text-center font-bold text-blue-600 bg-blue-50/10">{row.officialDays}</td>
@@ -1992,7 +1992,7 @@ const PayrollDetailView = React.memo(({
                                 </Button>
                                 <div className="h-8 w-[1px] bg-slate-100 mx-1 hidden sm:block" />
                                 <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-lg border border-slate-100">
-                                    <button 
+                                    <button
                                         onClick={() => handleRefreshSection("payroll")}
                                         className="p-2 rounded-md hover:bg-white hover:shadow-sm text-slate-400 hover:text-indigo-600 transition-all"
                                     >
@@ -2024,14 +2024,49 @@ const PayrollDetailView = React.memo(({
                     />
                 )}
 
-                {activeTab === "slips" && (
-                    <PayrollSlipTable
-                        details={fullPayrollDetails}
-                        onSendEmail={(ids) => toast.success(`Đã xếp lịch gửi ${ids.length} phiếu lương vào hàng đợi!`)}
-                        onRecalculate={() => onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear })}
-                        onUpdateDetail={onEditDetail}
-                    />
-                )}
+                {activeTab === "slips" && (() => {
+                    const handleSendEmail = async (selectedDetailIds) => {
+                        if (!selectedDetailIds || selectedDetailIds.length === 0) {
+                            toast.error("Vui lòng chọn ít nhất một nhân sự để gửi phiếu lương.");
+                            return;
+                        }
+                        const toastId = toast.loading(`Đang gửi ${selectedDetailIds.length} phiếu lương...`);
+                        try {
+                            const res = await payrollService.sendPayslipsSelected(payroll.id, selectedDetailIds);
+                            const data = res?.data || res || {};
+                            const sent = data.sent ?? 0;
+                            const total = data.total ?? selectedDetailIds.length;
+                            const failed = data.failed || [];
+
+                            toast.dismiss(toastId);
+                            if (sent === total) {
+                                toast.success(`Đã gửi thành công ${sent}/${total} phiếu lương qua email!`);
+                            } else if (sent > 0) {
+                                toast.warning(
+                                    `Đã gửi ${sent}/${total} phiếu lương. ${failed.length} nhân sự không có email hoặc gửi lỗi.`
+                                );
+                            } else {
+                                toast.error(
+                                    `Không gửi được phiếu lương. ${failed.map(f => f.name || f.email).join(', ')} — kiểm tra lại email nhân viên.`
+                                );
+                            }
+                        } catch (err) {
+                            toast.dismiss(toastId);
+                            toast.error(err?.response?.data?.message || "Lỗi khi gửi phiếu lương. Vui lòng thử lại.");
+                            console.error("[PayrollDetailView] sendPayslipsSelected error:", err);
+                        }
+                    };
+
+                    return (
+                        <PayrollSlipTable
+                            details={fullPayrollDetails}
+                            onSendEmail={handleSendEmail}
+                            onRecalculate={() => onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear })}
+                            onUpdateDetail={onEditDetail}
+                        />
+                    );
+                })()}
+
             </div>
 
             {/* Add Personnel Modal */}
@@ -2040,7 +2075,7 @@ const PayrollDetailView = React.memo(({
                     <DialogHeader className="px-6 py-4 border-b">
                         <DialogTitle className="text-xl font-bold text-slate-800">Thêm nhân sự vào bảng chấm công</DialogTitle>
                     </DialogHeader>
-                    
+
                     <div className="p-6 space-y-4 flex-1 overflow-hidden flex flex-col">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -2059,7 +2094,7 @@ const PayrollDetailView = React.memo(({
                                     <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
                                     <p className="text-sm text-slate-400">Đang tải danh sách nhân sự...</p>
                                 </div>
-                            ) : availableEmployees.filter(emp => 
+                            ) : availableEmployees.filter(emp =>
                                 emp.fullName?.toLowerCase().includes(empSearch.toLowerCase()) ||
                                 emp.employeeCode?.toLowerCase().includes(empSearch.toLowerCase()) ||
                                 emp.departmentName?.toLowerCase().includes(empSearch.toLowerCase())
@@ -2068,25 +2103,25 @@ const PayrollDetailView = React.memo(({
                                     Không tìm thấy nhân sự phù hợp
                                 </div>
                             ) : (
-                                availableEmployees.filter(emp => 
+                                availableEmployees.filter(emp =>
                                     emp.fullName?.toLowerCase().includes(empSearch.toLowerCase()) ||
                                     emp.employeeCode?.toLowerCase().includes(empSearch.toLowerCase()) ||
                                     emp.departmentName?.toLowerCase().includes(empSearch.toLowerCase())
                                 ).map((emp) => (
-                                    <div 
-                                        key={emp.id} 
+                                    <div
+                                        key={emp.id}
                                         className={`flex items-center gap-4 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer ${selectedEmployeeIds.includes(emp.id) ? 'bg-indigo-50/50' : ''}`}
                                         onClick={() => {
-                                            setSelectedEmployeeIds(prev => 
-                                                prev.includes(emp.id) 
-                                                    ? prev.filter(id => id !== emp.id) 
+                                            setSelectedEmployeeIds(prev =>
+                                                prev.includes(emp.id)
+                                                    ? prev.filter(id => id !== emp.id)
                                                     : [...prev, emp.id]
                                             );
                                         }}
                                     >
-                                        <Checkbox 
+                                        <Checkbox
                                             checked={selectedEmployeeIds.includes(emp.id)}
-                                            onCheckedChange={() => {}} // Handled by div onClick
+                                            onCheckedChange={() => { }} // Handled by div onClick
                                         />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-slate-700 truncate">{emp.fullName}</p>
@@ -2102,7 +2137,7 @@ const PayrollDetailView = React.memo(({
 
                         <div className="flex items-center justify-between text-xs text-slate-400 font-medium px-1">
                             <span>Đã chọn: <span className="text-indigo-600 font-bold">{selectedEmployeeIds.length}</span> nhân sự</span>
-                            <button 
+                            <button
                                 className="text-indigo-600 hover:underline"
                                 onClick={() => setSelectedEmployeeIds(availableEmployees.map(e => e.id))}
                             >
@@ -2113,7 +2148,7 @@ const PayrollDetailView = React.memo(({
 
                     <DialogFooter className="px-6 py-4 border-t bg-slate-50">
                         <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Hủy</Button>
-                        <Button 
+                        <Button
                             className="bg-indigo-600 hover:bg-indigo-700 font-bold"
                             onClick={handleConfirmAddPersonnel}
                             disabled={isSaving || selectedEmployeeIds.length === 0}

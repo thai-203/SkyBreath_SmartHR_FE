@@ -199,6 +199,7 @@ export default function PayrollSlipTable({ details = [], onSendEmail, onRecalcul
                     onPrev={handlePrev}
                     onNext={handleNext}
                     onSaveNote={(id, note) => onUpdateDetail(id, { note })}
+                    onSendEmail={onSendEmail}
                 />
             )}
             

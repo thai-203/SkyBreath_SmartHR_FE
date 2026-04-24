@@ -78,9 +78,15 @@ export const payrollService = {
         return response.data;
     },
 
-    // UC30 - Send payslips by email
+    // UC30 - Send payslips by email (toàn bộ - chỉ khi LOCKED)
     sendPayslips: async (id) => {
         const response = await api.post(`/payroll/${id}/send-payslips`);
+        return response.data;
+    },
+
+    // UC30 - Send selected payslips by email (theo detailIds - mọi trạng thái)
+    sendPayslipsSelected: async (id, detailIds = []) => {
+        const response = await api.post(`/payroll/${id}/send-payslips-selected`, { detailIds });
         return response.data;
     },
 
