@@ -101,7 +101,6 @@ export default function SalaryDetailTable({
                             {/* Group VI - Deductions */}
                             <th className="w-[150px] bg-rose-50/50">BHXH NLĐ (52)</th>
                             <th className="w-[120px] bg-rose-50/50">Truy thu BH (53)</th>
-                            <th className="w-[120px] bg-rose-50/50">CĐ phí NLĐ (54)</th>
                             <th className="w-[120px] bg-rose-50/50">Đảng phí (55)</th>
                             <th className="w-[180px] bg-rose-50/50">Giảm trừ gia cảnh (12.2)</th>
                             <th className="w-[180px] bg-rose-50/50">TN tính thuế (12.3)</th>
@@ -169,7 +168,6 @@ export default function SalaryDetailTable({
                                     const siRate = parseFloat(item.socialInsurancePercentage || 8);
                                     const hiRate = parseFloat(item.healthInsurancePercentage || 1.5);
                                     const uiRate = parseFloat(item.unemploymentInsurancePercentage || 1);
-                                    const ufRate = parseFloat(item.unionFeePercentage || 0);
 
                                     // (52) Use saved computed amounts if available, otherwise calculate from rates
                                     const bhxhNLĐ = parseFloat(item.socialInsurance) > 0
@@ -178,20 +176,16 @@ export default function SalaryDetailTable({
                                             ? parseFloat(item.socialInsurance || 0) + parseFloat(item.healthInsurance || 0) + parseFloat(item.unemploymentInsurance || 0)
                                             : insuranceBase * (siRate + hiRate + uiRate) / 100;
 
-                                    const unionFeeAmount = parseFloat(item.unionFee) > 0
-                                        ? parseFloat(item.unionFee)
-                                        : insuranceBase * ufRate / 100;
-
-                                    // Total Deductions (65.1)
+                                    // Total Deductions (65.1) - KHÔNG bao gồm KPCĐ (KPCĐ là phí công ty)
                                     const thuếTNCN = parseFloat(item.taxDeduction || 0);
                                     const khấuTrừKhác = parseFloat(item.penalty || 0) + parseFloat(item.deduction || 0);
-                                    const tổngKhấuTrừ = bhxhNLĐ + parseFloat(item.insuranceAdjustment || 0) + unionFeeAmount + parseFloat(item.partyFee || 0) + thuếTNCN + parseFloat(item.taxAdjustment || 0) + khấuTrừKhác;
+                                    const tổngKhấuTrừ = bhxhNLĐ + parseFloat(item.insuranceAdjustment || 0) + parseFloat(item.partyFee || 0) + thuếTNCN + parseFloat(item.taxAdjustment || 0) + khấuTrừKhác;
 
                                     // (66) = (51) - (65.1)
                                     const thựcLĩnh = tổngThuNhập - tổngKhấuTrừ;
 
-                                    // Costs
-                                    const kpcđCty = parseFloat(item.companyUnionFee || 0);
+                                    // KPCĐ Công ty - từ cột union_fee (đã lưu KPCĐ vào đây)
+                                    const kpcđCty = parseFloat(item.unionFee || 0);
                                     const bhxhCty = parseFloat(item.companyInsurance || 0);
                                     const tổngChiPhíNS = tổngThuNhập + kpcđCty + bhxhCty;
 
@@ -237,7 +231,6 @@ export default function SalaryDetailTable({
                                             {/* Group VI - Deductions */}
                                             <td className="px-3 text-right text-rose-600 font-medium">{fmt(bhxhNLĐ)}</td>
                                             <td className="px-3 text-right text-rose-400">{fmt(item.insuranceAdjustment)}</td>
-                                            <td className="px-3 text-right text-rose-400">{fmt(item.unionFee)}</td>
                                             <td className="px-3 text-right text-rose-400">{fmt(item.partyFee)}</td>
                                             <td className="px-3 text-right text-slate-400 italic text-[10px]">{fmt(item.familyDeduction)}</td>
                                             <td className="px-3 text-right text-slate-500 font-medium">{fmt(item.taxableIncome)}</td>

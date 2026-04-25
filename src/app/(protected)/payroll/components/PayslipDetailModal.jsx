@@ -87,23 +87,37 @@ export default function PayslipDetailModal({
 
     // Deductions (Synchronized with indicators 52-65.1)
     const bhxhNLĐ = parseFloat(detail.socialInsurance || 0);
+    // BHYT và BHTN lấy TRỰC TIẾP từ DB (đã tính sẵn khi autoCalculate/updateDetail)
+    const bhytNLĐ = parseFloat(detail.healthInsurance || 0);
+    const bhtnNLĐ = parseFloat(detail.unemploymentInsurance || 0);
+    // Tỷ lệ chỉ dùng để hiển thị trong cột "Cách tính"
+    const siRate = parseFloat(detail.socialInsurancePercentage || 8);
+    const hiRate = parseFloat(detail.healthInsurancePercentage || 1.5);
+    const uiRate = parseFloat(detail.unemploymentInsurancePercentage || 1);
     const thuếTNCN = parseFloat(detail.taxDeduction || 0);
-    const khấuTrừKhác = parseFloat(detail.penalty || 0) + parseFloat(detail.deduction || 0);
-    const adjustedInsurance = bhxhNLĐ + parseFloat(detail.insuranceAdjustment || 0) + parseFloat(detail.unionFee || 0) + parseFloat(detail.partyFee || 0);
-    const adjustedTax = thuếTNCN + parseFloat(detail.taxAdjustment || 0);
+    const penalty = parseFloat(detail.penalty || 0);
+    const deduction = parseFloat(detail.deduction || 0);
+    const insuranceAdjustment = parseFloat(detail.insuranceAdjustment || 0);
+    const taxAdjustment = parseFloat(detail.taxAdjustment || 0);
+    const partyFee = parseFloat(detail.partyFee || 0);
+    const unionFee = parseFloat(detail.unionFee || 0);
 
-    const totalDeductions = adjustedInsurance + adjustedTax + khấuTrừKhác;
-    const netSalary = totalActualEarnings - totalDeductions;
+    // Tổng các khoản trừ = BHXH + BHYT + BHTN + KPCĐ + Đảng phí + Truy thu BH + Thuế TNCN + Truy thu thuế + Khấu trừ khác + Phạt
+    const totalDeductions = bhxhNLĐ + bhytNLĐ + bhtnNLĐ + unionFee + partyFee + insuranceAdjustment + thuếTNCN + taxAdjustment + deduction + penalty;
+    // netSalary đọc từ DB (đã tính đúng ở backend)
+    const netSalary = parseFloat(detail.netSalary || 0);
 
     const totalAgreement = (parseFloat(detail.baseSalary) || 0) + (parseFloat(detail.performanceSalary) || 0);
+    // Lương TV theo hợp đồng = baseSalary * 85%
+    const probationContractSalary = (parseFloat(detail.baseSalary) || 0) * 0.85;
 
     const rows = [
         { stt: "1", label: "Thu nhập thỏa thuận", value: totalAgreement, isHeader: true },
         { stt: "1.1", label: "Lương cơ bản (đóng BHXH)", value: detail.baseSalary, formula: "Hợp đồng" },
         { stt: "1.2", label: "Lương vị trí (P1)", value: detail.baseSalary, formula: "Hợp đồng" },
-        { stt: "1.3", label: "Thưởng HQCV (P2.1)", value: detail.performanceSalary, formula: "Hợp đồng" },
-        { stt: "1.4", label: "Khoán công việc (P2.2)", value: detail.performanceSalary, formula: "Hợp đồng" },
-        { stt: "1.5", label: "Lương trong thời gian thử việc", value: detail.probationSalary, formula: "Hợp đồng" },
+        { stt: "1.3", label: "Thưởng HQCV (P2.1)", value: detail.p21Amount ? detail.p21Amount / (parseFloat(detail.p1p2Percentage || 50) / 100) : detail.performanceSalary, formula: "Hợp đồng" },
+        { stt: "1.4", label: "Khoán công việc (P2.2)", value: detail.p22Amount ? detail.p22Amount / (parseFloat(detail.p3Percentage || 50) / 100) : detail.performanceSalary, formula: "Hợp đồng" },
+        { stt: "1.5", label: "Lương trong thời gian thử việc", value: probationContractSalary, formula: "Hợp đồng" },
 
         { stt: "2", label: "Ngày công", value: ncChínhThức + ncThửViệc + ncKhác, isHeader: true, isDays: true },
         { stt: "2.1", label: "Ngày công chuẩn", value: ncChuẩn, formula: "Hệ thống", isDays: true },
@@ -123,9 +137,16 @@ export default function PayslipDetailModal({
         { stt: "3.7", label: "Truy thu / Truy lĩnh", value: truyThuTínhThuế + truyThuKoThuế, formula: "Điều chỉnh" },
 
         { stt: "4", label: "Các khoản trừ", value: totalDeductions, isHeader: true },
-        { stt: "4.1", label: "Bảo hiểm & Phí (Công đoàn/Đảng)", value: adjustedInsurance, formula: "Đã tính" },
-        { stt: "4.2", label: "Thuế TNCN & Điều chỉnh thuế", value: adjustedTax, formula: "Biểu thuế" },
-        { stt: "4.3", label: "Khấu trừ & Phạt", value: khấuTrừKhác, formula: "Phát sinh" },
+        { stt: "4.1", label: "Bảo hiểm xã hội (BHXH)", value: bhxhNLĐ, formula: `${siRate}% lương đóng BH` },
+        { stt: "4.2", label: "Bảo hiểm y tế (BHYT)", value: bhytNLĐ, formula: `${hiRate}% lương đóng BH` },
+        { stt: "4.3", label: "Bảo hiểm thất nghiệp (BHTN)", value: bhtnNLĐ, formula: `${uiRate}% lương đóng BH` },
+        { stt: "4.4", label: "Kinh phí công đoàn (KPCĐ)", value: unionFee, formula: "Công ty đóng" },
+        { stt: "4.5", label: "Đảng phí", value: partyFee, formula: "Điều chỉnh" },
+        { stt: "4.6", label: "Truy thu BH", value: insuranceAdjustment, formula: "Điều chỉnh" },
+        { stt: "4.7", label: "Thuế TNCN", value: thuếTNCN, formula: "Biểu thuế lũy tiến" },
+        { stt: "4.8", label: "Truy thu thuế", value: taxAdjustment, formula: "Điều chỉnh" },
+        { stt: "4.9", label: "Khấu trừ khác", value: deduction, formula: "Phát sinh" },
+        { stt: "4.10", label: "Phạt", value: penalty, formula: "Phát sinh" },
 
         { stt: "NET", label: "THỰC LĨNH (NET)", value: netSalary, isSummary: true, color: "bg-emerald-600 shadow-xl shadow-emerald-100" },
     ];
@@ -164,7 +185,9 @@ export default function PayslipDetailModal({
 
                         <div className="text-right">
                             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Phiếu chi tiết lương</h3>
-                            <p className="text-[12px] text-slate-400 font-bold uppercase">Tháng 01/2026 • Ngày chi trả: 01/02/2026</p>
+                            <p className="text-[12px] text-slate-400 font-bold uppercase">
+                                Tháng {detail.payroll?.payrollMonth || (detail.payrollId ? '' : '')}/{detail.payroll?.payrollYear || ''}
+                            </p>
                         </div>
                     </div>
                 </div>
