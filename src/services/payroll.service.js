@@ -103,4 +103,45 @@ export const payrollService = {
         });
         return response.data;
     },
+
+    // ── FILE ĐÍNH KÈM ──
+
+    /** Lấy danh sách file đính kèm */
+    getAttachments: async (payrollId) => {
+        const response = await api.get(`/payroll/${payrollId}/attachments`);
+        return response.data;
+    },
+
+    /** Upload nhiều file cùng lúc (field: "files") */
+    uploadAttachments: async (payrollId, files) => {
+        const formData = new FormData();
+        files.forEach((file) => formData.append('files', file));
+        const response = await api.post(`/payroll/${payrollId}/attachments`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    },
+
+    /** Xóa một file đính kèm */
+    deleteAttachment: async (payrollId, attachmentId) => {
+        const response = await api.delete(`/payroll/${payrollId}/attachments/${attachmentId}`);
+        return response.data;
+    },
+
+    /** Download một file — trả về Blob để trigger save */
+    downloadAttachment: async (payrollId, attachmentId, fileName) => {
+        const response = await api.get(
+            `/payroll/${payrollId}/attachments/${attachmentId}/download`,
+            { responseType: 'blob' }
+        );
+        const url = URL.createObjectURL(response.data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
 };
+

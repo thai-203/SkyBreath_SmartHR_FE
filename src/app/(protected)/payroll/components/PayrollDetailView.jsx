@@ -50,6 +50,7 @@ import * as XLSX from "xlsx";
 import PayrollSlipTable from "./PayrollSlipTable";
 import SalaryDetailTable from "./SalaryDetailTable";
 import SalarySummaryTable from "./SalarySummaryTable";
+import PayrollAttachments from "./PayrollAttachments";
 
 
 const SummaryField = ({ label, value, icon: Icon, editable, isEditingHeader, type = "text", name, onChange }) => (
@@ -454,7 +455,7 @@ const PayrollDetailView = React.memo(({
                     // P2.1 thực và P2.2 thực (đã tính)
                     p21Actual: p21Actual,
                     p22Actual: p22Actual,
-                    bonus: 0,
+                    bonus: detail?.bonus ?? 0,
                     allowanceAmount: detail?.allowanceAmount ?? 0,
                     penalty: detail?.penalty ?? 0,
                     deduction: detail?.deduction ?? 0,
@@ -462,7 +463,7 @@ const PayrollDetailView = React.memo(({
                     socialInsurancePercentage: 8,
                     healthInsurancePercentage: 1.5,
                     unemploymentInsurancePercentage: 1,
-                    unionFeePercentage: 0,
+                    unionFee: detail?.unionFee ?? 0,
                     taxDeduction: detail?.taxDeduction ?? 0,
                     note: detail?.note || ""
                 };
@@ -663,7 +664,7 @@ const PayrollDetailView = React.memo(({
                         socialInsurancePercentage: inputRow?.socialInsurancePercentage,
                         healthInsurancePercentage: inputRow?.healthInsurancePercentage,
                         unemploymentInsurancePercentage: inputRow?.unemploymentInsurancePercentage,
-                        unionFeePercentage: inputRow?.unionFeePercentage,
+                        unionFee: inputRow?.unionFee,
                         taxDeduction: inputRow?.taxDeduction,
                         note: inputRow?.note
                     };
@@ -798,7 +799,7 @@ const PayrollDetailView = React.memo(({
                 socialInsurancePercentage: inputRow?.socialInsurancePercentage ?? existingDetail?.socialInsurancePercentage ?? 0,
                 healthInsurancePercentage: inputRow?.healthInsurancePercentage ?? existingDetail?.healthInsurancePercentage ?? 0,
                 unemploymentInsurancePercentage: inputRow?.unemploymentInsurancePercentage ?? existingDetail?.unemploymentInsurancePercentage ?? 0,
-                unionFeePercentage: inputRow?.unionFeePercentage ?? existingDetail?.unionFeePercentage ?? 0,
+                unionFee: inputRow?.unionFee ?? existingDetail?.unionFee ?? 0,
                 taxDeduction: inputRow?.taxDeduction ?? existingDetail?.taxDeduction ?? 0,
                 note: inputRow?.note ?? (existingDetail?.note || "")
             };
@@ -955,7 +956,7 @@ const PayrollDetailView = React.memo(({
                     socialInsurancePercentage: parseFloat(row.socialInsurancePercentage) || 0,
                     healthInsurancePercentage: parseFloat(row.healthInsurancePercentage) || 0,
                     unemploymentInsurancePercentage: parseFloat(row.unemploymentInsurancePercentage) || 0,
-                    unionFeePercentage: parseFloat(row.unionFeePercentage) || 0,
+                    unionFee: parseFloat(row.unionFee) || 0,
                     taxDeduction: parseFloat(row.taxDeduction) || 0,
                     note: row.note || ""
                 };
@@ -1699,41 +1700,116 @@ const PayrollDetailView = React.memo(({
                                                 <th className="px-3 py-3 text-left w-[200px] sticky left-[150px] bg-slate-50 z-20 border-r border-slate-200">Họ tên nhân sự</th>
 
                                                 {/* Attendance Group */}
-                                                <th colSpan={3} className="px-3 py-3 text-center bg-blue-50/50 text-blue-700 border-r border-slate-200 italic">Dữ liệu công (Tham chiếu)</th>
+                                                <th colSpan={3} className="px-3 py-3 text-center bg-blue-50/50 text-blue-700 border-r border-slate-200 italic group relative">
+                                                    Dữ liệu công (Tham chiếu)
+                                                    <span className="ml-1 cursor-help text-blue-400 hover:text-blue-600" title="Dữ liệu chấm công từ bảng timesheets, dùng làm tham chiếu tính lương">ⓘ</span>
+                                                </th>
 
                                                 {/* P2 từ employee_salaries & performance_reviews */}
-                                                <th className="px-3 py-3 text-right w-[130px] bg-amber-50 text-amber-800">Lương P2</th>
-                                                <th className="px-3 py-3 text-center w-[90px] bg-amber-50 text-amber-800">% KPI</th>
-                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700">% P2.1</th>
-                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700">% P2.2</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-indigo-50 text-indigo-700">Thưởng P2.1</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-indigo-50 text-indigo-700">Khoán P2.2</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700">Thưởng P3</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700">Phụ cấp</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700">Phạt</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700">K.Trừ khác</th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-amber-50 text-amber-800 group relative">
+                                                    Lương P2
+                                                    <span className="ml-1 cursor-help text-amber-400 hover:text-amber-600" title="Lương hiệu năng từ bảng employee_salaries, bao gồm P2.1 và P2.2">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-amber-50 text-amber-800 group relative">
+                                                    % KPI
+                                                    <span className="ml-1 cursor-help text-amber-400 hover:text-amber-600" title="Tổng % KPI = % P2.1 + % P2.2 (tối đa 100%)">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700 group relative">
+                                                    % P2.1
+                                                    <span className="ml-1 cursor-help text-indigo-400 hover:text-indigo-600" title="Phần trăm lương hiệu năng từ điểm hành vi (1.1-1.5): Tuân thủ, Thái độ, Học tập, Làm việc nhóm, Kỹ năng. Tối đa 50%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700 group relative">
+                                                    % P2.2
+                                                    <span className="ml-1 cursor-help text-indigo-400 hover:text-indigo-600" title="Phần trăm lương hiệu năng từ điểm kết quả công việc (2.1). Tối đa 50%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-indigo-50 text-indigo-700 group relative">
+                                                    Thưởng P2.1
+                                                    <span className="ml-1 cursor-help text-indigo-400 hover:text-indigo-600" title="Lương P2.1 thực nhận = Lương P2 × % P2.1 ÷ 100 × hệ số ngày công">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-indigo-50 text-indigo-700 group relative">
+                                                    Khoán P2.2
+                                                    <span className="ml-1 cursor-help text-indigo-400 hover:text-indigo-600" title="Lương P2.2 thực nhận = Lương P2 × % P2.2 ÷ 100 × hệ số ngày công">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700 group relative">
+                                                    Thưởng P3
+                                                    <span className="ml-1 cursor-help text-emerald-400 hover:text-emerald-600" title="Khoản thưởng thêm ngoài lương P1, P2 (thưởng doanh thu, thưởng tháng, v.v.)">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700 group relative">
+                                                    Phụ cấp
+                                                    <span className="ml-1 cursor-help text-emerald-400 hover:text-emerald-600" title="Các khoản phụ cấp: ăn trưa, xăng, điện thoại, phụ cấp khác. Tính theo ngày công thực tế.">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700 group relative">
+                                                    Phạt
+                                                    <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Khoản phạt do vi phạm nội quy,迟到, vắng không phép, etc.">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700 group relative">
+                                                    K.Trừ khác
+                                                    <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Các khoản khấu trừ khác ngoài BH và thuế (trừ lương, bảo hiểm, thuế)">ⓘ</span>
+                                                </th>
                                                 {/* Insurance rates cố định */}
-                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHXH</th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHYT</th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHTN</th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% KPCĐ</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-200/50 text-rose-950 font-black">Thuế TNCN</th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
+                                                    % BHXH
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Bảo hiểm xã hội: 8% lương đóng BH (tối đa 20×2.340.000đ). Công ty đóng thêm 17.5%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
+                                                    % BHYT
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Bảo hiểm y tế: 1.5% lương đóng BH. Công ty đóng thêm 3%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
+                                                    % BHTN
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Bảo hiểm thất nghiệp: 1% lương đóng BH. Công ty đóng thêm 1%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
+                                                    KPCĐ (VNĐ)
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Kinh phí công đoàn công ty: Nhập trực tiếp số tiền (mặc định = 2% lương đóng BH)">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-200/50 text-rose-950 font-black group relative">
+                                                    Thuế TNCN
+                                                    <span className="ml-1 cursor-help text-rose-600 hover:text-rose-800" title="Thuế thu nhập cá nhân: Áp dụng biểu thuế lũy tiến từng phần (5%-35%). Thu nhập tính thuế = Tổng lương + PC + OT + Thưởng - BH - 11.000.000đ (giảm trừ gia cảnh)">ⓘ</span>
+                                                </th>
                                                 <th className="px-3 py-3 text-left">Ghi chú</th>
                                             </tr>
                                             <tr className="bg-slate-50/50 text-[9px] text-slate-400 divide-x divide-slate-100 border-b border-slate-200">
                                                 <th colSpan={3} className="sticky left-0 bg-slate-50/50 z-20 border-r border-slate-200"></th>
-                                                <th className="px-2 py-1 text-center bg-blue-50/20">Công chuẩn</th>
-                                                <th className="px-2 py-1 text-center bg-blue-50/20">Chính thức</th>
-                                                <th className="px-2 py-1 text-center bg-blue-50/20 border-r border-slate-200">Thử việc</th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20 group relative">
+                                                    Công chuẩn
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Số ngày làm việc chuẩn trong tháng (trừ T7, CN, ngày lễ)">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20 group relative">
+                                                    Chính thức
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Số ngày công chính thức của nhân viên chính thức">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20 border-r border-slate-200 group relative">
+                                                    Thử việc
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Số ngày công thử việc (lương thử việc = P1 × 85%)">ⓘ</span>
+                                                </th>
                                                 <th className="px-2 py-1 text-center italic bg-amber-50/20">(VND)</th>
-                                                <th className="px-2 py-1 text-center italic bg-amber-50/20">(kpiScore/10)</th>
-                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(1.1-1.5)</th>
-                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(2.1)</th>
+                                                <th className="px-2 py-1 text-center italic bg-amber-50/20 group relative">
+                                                    (kpiScore/10)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="% KPI tổng = %P2.1 + %P2.2 (tối đa 100%)">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20 group relative">
+                                                    (1.1-1.5)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Tổng điểm 5 tiêu chí hành vi (1.1 Tuân thủ, 1.2 Thái độ, 1.3 Học tập, 1.4 Làm việc nhóm, 1.5 Kỹ năng), mỗi tiêu chí max 1.0, tổng max 5.0">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20 group relative">
+                                                    (2.1)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Điểm kết quả công việc (2.1), max 5.0">ⓘ</span>
+                                                </th>
                                                 <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2×%÷100)</th>
                                                 <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2×%÷100)</th>
-                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20">(36.1)</th>
-                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20">(43)</th>
-                                                <th className="px-2 py-1 text-center italic bg-rose-50/20">(65)</th>
+                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20 group relative">
+                                                    (36.1)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Khoản thưởng/thưởng P3, không phụ thuộc vào KPI">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20 group relative">
+                                                    (43)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Phụ cấp ăn trưa, xăng, điện thoại, khác - tính theo ngày công thực tế">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-50/20 group relative">
+                                                    (65)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Tiền phạt do vi phạm nội quy,迟到, vắng không phép">ⓘ</span>
+                                                </th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-50/20">(K.Trừ)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHXH)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHYT)</th>
@@ -1819,12 +1895,14 @@ const PayrollDetailView = React.memo(({
                                                             value={(row.p22Actual ?? 0).toFixed(2)}
                                                         />
                                                     </td>
-                                                    <td className="px-3 py-2 bg-slate-50/50">
+                                                    <td className="px-3 py-2 bg-emerald-50/50">
                                                         <input
                                                             type="number"
-                                                            disabled
-                                                            className="w-full bg-slate-100/50 border border-slate-200 rounded text-right py-1 px-2 font-bold text-slate-400 outline-none cursor-not-allowed"
+                                                            step="0.01"
+                                                            min={0}
+                                                            className="w-full bg-white border border-emerald-300 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
                                                             value={row.bonus ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'bonus', e.target.value)}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-emerald-50/20">
@@ -1887,14 +1965,15 @@ const PayrollDetailView = React.memo(({
                                                             value={row.unemploymentInsurancePercentage ?? 1}
                                                         />
                                                     </td>
-                                                    {/* % KPCĐ (cố định - không chỉnh sửa) */}
+                                                    {/* KPCĐ (cho người dùng nhập trực tiếp số tiền) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            disabled
-                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-center py-1 font-bold text-rose-800 outline-none cursor-not-allowed"
-                                                            value={row.unionFeePercentage ?? 0}
+                                                            min="0"
+                                                            className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-800 outline-none focus:ring-2 focus:ring-rose-400/50 focus:border-rose-400"
+                                                            value={row.unionFee ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'unionFee', parseFloat(e.target.value) || 0)}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-rose-200/20">
@@ -1938,10 +2017,11 @@ const PayrollDetailView = React.memo(({
                             isOpen={openSections.files}
                             onToggle={toggleSection}
                         >
-                            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/30">
-                                <Paperclip className="h-8 w-8 text-slate-300 mb-3" />
-                                <p className="text-slate-400 text-sm font-medium italic">Kéo thả file vào đây (PDF, XLSX, DOCX)</p>
-                            </div>
+                            <PayrollAttachments
+                                payrollId={payroll?.id}
+                                isLocked={payroll?.payrollStatus === "LOCKED"}
+                                canEdit={authService.hasPermission("PAYROLL_UPDATE")}
+                            />
                         </Section>
                         <Section
                             id="history"
