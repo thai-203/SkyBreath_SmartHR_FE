@@ -37,4 +37,10 @@ export const attendanceBlockingConfigService = {
     const response = await api.delete(`/attendance-blocking-configs/${id}`);
     return response.data;
   },
+
+  // Lấy lịch sử log điểm danh (check_in, check_out, join)
+  getLogs: async (params = {}) => {
+    const response = await api.get("/attendance-blocking-configs/logs", { params });
+    return response.data;
+  },
 };

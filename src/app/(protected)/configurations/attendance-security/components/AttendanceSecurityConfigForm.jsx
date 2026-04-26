@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/common/Input";
 import { Label } from "@/components/common/Label";
 import {
@@ -14,6 +14,10 @@ import { Switch } from "@/components/ui/switch";
 import { AllowedIpList } from "./AllowedIpList";
 import { motion } from "framer-motion";
 import LocationMapPicker from "./LocationMapPicker";
+import { Select } from "@/components/common/Select";
+import { Checkbox } from "@/components/common/Checkbox";
+import { departmentsService, employeesService } from "@/services";
+import { Users, Building2, Globe, Search as SearchIcon, ChevronRight, ChevronDown } from "lucide-react";
 
 export default function AttendanceSecurityConfigForm({
   config,
@@ -29,6 +33,42 @@ export default function AttendanceSecurityConfigForm({
 }) {
   // Trạng thái lưu trữ lỗi cục bộ để validate real-time
   const [localErrors, setLocalErrors] = useState({});
+  const [departments, setDepartments] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedDepartments, setExpandedDepartments] = useState({});
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setDataLoading(true);
+        const [depsRes, empsRes] = await Promise.all([
+          departmentsService.getAll(),
+          employeesService.getAll({ limit: 1000 }),
+        ]);
+
+        // Xử lý dữ liệu trả về linh hoạt (hỗ trợ các cấu trúc: [], {data: []}, {data: {items: []}})
+        const extractArray = (res) => {
+          if (Array.isArray(res)) return res;
+          if (Array.isArray(res?.data)) return res.data;
+          if (Array.isArray(res?.data?.items)) return res.data.items;
+          if (Array.isArray(res?.items)) return res.items;
+          return [];
+        };
+
+        setDepartments(extractArray(depsRes));
+        setEmployees(extractArray(empsRes));
+      } catch (error) {
+        console.error("Failed to load departments/employees:", error);
+        setDepartments([]);
+        setEmployees([]);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   // Đồng bộ lỗi từ component cha (nếu có lúc submit)
   useEffect(() => {
@@ -97,6 +137,90 @@ export default function AttendanceSecurityConfigForm({
     handleChange(field, numValue);
   };
 
+  const handleTargetToggle = (id) => {
+    const currentTargets = (config.targetIds || []).map(Number);
+    const idNum = Number(id);
+    let nextTargets;
+    if (currentTargets.includes(idNum)) {
+      nextTargets = currentTargets.filter((t) => t !== idNum);
+    } else {
+      nextTargets = [...currentTargets, idNum];
+    }
+    handleChange("targetIds", nextTargets);
+  };
+
+  const handleDepartmentToggle = (departmentId) => {
+    const deptEmployees = employees.filter(emp => Number(emp.departmentId) === Number(departmentId));
+    const deptEmpIds = deptEmployees.map(emp => Number(emp.id));
+    const currentTargets = (config.targetIds || []).map(Number);
+    
+    // Check if all employees in this dept are already selected
+    const allSelected = deptEmpIds.every(id => currentTargets.includes(id));
+    
+    let nextTargets;
+    if (allSelected) {
+      // Remove all employees of this department
+      nextTargets = currentTargets.filter(id => !deptEmpIds.includes(id));
+    } else {
+      // Add all missing employees of this department
+      const newIds = deptEmpIds.filter(id => !currentTargets.includes(id));
+      nextTargets = [...currentTargets, ...newIds];
+    }
+    handleChange("targetIds", nextTargets);
+  };
+
+  const toggleDeptExpand = (deptId) => {
+    setExpandedDepartments(prev => ({
+      ...prev,
+      [deptId]: !prev[deptId]
+    }));
+  };
+
+  const groupedEmployees = useMemo(() => {
+    const groups = {};
+    // Add "No Department" group
+    groups[0] = { name: "Chưa phân phòng ban", employees: [] };
+    
+    departments.forEach(dep => {
+      groups[dep.id] = { name: dep.departmentName, employees: [] };
+    });
+
+    employees.forEach(emp => {
+      const depId = emp.departmentId || 0;
+      if (groups[depId]) {
+        groups[depId].employees.push(emp);
+      }
+    });
+
+    return groups;
+  }, [departments, employees]);
+
+  const filteredGroups = useMemo(() => {
+    const filtered = {};
+    Object.keys(groupedEmployees).forEach(deptId => {
+      const dept = groupedEmployees[deptId];
+      const matchingEmps = dept.employees.filter(emp => 
+        emp.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.employeeCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        dept.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      if (matchingEmps.length > 0) {
+        filtered[deptId] = { ...dept, employees: matchingEmps };
+      }
+    });
+    return filtered;
+  }, [groupedEmployees, searchTerm]);
+
+  const filteredDepartments = (departments || []).filter((dep) =>
+    dep.departmentName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredEmployees = (employees || []).filter((emp) =>
+    emp.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.employeeCode?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const handleLocationSelect = (location) => {
     const nextConfig = {
       ...config,
@@ -158,6 +282,120 @@ export default function AttendanceSecurityConfigForm({
 
   return (
     <motion.div variants={itemVariants} className="w-full space-y-6">
+      {/* ── PHẠM VI ÁP DỤNG ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-indigo-500" />
+            Phạm vi áp dụng
+          </CardTitle>
+          <CardDescription>
+            Chọn đối tượng nhân viên sẽ áp dụng cấu hình bảo mật này
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <Select
+                label="Áp dụng cho"
+                value={config.applyTo || "ALL"}
+                options={[
+                  { value: "ALL", label: "Tất cả nhân viên" },
+                  { value: "EMPLOYEE", label: "Nhân viên cụ thể" },
+                ]}
+                onChange={(e) => handleChange("applyTo", e.target.value)}
+              />
+              <p className="text-xs text-slate-500 italic">
+                {config.applyTo === "ALL" && "Cấu hình này sẽ được áp dụng cho toàn bộ nhân viên trong công ty."}
+                {config.applyTo === "EMPLOYEE" && "Chọn danh sách nhân viên sẽ áp dụng cấu hình này."}
+              </p>
+            </div>
+
+            {config.applyTo === "EMPLOYEE" && (
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-slate-400" />
+                  Chọn nhân viên ({config.targetIds?.length || 0})
+                </Label>
+                
+                {/* Search Box */}
+                <div className="relative">
+                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Tìm tên, mã nhân viên hoặc phòng ban..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 h-9 text-sm"
+                  />
+                </div>
+
+                <div className="border rounded-lg p-2 bg-slate-50/50 max-h-[350px] overflow-y-auto space-y-1 custom-scrollbar">
+                  {dataLoading ? (
+                    <p className="text-xs text-slate-400 text-center py-4 italic">Đang tải dữ liệu...</p>
+                  ) : Object.keys(filteredGroups).length > 0 ? (
+                    Object.keys(filteredGroups).sort((a, b) => b - a).map(deptId => {
+                      const dept = filteredGroups[deptId];
+                      const deptEmpIds = dept.employees.map(e => Number(e.id));
+                      const selectedCount = (config.targetIds || []).filter(id => deptEmpIds.includes(Number(id))).length;
+                      const allSelected = deptEmpIds.length > 0 && selectedCount === deptEmpIds.length;
+                      const isExpanded = expandedDepartments[deptId] || searchTerm.length > 0;
+
+                      return (
+                        <div key={deptId} className="border border-slate-200 rounded-md bg-white overflow-hidden">
+                          <div className="flex items-center justify-between p-2 bg-slate-50/80 hover:bg-slate-100 transition-colors">
+                            <div className="flex items-center gap-2 flex-1">
+                              <button 
+                                onClick={() => toggleDeptExpand(deptId)}
+                                className="p-1 hover:bg-slate-200 rounded text-slate-500"
+                              >
+                                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              </button>
+                              <Checkbox 
+                                id={`dept-check-${deptId}`}
+                                checked={allSelected}
+                                onCheckedChange={() => handleDepartmentToggle(deptId)}
+                              />
+                              <label 
+                                htmlFor={`dept-check-${deptId}`}
+                                className="text-sm font-semibold cursor-pointer select-none flex-1"
+                              >
+                                {dept.name} 
+                                <span className="ml-2 text-xs font-normal text-slate-400">({selectedCount}/{dept.employees.length})</span>
+                              </label>
+                            </div>
+                          </div>
+                          
+                          {isExpanded && (
+                            <div className="p-1 pl-8 space-y-1 bg-white">
+                              {dept.employees.map((emp) => (
+                                <div key={emp.id} className="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded transition-colors group">
+                                  <Checkbox
+                                    id={`emp-${emp.id}`}
+                                    checked={(config.targetIds || []).map(Number).includes(Number(emp.id))}
+                                    onCheckedChange={() => handleTargetToggle(emp.id)}
+                                  />
+                                  <label
+                                    htmlFor={`emp-${emp.id}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                  >
+                                    {emp.fullName} <span className="text-slate-400 text-xs font-normal">- {emp.employeeCode}</span>
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-slate-400 text-center py-4 italic">Không tìm thấy nhân viên phù hợp</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
       {/* ── BẢO MẬT IP ── */}
       <Card>
         <CardHeader>

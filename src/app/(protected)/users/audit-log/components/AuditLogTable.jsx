@@ -25,6 +25,9 @@ export default function AuditLogTable({
   pagination,
   onPaginationChange,
   totalPages,
+  onSort,
+  sortBy,
+  sortOrder,
 }) {
   const [selected, setSelected] = useState(null);
 
@@ -47,7 +50,25 @@ export default function AuditLogTable({
       },
       {
         accessorKey: "createdAt",
-        header: "Thời gian",
+        header: () => {
+          const isActive = sortBy === "createdAt";
+          const nextOrder =
+            isActive && sortOrder === "ASC" ? "DESC" : "ASC";
+
+          return (
+            <button
+              type="button"
+              onClick={() => onSort?.("createdAt", nextOrder)}
+              className="inline-flex items-center gap-2 text-left hover:text-slate-900"
+              title="Sắp xếp theo thời gian"
+            >
+              <span>Thời gian</span>
+              <span className="text-xs text-slate-400">
+                {isActive ? (sortOrder === "ASC" ? "▲" : "▼") : "⇅"}
+              </span>
+            </button>
+          );
+        },
         cell: ({ row }) => {
           const d = new Date(row.original.createdAt);
           return d.toLocaleString();
@@ -107,7 +128,7 @@ export default function AuditLogTable({
         size: 100,
       },
     ],
-    [pagination],
+    [pagination, onSort, sortBy, sortOrder],
   );
 
   const table = useReactTable({
