@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Globe, Users } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -39,6 +39,7 @@ export function AttendanceBlockingTable({ rules, onToggle, onEdit, onDelete }) {
         <TableRow className="bg-muted/50 hover:bg-muted/50 border-y border-border/40">
           <TableHead className="pl-6">Tên quy tắc</TableHead>
           <TableHead>Loại vi phạm</TableHead>
+          <TableHead>Phạm vi</TableHead>
           <TableHead className="text-center">Giới hạn thử</TableHead>
           <TableHead className="text-center">Thời gian khóa</TableHead>
           <TableHead className="text-center">Trạng thái</TableHead>
@@ -58,6 +59,19 @@ export function AttendanceBlockingTable({ rules, onToggle, onEdit, onDelete }) {
               >
                 {ERROR_TYPE_LABELS[rule?.errorType]}
               </Badge>
+            </TableCell>
+            <TableCell>
+              {rule?.applyTo === "EMPLOYEE" ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
+                  <Users className="w-3.5 h-3.5" />
+                  {rule?.targetIds?.length || 0} NV
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
+                  <Globe className="w-3.5 h-3.5" />
+                  Tất cả
+                </span>
+              )}
             </TableCell>
             <TableCell className="text-center">
               <span className="font-mono text-sm font-semibold text-foreground">
@@ -103,10 +117,10 @@ export function AttendanceBlockingTable({ rules, onToggle, onEdit, onDelete }) {
         {rules?.length === 0 && (
           <TableRow>
             <TableCell
-              colSpan={6}
+              colSpan={7}
               className="py-12 text-center text-muted-foreground"
             >
-              Chưa có quy tắc nào. Nhấn "Thêm quy tắc" để bắt đầu.
+              Chưa có quy tắc nào. Nhấn “Thêm quy tắc” để bắt đầu.
             </TableCell>
           </TableRow>
         )}

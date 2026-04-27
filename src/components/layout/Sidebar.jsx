@@ -386,11 +386,11 @@ const menuItems = [
     icon: Settings,
     href: "/configurations",
     roles: ["ADMIN"],
-    // permissions: [
-    //   "ATTENDANCE_FACE_RECOGNITION_CONFIG_READ",
-    //   "ATTENDANCE_SECURITY_CONFIG_READ",
-    //   "ATTENDANCE_BLOCKING_CONFIG_READ",
-    // ],
+    permissions: [
+      "ATTENDANCE_FACE_RECOGNITION_CONFIG_READ",
+      "ATTENDANCE_SECURITY_CONFIG_READ",
+      "ATTENDANCE_BLOCKING_CONFIG_READ",
+    ],
     children: [
       { title: "Tổng quan", href: "/configurations" },
       { title: "Quy trình lương", href: "/configurations/payroll" },

@@ -35,7 +35,7 @@ export default function UsersPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
   const [totalPages, setTotalPages] = useState(1);
 
   // Modal states
