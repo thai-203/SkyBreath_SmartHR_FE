@@ -74,81 +74,85 @@ export default function PayslipDetailModal({
     // Indicator 36: Tổng lương chính
     const tongLuongChinh = p1ThựcNhận + p21ThựcNhận + p22ThựcNhận + pTVThựcNhận;
 
-    // Indicator 37, 38, 39: Phụ cấp, OT, Thưởng khác
+    // (36.1) Thưởng P3, (43) Phụ cấp, (45) OT, (46)(47)(50.1) Truy thu
     const phụCấp = parseFloat(detail.allowanceAmount || 0);
     const ot = parseFloat(detail.overtimePay || 0);
     const thưởngP3 = parseFloat(detail.bonus || 0);
     const truyThuTínhThuế = parseFloat(detail.adjustmentTaxable || 0);
     const truyThuKoThuế = parseFloat(detail.adjustmentNonTaxable || 0);
-    const khácKoThuế = parseFloat(detail.otherIncomeNonTaxable || 0);
+    const khácKoThuế = parseFloat(detail.otherNonTaxable || 0); // (50.1) — field name khớp backend
 
-    // Indicator 40: TỔNG THU NHẬP
-    const totalActualEarnings = tongLuongChinh + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
+    // (51) TỔNG THU NHẬP — ưu tiên dùng totalGrossIncome đã lưu từ backend
+    const totalActualEarnings = parseFloat(detail.totalGrossIncome) > 0
+        ? parseFloat(detail.totalGrossIncome)
+        : tongLuongChinh + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
 
-    // Deductions (Synchronized with indicators 52-65.1)
-    const bhxhNLĐ = parseFloat(detail.socialInsurance || 0);
-    // BHYT và BHTN lấy TRỰC TIẾP từ DB (đã tính sẵn khi autoCalculate/updateDetail)
-    const bhytNLĐ = parseFloat(detail.healthInsurance || 0);
-    const bhtnNLĐ = parseFloat(detail.unemploymentInsurance || 0);
-    // Tỷ lệ chỉ dùng để hiển thị trong cột "Cách tính"
+    // (52) BH NLĐ = BHXH+BHYT+BHTN = 10.5% — dùng insuranceDeduction đã lưu
+    const bhxhNLĐ = parseFloat(detail.insuranceDeduction) > 0
+        ? parseFloat(detail.insuranceDeduction)
+        : parseFloat(detail.baseSalary || 0) * 0.105; // fallback 10.5%
+    // Tỷ lệ chỉ dùng để hiển thị
     const siRate = parseFloat(detail.socialInsurancePercentage || 8);
     const hiRate = parseFloat(detail.healthInsurancePercentage || 1.5);
     const uiRate = parseFloat(detail.unemploymentInsurancePercentage || 1);
-    const thuếTNCN = parseFloat(detail.taxDeduction || 0);
-    const penalty = parseFloat(detail.penalty || 0);
-    const deduction = parseFloat(detail.deduction || 0);
-    const insuranceAdjustment = parseFloat(detail.insuranceAdjustment || 0);
-    const taxAdjustment = parseFloat(detail.taxAdjustment || 0);
-    const partyFee = parseFloat(detail.partyFee || 0);
-    const unionFee = parseFloat(detail.unionFee || 0);
+    const thuếTNCN = parseFloat(detail.taxDeduction || 0);          // (63)
+    const insuranceAdjustment = parseFloat(detail.insuranceAdjustment || 0); // (53)
+    const employeeUnionFee = parseFloat(detail.employeeUnionFee || 0);       // (54) CĐ phí NLĐ
+    const taxAdjustment = parseFloat(detail.taxAdjustment || 0);             // (64)
+    const partyFee = parseFloat(detail.partyFee || 0);                       // (55)
+    const otherDeduction = parseFloat(detail.otherDeduction || 0);           // (65) Trừ khác
 
-    // Tổng các khoản trừ = BHXH + BHYT + BHTN + KPCĐ + Đảng phí + Truy thu BH + Thuế TNCN + Truy thu thuế + Khấu trừ khác + Phạt
-    const totalDeductions = bhxhNLĐ + bhytNLĐ + bhtnNLĐ + unionFee + partyFee + insuranceAdjustment + thuếTNCN + taxAdjustment + deduction + penalty;
-    // netSalary đọc từ DB (đã tính đúng ở backend)
+    // (65.1) Tổng khấu trừ = (52)+(53)+(54)+(55)+(63)+(64)+(65) — ưu tiên totalDeduction đã lưu
+    const totalDeductions = parseFloat(detail.totalDeduction) > 0
+        ? parseFloat(detail.totalDeduction)
+        : bhxhNLĐ + insuranceAdjustment + employeeUnionFee + partyFee + thuếTNCN + taxAdjustment + otherDeduction;
+
+    // (66) netSalary đọc từ DB
     const netSalary = parseFloat(detail.netSalary || 0);
 
+    // Định mức hợp đồng (Section 1): hiển thị giá trị gốc, không phải earned
     const totalAgreement = (parseFloat(detail.baseSalary) || 0) + (parseFloat(detail.performanceSalary) || 0);
-    // Lương TV theo hợp đồng = baseSalary * 85%
-    const probationContractSalary = (parseFloat(detail.baseSalary) || 0) * 0.85;
+    // (14) Lương TV định mức: ưu tiên probationBaseSalary, fallback probationAmount
+    const probationContractSalary = parseFloat(detail.probationBaseSalary) || parseFloat(detail.probationAmount) || 0;
 
     const rows = [
-        { stt: "1", label: "Thu nhập thỏa thuận", value: totalAgreement, isHeader: true },
-        { stt: "1.1", label: "Lương cơ bản (đóng BHXH)", value: detail.baseSalary, formula: "Hợp đồng" },
-        { stt: "1.2", label: "Lương vị trí (P1)", value: detail.baseSalary, formula: "Hợp đồng" },
-        { stt: "1.3", label: "Thưởng HQCV (P2.1)", value: detail.p21Amount ? detail.p21Amount / (parseFloat(detail.p1p2Percentage || 50) / 100) : detail.performanceSalary, formula: "Hợp đồng" },
-        { stt: "1.4", label: "Khoán công việc (P2.2)", value: detail.p22Amount ? detail.p22Amount / (parseFloat(detail.p3Percentage || 50) / 100) : detail.performanceSalary, formula: "Hợp đồng" },
-        { stt: "1.5", label: "Lương trong thời gian thử việc", value: probationContractSalary, formula: "Hợp đồng" },
+        { stt: "1", label: "Định mức Hợp đồng", value: totalAgreement, isHeader: true },
+        { stt: "1.1", label: "Lương cơ bản đóng BHXH", value: detail.baseSalary, formula: "Hợp đồng" },
+        { stt: "11",  label: "Lương vị trí (P1)", value: detail.positionSalary || detail.baseSalary, formula: "Hợp đồng" },
+        { stt: "12",  label: "Thưởng HQCV (P2.1)", value: detail.performanceBonusSalary || detail.p21Amount, formula: "Nhập tay" },
+        { stt: "13",  label: "Khoán công việc (P2.2)", value: detail.taskContractSalary || detail.p22Amount, formula: "Nhập tay" },
+        { stt: "14",  label: "Lương thử việc", value: probationContractSalary, formula: "Nhập tay" },
 
         { stt: "2", label: "Ngày công", value: ncChínhThức + ncThửViệc + ncKhác, isHeader: true, isDays: true },
-        { stt: "2.1", label: "Ngày công chuẩn", value: ncChuẩn, formula: "Hệ thống", isDays: true },
-        { stt: "2.2", label: "Ngày công đi làm chính thức", value: ncChínhThức, formula: "Máy chấm công", isDays: true },
-        { stt: "2.3", label: "Ngày công đi làm thử việc", value: ncThửViệc, formula: "Máy chấm công", isDays: true },
-        { stt: "2.4", label: "Ngày công tính lương khác", value: ncKhác, formula: "Phép/Lễ/Công tác", isDays: true },
+        { stt: "21", label: "Công chuẩn tháng", value: ncChuẩn, formula: "Hệ thống", isDays: true },
+        { stt: "22", label: "Công chính thức", value: ncChínhThức, formula: "Máy chấm công", isDays: true },
+        { stt: "23", label: "Công thử việc", value: ncThửViệc, formula: "Máy chấm công", isDays: true },
+        { stt: "26+",label: "Công khác (phép/lễ/công tác)", value: ncKhác, formula: "Phép/Lễ/Công tác", isDays: true },
 
-        { stt: "I", label: "TỔNG THU NHẬP TRONG THÁNG", value: totalActualEarnings, isSummary: true },
+        { stt: "51", label: "TỔNG THU NHẬP", value: totalActualEarnings, isSummary: true },
 
-        { stt: "3", label: "Lương, thưởng thực tế hưởng", value: totalActualEarnings, isHeader: true },
-        { stt: "3.1", label: "Lương vị trí thực nhận (P1)", value: p1ThựcNhận, formula: "Đã tính" },
-        { stt: "3.2", label: "Thưởng HQCV thực nhận (P2.1)", value: p21ThựcNhận, formula: "Đã tính" },
-        { stt: "3.3", label: "Khoán công việc thực nhận (P2.2)", value: p22ThựcNhận, formula: "Đã tính" },
-        { stt: "3.4", label: "Lương thử việc thực nhận", value: pTVThựcNhận, formula: "Đã tính" },
-        { stt: "3.5", label: "Tiền lương làm thêm giờ (OT)", value: ot, formula: "Bảng OT" },
-        { stt: "3.6", label: "Phụ cấp & Thưởng khác", value: phụCấp + thưởngP3 + khácKoThuế, formula: "Hợp đồng & Phát sinh" },
-        { stt: "3.7", label: "Truy thu / Truy lĩnh", value: truyThuTínhThuế + truyThuKoThuế, formula: "Điều chỉnh" },
+        { stt: "3", label: "Thu nhập thực nhận", value: totalActualEarnings, isHeader: true },
+        { stt: "31", label: "Lương P1 thực nhận", value: p1ThựcNhận, formula: `(11/NC_chuẩn)×ngày công` },
+        { stt: "32", label: "Thưởng P2.1 thực nhận", value: p21ThựcNhận, formula: `(12/NC_chuẩn)×ngày công×%KPI` },
+        { stt: "33", label: "Khoán P2.2 thực nhận", value: p22ThựcNhận, formula: `13×%KPI` },
+        { stt: "34", label: "Lương thử việc thực nhận", value: pTVThựcNhận, formula: `(14/NC_chuẩn)×công TV` },
+        { stt: "36.1",label: "Thưởng phát sinh P3", value: thưởngP3, formula: "Phát sinh" },
+        { stt: "43", label: "Phụ cấp thực nhận", value: phụCấp, formula: "Hợp đồng" },
+        { stt: "45", label: "Tăng ca OT", value: ot, formula: "Bảng OT" },
+        { stt: "46", label: "Truy thu tính thuế", value: truyThuTínhThuế, formula: "Điều chỉnh" },
+        { stt: "47", label: "Truy thu không thuế", value: truyThuKoThuế, formula: "Điều chỉnh" },
+        { stt: "50.1",label: "Thu nhập khác không thuế", value: khácKoThuế, formula: "Phát sinh" },
 
-        { stt: "4", label: "Các khoản trừ", value: totalDeductions, isHeader: true },
-        { stt: "4.1", label: "Bảo hiểm xã hội (BHXH)", value: bhxhNLĐ, formula: `${siRate}% lương đóng BH` },
-        { stt: "4.2", label: "Bảo hiểm y tế (BHYT)", value: bhytNLĐ, formula: `${hiRate}% lương đóng BH` },
-        { stt: "4.3", label: "Bảo hiểm thất nghiệp (BHTN)", value: bhtnNLĐ, formula: `${uiRate}% lương đóng BH` },
-        { stt: "4.4", label: "Kinh phí công đoàn (KPCĐ)", value: unionFee, formula: "Công ty đóng" },
-        { stt: "4.5", label: "Đảng phí", value: partyFee, formula: "Điều chỉnh" },
-        { stt: "4.6", label: "Truy thu BH", value: insuranceAdjustment, formula: "Điều chỉnh" },
-        { stt: "4.7", label: "Thuế TNCN", value: thuếTNCN, formula: "Biểu thuế lũy tiến" },
-        { stt: "4.8", label: "Truy thu thuế", value: taxAdjustment, formula: "Điều chỉnh" },
-        { stt: "4.9", label: "Khấu trừ khác", value: deduction, formula: "Phát sinh" },
-        { stt: "4.10", label: "Phạt", value: penalty, formula: "Phát sinh" },
+        { stt: "4", label: "Các khoản khấu trừ", value: totalDeductions, isHeader: true },
+        { stt: "52", label: `BH NLĐ (BHXH${siRate}%+BHYT${hiRate}%+BHTN${uiRate}%)`, value: bhxhNLĐ, formula: `10.5% × lương đóng BH` },
+        { stt: "53", label: "Truy thu BH", value: insuranceAdjustment, formula: "Điều chỉnh" },
+        { stt: "54", label: "Công đoàn phí NLĐ", value: employeeUnionFee, formula: "Điều chỉnh" },
+        { stt: "55", label: "Đảng phí", value: partyFee, formula: "Điều chỉnh" },
+        { stt: "63", label: "Thuế TNCN", value: thuếTNCN, formula: "Biểu thuế lũy tiến" },
+        { stt: "64", label: "Truy thu thuế", value: taxAdjustment, formula: "Điều chỉnh" },
+        { stt: "65", label: "Trừ khác", value: otherDeduction, formula: "Phát sinh" },
 
-        { stt: "NET", label: "THỰC LĨNH (NET)", value: netSalary, isSummary: true, color: "bg-emerald-600 shadow-xl shadow-emerald-100" },
+        { stt: "NET", label: "THỰC LĨNH (NET 66)", value: netSalary, isSummary: true, color: "bg-emerald-600 shadow-xl shadow-emerald-100" },
     ];
 
     return (
