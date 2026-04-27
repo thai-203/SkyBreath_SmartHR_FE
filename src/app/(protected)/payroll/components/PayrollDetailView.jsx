@@ -27,6 +27,7 @@ import {
     FileSpreadsheet,
     FileText,
     History,
+    Info,
     Lock,
     Mail,
     Maximize2,
@@ -435,6 +436,14 @@ const PayrollDetailView = React.memo(({
                 const p21Actual = performanceSalary * (p21Percent / 100) * dayFactor;
                 const p22Actual = performanceSalary * (p22Percent / 100) * dayFactor;
 
+                // Tính tổng phụ cấp từ employee_salaries (lunch + fuel + phone + other)
+                // Đây là giá trị MẶC ĐỊNH, không nhân với số công
+                const totalAllowance = 
+                    parseFloat(salary?.lunchAllowance || 0) +
+                    parseFloat(salary?.fuelAllowance || 0) +
+                    parseFloat(salary?.phoneAllowance || 0) +
+                    parseFloat(salary?.otherAllowance || 0);
+
                 return {
                     id: ts.id,
                     employeeId: ts.id,
@@ -456,7 +465,13 @@ const PayrollDetailView = React.memo(({
                     p21Actual: p21Actual,
                     p22Actual: p22Actual,
                     bonus: detail?.bonus ?? 0,
-                    allowanceAmount: detail?.allowanceAmount ?? 0,
+                    // Phụ cấp: mặc định lấy tổng 4 trường, không cho sửa
+                    allowanceAmount: totalAllowance,
+                    // Lưu lại để hiển thị chi tiết
+                    lunchAllowance: salary?.lunchAllowance || 0,
+                    fuelAllowance: salary?.fuelAllowance || 0,
+                    phoneAllowance: salary?.phoneAllowance || 0,
+                    otherAllowance: salary?.otherAllowance || 0,
                     penalty: detail?.penalty ?? 0,
                     deduction: detail?.deduction ?? 0,
                     // Insurance rates cố định
@@ -658,7 +673,7 @@ const PayrollDetailView = React.memo(({
                         p1p2Percentage: inputRow?.p1p2Percentage,
                         p3Percentage: inputRow?.p3Percentage,
                         bonus: inputRow?.bonus, // Matrix P3
-                        allowanceAmount: inputRow?.allowanceAmount,
+                        // allowanceAmount: KHÔNG gửi - backend tự tính từ employee_salaries
                         penalty: inputRow?.penalty,
                         deduction: inputRow?.deduction,
                         socialInsurancePercentage: inputRow?.socialInsurancePercentage,
@@ -950,7 +965,7 @@ const PayrollDetailView = React.memo(({
                     p1p2Percentage: parseFloat(row.p1p2Percentage) || 0,
                     p3Percentage: parseFloat(row.p3Percentage) || 0,
                     bonus: parseFloat(row.bonus) || 0,
-                    allowanceAmount: parseFloat(row.allowanceAmount) || 0,
+                    // allowanceAmount: KHÔNG gửi - backend tự tính từ employee_salaries
                     penalty: parseFloat(row.penalty) || 0,
                     deduction: parseFloat(row.deduction) || 0,
                     socialInsurancePercentage: parseFloat(row.socialInsurancePercentage) || 0,
@@ -1736,7 +1751,7 @@ const PayrollDetailView = React.memo(({
                                                 </th>
                                                 <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700 group relative">
                                                     Phụ cấp
-                                                    <span className="ml-1 cursor-help text-emerald-400 hover:text-emerald-600" title="Các khoản phụ cấp: ăn trưa, xăng, điện thoại, phụ cấp khác. Tính theo ngày công thực tế.">ⓘ</span>
+                                                    <span className="ml-1 cursor-help text-emerald-400 hover:text-emerald-600" title="Tổng phụ cấp cố định mỗi tháng: ăn trưa + xăng + điện thoại + khác. Không phụ thuộc ngày công.">ⓘ</span>
                                                 </th>
                                                 <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700 group relative">
                                                     Phạt
@@ -1804,7 +1819,7 @@ const PayrollDetailView = React.memo(({
                                                 </th>
                                                 <th className="px-2 py-1 text-center italic bg-emerald-50/20 group relative">
                                                     (43)
-                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Phụ cấp ăn trưa, xăng, điện thoại, khác - tính theo ngày công thực tế">ⓘ</span>
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Phụ cấp cố định: ăn trưa + xăng + điện thoại + khác. Không phụ thuộc ngày công.">ⓘ</span>
                                                 </th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-50/20 group relative">
                                                     (65)
@@ -1905,15 +1920,31 @@ const PayrollDetailView = React.memo(({
                                                             onChange={(e) => handleInputRowChange(row.id, 'bonus', e.target.value)}
                                                         />
                                                     </td>
-                                                    <td className="px-3 py-2 bg-emerald-50/20">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-emerald-200 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
-                                                            value={row.allowanceAmount ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'allowanceAmount', e.target.value)}
-                                                        />
+                                                    <td className="px-3 py-2 bg-emerald-50/20 relative group/allowance">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <span className="font-bold text-emerald-700">
+                                                                {(row.allowanceAmount ?? 0).toLocaleString('vi-VN')}
+                                                            </span>
+                                                            <div className="relative">
+                                                                <Info className="h-3.5 w-3.5 text-emerald-500 cursor-help" />
+                                                                
+                                                                {/* Tooltip */}
+                                                                <div className="absolute bottom-full right-0 mb-1 hidden group-hover/allowance:block z-50">
+                                                                    <div className="bg-slate-800 text-white text-[10px] rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
+                                                                        <p className="font-semibold mb-1">Phụ cấp mặc định</p>
+                                                                        <div className="space-y-0.5">
+                                                                            <p>Ăn trưa: <span className="text-emerald-300">{((row.lunchAllowance || 0)).toLocaleString('vi-VN')} đ</span></p>
+                                                                            <p>Xăng xe: <span className="text-emerald-300">{((row.fuelAllowance || 0)).toLocaleString('vi-VN')} đ</span></p>
+                                                                            <p>Điện thoại: <span className="text-emerald-300">{((row.phoneAllowance || 0)).toLocaleString('vi-VN')} đ</span></p>
+                                                                            <p>Khác: <span className="text-emerald-300">{((row.otherAllowance || 0)).toLocaleString('vi-VN')} đ</span></p>
+                                                                        </div>
+                                                                        <div className="border-t border-slate-600 mt-1 pt-1 font-bold text-emerald-400">
+                                                                            Tổng: {(row.allowanceAmount ?? 0).toLocaleString('vi-VN')} đ
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                     <td className="px-3 py-2 bg-rose-50/20">
                                                         <input

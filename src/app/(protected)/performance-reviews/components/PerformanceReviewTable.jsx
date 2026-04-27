@@ -123,10 +123,7 @@ export default function PerformanceReviewTable({
                         <div className="space-y-1">
                             <div className="flex items-center justify-between text-xs">
                                 <span className="text-slate-600">{behaviorScore.toFixed(1)}/{maxScore}</span>
-                                <span className={`font-medium ${
-                                    percentage >= 80 ? 'text-emerald-600' : 
-                                    percentage >= 60 ? 'text-amber-600' : 'text-rose-600'
-                                }`}>{percentage.toFixed(0)}%</span>
+                                
                             </div>
                             <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div 
@@ -150,10 +147,7 @@ export default function PerformanceReviewTable({
                         <div className="space-y-1">
                             <div className="flex items-center justify-between text-xs">
                                 <span className="text-slate-600">{score.toFixed(1)}/5.0</span>
-                                <span className={`font-medium ${
-                                    percentage >= 80 ? 'text-emerald-600' : 
-                                    percentage >= 60 ? 'text-amber-600' : 'text-rose-600'
-                                }`}>{percentage.toFixed(0)}%</span>
+                                
                             </div>
                             <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div 
