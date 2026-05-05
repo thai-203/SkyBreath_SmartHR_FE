@@ -429,8 +429,10 @@ const PayrollDetailView = React.memo(({
                 // P2.1 thực = performanceSalary × %P2.1 / 100 × hệ số ngày công
                 // P2.2 thực = performanceSalary × %P2.2 / 100 × hệ số ngày công
                 const standardDays = parseFloat(ts.standardDays) || 22;
+                // Công chính thức = officialDays + annualLeaveDays (phép năm hưởng lương)
                 const workingDays = (parseFloat(ts.officialDays || 0) + parseFloat(ts.probationDays || 0) +
-                    parseFloat(ts.businessTripDays || 0) + parseFloat(ts.holidayDays || 0) + parseFloat(ts.benefitLeaveDays || 0));
+                    parseFloat(ts.businessTripDays || 0) + parseFloat(ts.holidayDays || 0) + 
+                    parseFloat(ts.benefitLeaveDays || 0) + parseFloat(ts.annualLeaveDays || 0));
                 const dayFactor = standardDays > 0 ? workingDays / standardDays : 0;
 
                 const p21Actual = performanceSalary * (p21Percent / 100) * dayFactor;
@@ -744,8 +746,11 @@ const PayrollDetailView = React.memo(({
             const businessTripDays = parseFloat(tsItem.businessTripDays || 0);
             const holidayDays = parseFloat(tsItem.holidayDays || 0);
             const benefitLeaveDays = parseFloat(tsItem.benefitLeaveDays || 0);
+            const annualLeaveDays = parseFloat(tsItem.annualLeaveDays || 0);
 
-            const fullPayDays = officialDays + businessTripDays + holidayDays + benefitLeaveDays;
+            // fullPayDays = officialDays + probationDays + businessTripDays + holidayDays + benefitLeaveDays + annualLeaveDays
+            // (Nhất quán với backend _calcWorkingDays)
+            const fullPayDays = officialDays + probationDays + businessTripDays + holidayDays + benefitLeaveDays + annualLeaveDays;
             const dayFactor = standardDays > 0 ? fullPayDays / standardDays : 0;
 
             // P2.1 thực = performanceSalary × %P2.1 / 100 × hệ số ngày công
