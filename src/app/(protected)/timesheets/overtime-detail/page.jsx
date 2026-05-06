@@ -213,7 +213,6 @@ export default function OvertimeDetailPage() {
                             {isHR && <TableHead>Nhân viên</TableHead>}
                             <TableHead>Loại đơn</TableHead>
                             <TableHead>Ngày làm</TableHead>
-                            <TableHead>Trong ngày</TableHead>
                             <TableHead>Tổng giờ</TableHead>
                             <TableHead>Loại OT</TableHead>
                             <TableHead>Trạng thái đơn</TableHead>
@@ -278,9 +277,7 @@ export default function OvertimeDetailPage() {
                                         <TableCell className="text-xs text-slate-600 whitespace-nowrap">
                                             {formatDate(line.workDate)}
                                         </TableCell>
-                                        <TableCell className="text-xs text-slate-600 whitespace-nowrap">
-                                            {formatTime(line.startTime)} → {formatTime(line.endTime)}
-                                        </TableCell>
+
                                         <TableCell className="text-sm font-medium text-slate-800 whitespace-nowrap">
                                             {line.totalHours != null ? Number(line.totalHours).toFixed(2) : "—"}
                                         </TableCell>

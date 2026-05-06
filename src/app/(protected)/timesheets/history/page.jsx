@@ -18,7 +18,7 @@ const ACTION_TYPES = [
     { value: "DELETE", label: "Xóa" },
     { value: "EXPORT", label: "Xuất Excel" },
     { value: "SYNC_ATTENDANCE", label: "Đồng bộ công" },
-    { value: "FINALIZE", label: "Chốt công (ma trận)" },
+    { value: "FINALIZE", label: "Chốt công " },
     { value: "UNFINALIZE", label: "Bỏ chốt công" },
 ];
 

@@ -17,7 +17,7 @@ function ThinkingIndicator() {
     <div className="flex self-start items-start max-w-[85%]">
       <div className="p-3 bg-muted rounded-lg rounded-tl-none text-sm text-muted-foreground flex items-center gap-2">
         <Bot className="h-4 w-4 text-primary animate-pulse shrink-0" />
-        <span className="italic flex items-center gap-1">
+        <span className="italic flex items-center gap-1" style={{ color: "black" }}>
           Đang suy nghĩ
           <span className="flex gap-0.5 ml-0.5">
             <span className="w-1 h-1 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -33,7 +33,7 @@ function ThinkingIndicator() {
 // ── Sizes ─────────────────────────────────────────────────────────────────
 const SIZES = {
   normal: { width: 620, height: 560 },
-  large:  { width: 900, height: 720 },
+  large: { width: 900, height: 720 },
 };
 
 const SIDEBAR_WIDTH = 180;
@@ -247,7 +247,7 @@ export default function AssistantChatbot() {
       console.error("Chat error:", error);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Xin lỗi, kết nối không thành công." },
+        { role: "assistant", content: "Xin lỗi, API đang bảo trì." },
       ]);
     } finally {
       setIsLoading(false);
@@ -362,9 +362,8 @@ export default function AssistantChatbot() {
                 <div
                   key={conv.id}
                   onClick={() => selectConversation(conv.id)}
-                  className={`group flex items-center justify-between px-2 py-2 cursor-pointer rounded-sm mx-1 my-0.5 text-xs transition-colors hover:bg-muted ${
-                    activeConvId === conv.id ? "bg-muted font-medium" : ""
-                  }`}
+                  className={`group flex items-center justify-between px-2 py-2 cursor-pointer rounded-sm mx-1 my-0.5 text-xs transition-colors hover:bg-muted ${activeConvId === conv.id ? "bg-muted font-medium" : ""
+                    }`}
                 >
                   <span className="truncate flex-1 pr-1" title={conv.title}>{conv.title}</span>
                   <button
@@ -401,11 +400,10 @@ export default function AssistantChatbot() {
                         {msg.role === "user" ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
                         <span>{msg.role === "user" ? "Bạn" : "HR Assistant"}</span>
                       </div>
-                      <div className={`p-3 rounded-lg text-sm whitespace-pre-wrap leading-relaxed ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground rounded-tr-none"
-                          : "bg-muted text-foreground rounded-tl-none"
-                      }`}>
+                      <div className={`p-3 rounded-lg text-sm whitespace-pre-wrap leading-relaxed ${msg.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-tr-none"
+                        : "bg-muted text-foreground rounded-tl-none"
+                        }`}>
                         {msg.content}
                       </div>
                       {msg.action && msg.action.type === "OPEN_REQUEST_FORM" && (

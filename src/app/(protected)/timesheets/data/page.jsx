@@ -368,10 +368,10 @@ export default function DataManagementPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">
-                            {isEmployeeOnly ? "Ma trận bảng công cá nhân" : "Ma trận dữ liệu chấm công"}
+                            {isEmployeeOnly ? "bảng công cá nhân" : "Dữ liệu chấm công"}
                         </h1>
                         <p className="text-sm text-slate-500">
-                            {isEmployeeOnly ? "Xem chi tiết dữ liệu công ma trận của bạn" : "Hiển thị dữ liệu công dạng ma trận theo tháng"}
+                            {isEmployeeOnly ? "Xem chi tiết dữ liệu công của bạn" : "Hiển thị dữ liệu công dạng theo tháng"}
                         </p>
                     </div>
                 </div>
@@ -412,9 +412,9 @@ export default function DataManagementPage() {
                 <div className="flex items-center gap-2">
 
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border">
-                        <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
+                        {/* <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
                             <LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Ma trận</span>
-                        </button>
+                        </button> */}
 
                     </div>
                 </div>
@@ -454,7 +454,7 @@ export default function DataManagementPage() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Đang tải dữ liệu ma trận...</td></tr>
+                                    <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Đang tải dữ liệu...</td></tr>
                                 ) : matrixData.length === 0 ? (
                                     <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Không có dữ liệu bảng công cho kỳ này</td></tr>
                                 ) : (
@@ -572,9 +572,9 @@ export default function DataManagementPage() {
                     confirmModal.action === "bulkRecalculate"
                         ? "Tính lại tất cả bảng công chưa khóa?"
                         : confirmModal.action === "finalizeMatrix"
-                            ? `Chốt công sẽ khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Sau khi chốt, bạn không thể chỉnh sửa từng ngày. Xác nhận?`
+                            ? `Chốt công sẽ khóa toàn bộ bản ghi trong theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Sau khi chốt, bạn không thể chỉnh sửa từng ngày. Xác nhận?`
                             : confirmModal.action === "unfinalizeMatrix"
-                                ? `Bỏ chốt sẽ mở khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Xác nhận?`
+                                ? `Bỏ chốt sẽ mở khóa toàn bộ bản ghi trong theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Xác nhận?`
                                 : "Xác nhận?"
                 }
                 loading={confirmLoading}
