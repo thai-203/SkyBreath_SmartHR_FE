@@ -77,7 +77,7 @@ export default function ManualNotificationPage() {
                             <Bell className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-800">Gửi thông báo thủ công</h1>
+                            <h1 className="text-2xl font-bold text-slate-800">Gửi thông báo</h1>
                             <p className="text-slate-500">Tạo và gửi thông báo nội bộ đến nhân viên</p>
                         </div>
                     </div>
