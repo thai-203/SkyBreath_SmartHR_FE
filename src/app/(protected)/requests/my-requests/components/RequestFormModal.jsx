@@ -56,7 +56,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
         
         requestGroupsService.getAll({ status: "ACTIVE", limit: 100 }).then((res) => {
             const arr = res?.data?.data || res?.items || res?.data?.items || [];
-            setRequestGroups(arr.filter(Item => !Item.isDeleted && Item.status === 'ACTIVE'));
+            setRequestGroups(arr.filter(Item => !Item.isDeleted && Item.status === 'ACTIVE' && Item.workflows?.length > 0));
         });
 
         requestTypesService.getAll({ status: "ACTIVE", limit: 200 }).then((res) => {
@@ -291,6 +291,8 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
     if (!isOpen) return null;
 
     const selectedType = requestTypes.find((t) => t.id === parseInt(form.requestTypeId));
+    const canCreateForOthers = authService.hasPermission('REQUEST_CREATE_FOR_OTHERS');
+    const isCreatingForOther = canCreateForOthers && form.employeeId && currentUserEmployeeId && parseInt(form.employeeId) !== currentUserEmployeeId;
 
     // Quota logic
     const unitLabel = { DAY: 'ngày', HOUR: 'giờ', HALF_DAY: 'nửa ngày', TIME: 'lần' };
@@ -357,8 +359,10 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                                 <select
                                     value={form.employeeId}
                                     onChange={(e) => setForm((p) => ({ ...p, employeeId: e.target.value }))}
-                                    disabled
-                                    className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50 text-slate-500 cursor-not-allowed"
+                                    disabled={!canCreateForOthers}
+                                    className={`w-full h-10 px-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                                        !canCreateForOthers ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white'
+                                    }`}
                                 >
                                     <option value="">-- Chọn nhân viên --</option>
                                     {employees.map((emp) => (
@@ -368,6 +372,11 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
                                     ))}
                                 </select>
                                 {errors.employeeId && <p className="text-xs text-red-500 mt-1">{errors.employeeId}</p>}
+                                {isCreatingForOther && (
+                                    <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                                        ℹ️ Bạn đang tạo đơn hộ cho nhân viên này. Đơn sẽ ghi nhận bạn là người tạo.
+                                    </p>
+                                )}
                             </div>
 
                             {/* Nhóm đơn & Lý do + Tính công */}
