@@ -206,15 +206,7 @@ export default function WorkflowConfigModal({
                                             })}
                                         </select>
                                     </div>
-                                    <div className="space-y-1 text-center items-center flex flex-col justify-center">
-                                        <label className="text-xs font-semibold text-slate-500 uppercase pb-2">TB</label>
-                                        <input
-                                            type="checkbox"
-                                            checked={wf.notifyApprover}
-                                            onChange={(e) => handleUpdateLevel(idx, 'notifyApprover', e.target.checked)}
-                                            className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                                        />
-                                    </div>
+
                                     <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2" onClick={() => handleRemoveLevel(idx)}>
                                         <Trash2 className="h-5 w-5" />
                                     </Button>
