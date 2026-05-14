@@ -27,6 +27,10 @@ const CONTRACT_TYPE_LABELS = {
 };
 
 const STATUS_CONFIG = {
+  NOT_EFFECTIVE: {
+    label: "Chưa hiệu lực",
+    color: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  },
   ACTIVE: {
     label: "Đang hiệu lực",
     color: "bg-emerald-100 text-emerald-700 border-emerald-200",

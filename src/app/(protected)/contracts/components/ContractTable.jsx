@@ -18,6 +18,7 @@ import {
   Edit2,
   Eye,
   FileText,
+  Power,
   Calendar,
   RotateCcw,
   Trash2,
@@ -33,6 +34,10 @@ const contractTypeLabels = {
 
 // Cấu hình trạng thái hợp đồng
 const contractStatusConfig = {
+  not_effective: {
+    label: "Chưa hiệu lực",
+    class: "bg-slate-100 text-slate-700 border-slate-200",
+  },
   active: {
     label: "Đang hiệu lực",
     class: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -64,6 +69,7 @@ export default function ContractTable({
   onView,
   onEdit,
   onTerminate,
+  onActivate,
 }) {
   // ensure pageSize always 10 regardless of parent
   const fixedPageSize = 10;
@@ -182,8 +188,9 @@ export default function ContractTable({
         id: "actions",
         header: () => <div className="text-right mr-4">Thao tác</div>,
         cell: ({ row }) => {
-          const isActive =
-            row.original.contractStatus?.toLowerCase() === "active";
+          const status = row.original.contractStatus?.toLowerCase();
+          const isActive = status === "active";
+          const isNotEffective = status === "not_effective";
           return (
             <div className="flex items-center justify-end gap-1">
               <Button
@@ -204,6 +211,19 @@ export default function ContractTable({
                   <Edit2 className="h-4 w-4" />
                 </Button>
               </PermissionGate>
+              {isNotEffective && (
+                <PermissionGate permission="CONTRACT_UPDATE">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                    title="Kích hoạt hợp đồng"
+                    onClick={() => onActivate?.(row.original)}
+                  >
+                    <Power className="h-4 w-4" />
+                  </Button>
+                </PermissionGate>
+              )}
               {isActive && (
                 <PermissionGate permission="CONTRACT_TERMINATE">
                   <Button
@@ -232,7 +252,7 @@ export default function ContractTable({
         },
       },
     ],
-    [onView, onEdit, onTerminate],
+    [onView, onEdit, onTerminate, onActivate],
   );
 
   const table = useReactTable({

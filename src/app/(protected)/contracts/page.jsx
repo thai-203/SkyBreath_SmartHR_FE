@@ -258,7 +258,9 @@ export default function ContractsPage() {
 
       if (formData.employeeId) {
         fetchEmployeeDetailById(formData.employeeId);
-        fetchSalaryByEmployeeId(formData.employeeId);
+        if (isEditOpen) {
+          fetchSalaryByEmployeeId(formData.employeeId);
+        }
       }
     }
 
@@ -608,6 +610,24 @@ export default function ContractsPage() {
     }
   };
 
+  const handleActivate = async (contract) => {
+    if (!contract?.id) return;
+
+    setFormLoading(true);
+    try {
+      const response = await contractsService.update(contract.id, {
+        contractStatus: "ACTIVE",
+      });
+
+      success(response.message || "Kích hoạt hợp đồng thành công");
+      fetchContracts();
+    } catch (err) {
+      error(err.response?.data?.message || "Không thể kích hoạt hợp đồng");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const handleExport = async () => {
     setExportLoading(true);
     try {
@@ -706,6 +726,7 @@ export default function ContractsPage() {
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
         onTerminate={handleTerminateClick}
+        onActivate={handleActivate}
       />
 
       {/* Create Modal */}
