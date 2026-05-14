@@ -64,13 +64,13 @@ export default function SalarySummaryTable({ details = [], unitName = "CTCP cấ
                 m.co_yt += parseFloat(item.companyHealthInsurance || 0);
                 m.co_tn += parseFloat(item.companyUnemploymentInsurance || 0);
                 m.co_total_ins += parseFloat(item.companySocialInsurance || 0) + parseFloat(item.companyHealthInsurance || 0) + parseFloat(item.companyUnemploymentInsurance || 0);
-                m.co_kpcd += parseFloat(item.companyUnionFee || 0);
+                m.co_kpcd += parseFloat(item.unionFee || 0); // KPCĐ Công ty lưu trong cột union_fee
                 // Employee
                 m.em_xh += parseFloat(item.socialInsurance || 0);
                 m.em_yt += parseFloat(item.healthInsurance || 0);
                 m.em_tn += parseFloat(item.unemploymentInsurance || 0);
                 m.em_total_ins += parseFloat(item.insuranceDeduction || 0);
-                m.em_cdp += parseFloat(item.unionFee || 0);
+                m.em_cdp += 0; // KPCĐ chỉ là phí công ty, không trừ vào lương NLĐ
                 m.em_dang += parseFloat(item.partyFee || 0);
                 // Final
                 m.net += parseFloat(item.netSalary || 0);

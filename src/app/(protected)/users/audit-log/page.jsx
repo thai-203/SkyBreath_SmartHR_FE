@@ -23,17 +23,19 @@ export default function AuditLogPage() {
     fromDate: null,
     toDate: null,
     status: "",
+    sortBy: "createdAt",
+    sortOrder: "DESC",
   });
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetch = async (keys = []) => {
+  const fetch = async (params = {}) => {
     setLoading(true);
     try {
       const res = await auditService.getAll({
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
-        ...keys,
+        ...params,
       });
 
       setData(res.data.data || []);
@@ -41,7 +43,7 @@ export default function AuditLogPage() {
     } catch (err) {
       error(
         err.response?.data?.message ||
-          "Có lỗi xảy ra khi tải lịch sử hoạt động",
+        "Có lỗi xảy ra khi tải lịch sử hoạt động",
       );
     } finally {
       setLoading(false);
@@ -49,8 +51,23 @@ export default function AuditLogPage() {
   };
 
   useEffect(() => {
-    fetch();
-  }, [pagination.pageIndex, pagination.pageSize, error]);
+    const { fromDate, toDate, ...rest } = filters;
+    fetch({
+      ...rest,
+      fromDate: fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
+      toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
+    });
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    filters.search,
+    filters.fromDate,
+    filters.toDate,
+    filters.status,
+    filters.sortBy,
+    filters.sortOrder,
+    error,
+  ]);
 
   const resetFilters = () => {
     setFilters({
@@ -58,14 +75,25 @@ export default function AuditLogPage() {
       fromDate: null,
       toDate: null,
       status: "",
+      sortBy: "createdAt",
+      sortOrder: "DESC",
     });
     setPagination({ pageIndex: 0, pageSize: 10 });
-    fetch();
   };
 
   const hasFilter = Object.values(filters).some(
     (value) => value !== null && value !== "",
   );
+
+  const handleSort = (column, nextOrder) => {
+    setFilters((prev) => ({
+      ...prev,
+      sortBy: column,
+      sortOrder:
+        nextOrder ?? (prev.sortOrder === "ASC" ? "DESC" : "ASC"),
+    }));
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  };
 
   const handleFilter = () => {
     const { fromDate, toDate } = filters;
@@ -94,11 +122,6 @@ export default function AuditLogPage() {
     }
 
     setPagination({ pageIndex: 0, pageSize: 10 });
-    fetch({
-      ...filters,
-      fromDate: fromDate ? format(fromDate, "yyyy-MM-dd") : undefined,
-      toDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined,
-    });
   };
 
   const handleExport = async () => {
@@ -200,6 +223,9 @@ export default function AuditLogPage() {
         </div>
       </div>
       <AuditLogTable
+        onSort={handleSort}
+        sortBy={filters.sortBy}
+        sortOrder={filters.sortOrder}
         data={data}
         loading={loading}
         pagination={pagination}

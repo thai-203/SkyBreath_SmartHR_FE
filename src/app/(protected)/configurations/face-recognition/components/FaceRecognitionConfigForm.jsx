@@ -74,45 +74,32 @@ function ModelInfoPanel({ config }) {
             : "ArcFace — AntelopeV2",
       role: "Nhận diện khuôn mặt",
       whatItDoes:
-        "Chuyển khuôn mặt thành mã số học (vector) để so sánh với dữ liệu đã lưu, giúp xác định danh tính nhân viên khi điểm danh.",
+        "Công nghệ cốt lõi giúp hệ thống nhận biết danh tính chính xác dựa trên các đặc điểm sinh trắc học duy nhất của mỗi nhân viên.",
       specs:
         config.arcfaceModelName === "buffalo_l"
-          ? "Mô hình lớn · Xử lý kỹ hơn · Phù hợp hệ thống cần độ chính xác cao"
+          ? "Độ chính xác tối đa · Phù hợp môi trường văn phòng"
           : config.arcfaceModelName === "buffalo_m"
-            ? "Mô hình vừa · Xử lý nhanh · Phù hợp hệ thống cần tốc độ"
-            : "Thế hệ mới · Tối ưu hiệu năng · Phù hợp thiết bị nhúng",
+            ? "Cân bằng tốc độ và độ chính xác · Phù hợp thiết bị tầm trung"
+            : "Thế hệ mới · Tối ưu cho xử lý thời gian thực",
       color: "text-primary",
       bgColor: "bg-primary-10",
     },
     {
       icon: Shield,
-      name: "Anti-Spoof RGB",
-      role: "Chống giả mạo",
+      name: `Anti-Spoof — ${config.antiSpoofModelVersion || "V2"}`,
+      role: "Phát hiện giả mạo",
       whatItDoes:
-        "Phân biệt khuôn mặt thật với ảnh in, ảnh trên màn hình hoặc video phát lại, đảm bảo chỉ người thật mới điểm danh được.",
-      specs: "Phân tích màu sắc & kết cấu da · Hoạt động với camera thường",
+        "Lớp bảo vệ thông minh giúp phân biệt người thật với ảnh chụp hoặc video trên điện thoại, ngăn chặn các hành vi gian lận.",
+      specs: `Chế độ: ${config.livenessMode === "MULTI_FRAME" ? "Phân tích chuyển động (An toàn cao)" : "Phân tích tĩnh (Xử lý nhanh)"}`,
       color: "text-emerald-600 dark:text-emerald-400",
       bgColor: "bg-emerald-500/10",
     },
     {
-      icon: Cpu,
-      name:
-        config.similarityMetric === "cosine"
-          ? "Cosine Similarity"
-          : config.similarityMetric === "l2"
-            ? "Khoảng cách L2"
-            : "Dot Product",
-      role: "Phương pháp so khớp",
-      whatItDoes:
-        config.similarityMetric === "cosine"
-          ? "So sánh hướng của hai vector khuôn mặt. Kết quả càng gần 1 thì hai khuôn mặt càng giống nhau."
-          : config.similarityMetric === "l2"
-            ? "Đo khoảng cách giữa hai vector. Khoảng cách càng nhỏ thì hai khuôn mặt càng giống nhau."
-            : "Nhân hai vector với nhau. Giá trị càng lớn thì hai khuôn mặt càng giống nhau.",
-      specs:
-        config.similarityMetric === "cosine"
-          ? "Ổn định với ánh sáng khác nhau · Được dùng phổ biến nhất"
-          : "Nhạy với độ sáng · Cần chuẩn hoá dữ liệu",
+      icon: ScanFace,
+      name: "Cơ sở dữ liệu",
+      role: "Mẫu nhận diện",
+      whatItDoes: `Hệ thống ghi nhớ ${config.maxEmbeddingsPerUser} góc độ gương mặt khác nhau của mỗi nhân viên để đảm bảo việc nhận diện luôn ổn định và nhanh chóng.`,
+      specs: `Tự động nhận diện tối đa ${config.maxFacesAllowed} người`,
       color: "text-amber-600 dark:text-amber-400",
       bgColor: "bg-amber-500/10",
     },
@@ -246,33 +233,13 @@ const sectionIcons = {
 
 // ─── Validation Logic ─────────────────────────────────────────────────────────
 
-const validateConfigField = (field, value, configState) => {
+const validateConfigField = (field, value) => {
   switch (field) {
     case "recognitionThreshold":
       if (value < 0.3 || value > 0.9) return "Giá trị phải từ 0.3 đến 0.9";
       break;
     case "spoofThreshold":
-      if (value < 0.0 || value > 0.95) return "Giá trị phải từ 0.5 đến 0.95";
-      break;
-    case "maxEmbeddingsPerUser":
-      if (value < 3 || value > 8) return "Giá trị phải từ 3 đến 8";
-      break;
-    case "requiredFrames":
-      if (
-        configState.livenessMode === "MULTI_FRAME" &&
-        (value < 5 || value > 30)
-      ) {
-        return "Giá trị phải từ 5 đến 30";
-      }
-      break;
-    case "captureIntervalMs":
-      if (value < 200 || value > 2000) return "Giá trị phải từ 200 đến 2000 ms";
-      break;
-    case "faceDetectionMinSize":
-      if (value < 40 || value > 200) return "Giá trị phải từ 40 đến 200 px";
-      break;
-    case "maxFacesAllowed":
-      if (value < 1 || value > 3) return "Giá trị phải từ 1 đến 3";
+      if (value < 0.0 || value > 0.95) return "Giá trị phải từ 0.0 đến 0.95";
       break;
     default:
       return null;
@@ -418,218 +385,86 @@ export default function ConfigurationsForm({
         )}
       </AnimatePresence>
 
-      {/* ── Info Alert ───────────────────────────────────────────── */}
-      <motion.div variants={itemVariants}>
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3">
-          <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">Lưu ý:</p>
-            <ul className="list-disc list-inside space-y-1 text-xs">
-              <li>
-                Các thay đổi sẽ áp dụng cho tất cả phiên nhận diện mới. Ngưỡng
-                cao hơn = yêu cầu khớp chính xác hơn nhưng dễ bị từ chối.
-              </li>
-            </ul>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ── Two-Column Layout ────────────────────────────────────── */}
+      {/* ── Main Configuration ───────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Left: Config Sections */}
         <div className="space-y-5">
-          {/* Recognition */}
           <motion.div variants={itemVariants}>
             <Card className="overflow-hidden border-border/40 bg-white backdrop-blur-md">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${sectionIcons.recognition.bg}`}
-                  >
-                    <ScanFace
-                      className={`h-5 w-5 ${sectionIcons.recognition.color}`}
-                    />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-10">
+                    <ScanFace className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Cổng Nhận Diện</CardTitle>
+                    <CardTitle className="text-lg">Tham Số Thuật Toán</CardTitle>
                     <CardDescription>
-                      Ngưỡng và dữ liệu nhận diện khuôn mặt
+                      Điều chỉnh độ nhạy của hệ thống nhận diện
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-8 py-6">
                 <SliderField
-                  label="Ngưỡng nhận diện"
+                  label="Độ nhạy nhận diện (Recognition)"
                   value={config?.recognitionThreshold}
                   onChange={(v) => updateField("recognitionThreshold", v)}
                   min={0.3}
                   max={0.9}
                   step={0.05}
-                  hint="Giá trị cao hơn = yêu cầu khớp chính xác hơn"
+                  hint="Giá trị cao tăng độ an toàn nhưng yêu cầu nhân viên nhìn thẳng và đủ sáng."
                   error={errors.recognitionThreshold}
                 />
+                
                 <Separator className="bg-border/40" />
-                <SliderField
-                  label="Số khuôn mặt tối đa / người"
-                  value={config.maxEmbeddingsPerUser}
-                  onChange={(v) => updateField("maxEmbeddingsPerUser", v)}
-                  min={3}
-                  max={8}
-                  step={1}
-                  unit=" mẫu"
-                  hint="Số lượng dữ liệu khuôn mặt lưu cho mỗi nhân viên"
-                  error={errors.maxEmbeddingsPerUser}
-                />
-              </CardContent>
-            </Card>
-          </motion.div>
 
-          {/* Anti-Spoof */}
-          <motion.div variants={itemVariants}>
-            <Card className="overflow-hidden border-border/40 bg-white backdrop-blur-md">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${sectionIcons.antispoof.bg}`}
-                  >
-                    <ShieldCheck
-                      className={`h-5 w-5 ${sectionIcons.antispoof.color}`}
-                    />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Chống Giả Mạo</CardTitle>
-                    <CardDescription>
-                      Ngăn chặn sử dụng ảnh/video giả
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
                 <SliderField
-                  label="Ngưỡng chống giả mạo"
+                  label="Mức độ chống gian lận (Anti-Spoof)"
                   value={config.spoofThreshold}
                   onChange={(v) => updateField("spoofThreshold", v)}
                   min={0.0}
                   max={0.95}
                   step={0.05}
-                  hint="Cao hơn = bảo mật tốt hơn nhưng dễ bị từ chối nhầm"
+                  hint="Giá trị cao giúp ngăn chặn tốt hơn các loại ảnh/video giả mạo."
                   error={errors.spoofThreshold}
-                />
-                <Separator className="bg-border/40" />
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Chế độ Liveness</Label>
-                  <Select
-                    value={config.livenessMode}
-                    onValueChange={(v) => updateField("livenessMode", v)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SINGLE_FRAME">
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-3.5 h-3.5 text-amber-500" />
-                          <span>Nhanh (1 khung hình)</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="MULTI_FRAME">
-                        <div className="flex items-center gap-2">
-                          <Eye className="w-3.5 h-3.5 text-primary" />
-                          <span>Chính xác (nhiều khung hình)</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <SliderField
-                  label="Số frame yêu cầu"
-                  value={config.requiredFrames}
-                  onChange={(v) => updateField("requiredFrames", v)}
-                  min={5}
-                  max={30}
-                  step={1}
-                  unit=" frame"
-                  disabled={config.livenessMode === "SINGLE_FRAME"}
-                  hint="Chỉ áp dụng khi dùng Multi-frame"
-                  error={errors.requiredFrames}
                 />
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Camera */}
+          {/* Info Section for Read-only settings */}
           <motion.div variants={itemVariants}>
-            <Card className="overflow-hidden border-border/40 bg-white backdrop-blur-md">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${sectionIcons.camera.bg}`}
-                  >
-                    <Camera
-                      className={`h-5 w-5 ${sectionIcons.camera.color}`}
-                    />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Cài Đặt Camera</CardTitle>
-                    <CardDescription>
-                      Điều chỉnh cách camera thu thập dữ liệu
-                    </CardDescription>
-                  </div>
+            <div className="rounded-xl border border-border/30 bg-background/50 p-5 flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10">
+                <Camera className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-1.5">Tham số phần cứng & Camera</h4>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Các thiết lập kỹ thuật sau đây đã được tối ưu hóa để phù hợp với hiệu năng thiết bị của bạn:
+                  </p>
+                  <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] text-foreground/70">
+                    <li className="flex items-center gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-border" />
+                      Nhận diện từ: {config.faceDetectionMinSize}px
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-border" />
+                      Tốc độ xử lý: {config.captureIntervalMs}ms
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-border" />
+                      Lưu bằng chứng: {config.saveAttendanceImage ? "Đã bật" : "Đã tắt"}
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-border" />
+                      Giới hạn: {config.maxFacesAllowed} người/lần
+                    </li>
+                  </ul>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <SliderField
-                  label="Khoảng thời gian chụp"
-                  value={config.captureIntervalMs}
-                  onChange={(v) => updateField("captureIntervalMs", v)}
-                  min={200}
-                  max={2000}
-                  step={100}
-                  unit="ms"
-                  hint="Khoảng cách giữa các lần capture tự động"
-                  error={errors.captureIntervalMs}
-                />
-                <Separator className="bg-border/40" />
-                <SliderField
-                  label="Kích thước mặt tối thiểu"
-                  value={config.faceDetectionMinSize}
-                  onChange={(v) => updateField("faceDetectionMinSize", v)}
-                  min={40}
-                  max={200}
-                  step={10}
-                  unit="px"
-                  error={errors.faceDetectionMinSize}
-                />
-                <Separator className="bg-border/40" />
-                <SliderField
-                  label="Số khuôn mặt tối đa"
-                  value={config.maxFacesAllowed}
-                  onChange={(v) => updateField("maxFacesAllowed", v)}
-                  min={1}
-                  max={3}
-                  step={1}
-                  error={errors.maxFacesAllowed}
-                />
-                <Separator className="bg-border/40" />
-                <div className="flex items-center justify-between p-4 border rounded-lg border-border/30 bg-background/50">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">
-                      Lưu ảnh điểm danh
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Dùng để audit hoặc kiểm tra sau
-                    </p>
-                  </div>
-                  <Switch
-                    checked={config.saveAttendanceImage}
-                    onCheckedChange={(v) =>
-                      updateField("saveAttendanceImage", v)
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </motion.div>
         </div>
 

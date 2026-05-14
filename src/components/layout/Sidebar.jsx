@@ -103,6 +103,12 @@ const menuItems = [
     permissions: ["CONTRACT_READ"],
   },
   {
+    title: "Đánh giá KPI",
+    icon: ClipboardCheck,
+    href: "/performance-reviews",
+    roles: ["ADMIN", "HR", "MANAGER"],
+  },
+  {
     title: "Bảng chấm công",
     icon: Clock,
     href: "/timesheets",
@@ -142,17 +148,12 @@ const menuItems = [
     title: "Bảng lương",
     icon: DollarSign,
     href: "/payroll",
-    permissions: ["PAYROLL_READ", "PAYROLL_TYPE_READ"],
+    permissions: ["PAYROLL_READ"],
     children: [
       {
         title: "Bảng lương tháng",
         href: "/payroll",
         permissions: ["PAYROLL_READ"],
-      },
-      {
-        title: "Loại bảng lương",
-        href: "/payroll/types",
-        permissions: ["PAYROLL_TYPE_READ"],
       },
     ],
   },
@@ -385,11 +386,11 @@ const menuItems = [
     icon: Settings,
     href: "/configurations",
     roles: ["ADMIN"],
-    // permissions: [
-    //   "ATTENDANCE_FACE_RECOGNITION_CONFIG_READ",
-    //   "ATTENDANCE_SECURITY_CONFIG_READ",
-    //   "ATTENDANCE_BLOCKING_CONFIG_READ",
-    // ],
+    permissions: [
+      "ATTENDANCE_FACE_RECOGNITION_CONFIG_READ",
+      "ATTENDANCE_SECURITY_CONFIG_READ",
+      "ATTENDANCE_BLOCKING_CONFIG_READ",
+    ],
     children: [
       { title: "Tổng quan", href: "/configurations" },
       { title: "Quy trình lương", href: "/configurations/payroll" },

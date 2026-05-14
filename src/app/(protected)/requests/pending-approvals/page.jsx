@@ -44,6 +44,10 @@ export default function PendingApprovalsPage() {
     }
   }, [page]);
 
+  // ✅ Gọi fetchRequests khi mount hoặc khi page thay đổi
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
 
   // 🔔 Real-time: Lắng nghe socket events
   useEffect(() => {

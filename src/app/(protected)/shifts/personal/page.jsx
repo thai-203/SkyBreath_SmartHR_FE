@@ -13,11 +13,13 @@ import {
 import { useToast } from "@/components/common/Toast";
 import {
   holidayService,
+  requestsService,
   shiftAssignmentsService,
   userService,
 } from "@/services";
 import {
   CalendarDays,
+  Clock8,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -64,6 +66,12 @@ const formatYmd = (date) => {
   return `${y}-${m}-${d}`;
 };
 
+const formatDate = (value) => {
+  if (!value) return "—";
+  if (typeof value === "string") return value.slice(0, 10);
+  return formatYmd(new Date(value));
+};
+
 const parseYmd = (ymd) => {
   if (!ymd) return null;
   const d = new Date(`${ymd}T00:00:00`);
@@ -80,6 +88,39 @@ const getScheduleDateKey = (item) => {
   }
 
   return formatYmd(new Date(candidate));
+};
+
+const getMonthPeriodsInRange = (start, end) => {
+  if (!isValidDate(start) || !isValidDate(end)) return [];
+
+  const periods = [];
+  const seen = new Set();
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const last = new Date(end.getFullYear(), end.getMonth(), 1);
+
+  while (cursor <= last) {
+    const month = cursor.getMonth() + 1;
+    const year = cursor.getFullYear();
+    const key = `${year}-${String(month).padStart(2, "0")}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      periods.push({ month, year });
+    }
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return periods;
+};
+
+const getOvertimeLabel = (item) => {
+  const typeName =
+    item?.overtimeRule?.overtimeType?.name ||
+    item?.overtimeRule?.name ||
+    "Tăng ca";
+  if (item?.startTime && item?.endTime) {
+    return `${typeName} (${item.startTime} - ${item.endTime})`;
+  }
+  return typeName;
 };
 
 // Tính toán dải ngày để lấp đầy lưới 7 cột
@@ -117,6 +158,7 @@ export default function PersonalSchedulePage() {
   const [viewMode, setViewMode] = useState(VIEW_MODE.MONTH);
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [schedule, setSchedule] = useState([]);
+  const [overtimeSchedule, setOvertimeSchedule] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -161,6 +203,7 @@ export default function PersonalSchedulePage() {
     if (!employeeId || !isReady) return;
     const startYmd = formatYmd(range.start);
     const endYmd = formatYmd(range.end);
+    const overtimePeriods = getMonthPeriodsInRange(range.start, range.end);
     setLoading(true);
     try {
       const [scheduleRes, holidayRes] = await Promise.all([
@@ -180,6 +223,30 @@ export default function PersonalSchedulePage() {
             : [],
       );
       setHolidays(holidayRes?.data || []);
+
+      const overtimeResults = await Promise.allSettled(
+        overtimePeriods.map((period) =>
+          requestsService.getOvertimeDetailRequests({
+            month: period.month,
+            year: period.year,
+            page: 1,
+            limit: 1000,
+            status: "APPROVED",
+          }),
+        ),
+      );
+
+      const overtimeRows = overtimeResults.flatMap((result) => {
+        if (result.status !== "fulfilled") return [];
+        const items = result.value?.data?.items || [];
+        return items.filter((item) => {
+          const requestEmployeeId =
+            item?.request?.employeeId ?? item?.request?.employee?.id;
+          return Number(requestEmployeeId) === Number(employeeId);
+        });
+      });
+
+      setOvertimeSchedule(overtimeRows);
     } catch {
       toastError("Lỗi khi tải dữ liệu lịch");
     } finally {
@@ -228,6 +295,17 @@ export default function PersonalSchedulePage() {
     }, {});
   }, [schedule]);
 
+  const groupedOvertimeData = useMemo(() => {
+    return overtimeSchedule.reduce((acc, item) => {
+      const key = getScheduleDateKey(item);
+      if (key) {
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+      }
+      return acc;
+    }, {});
+  }, [overtimeSchedule]);
+
   const monthlyShiftCount = useMemo(() => {
     const month = anchorDate.getMonth();
     const year = anchorDate.getFullYear();
@@ -243,13 +321,38 @@ export default function PersonalSchedulePage() {
     }, 0);
   }, [schedule, anchorDate]);
 
+  const monthlyOvertimeCount = useMemo(() => {
+    const month = anchorDate.getMonth();
+    const year = anchorDate.getFullYear();
+
+    return overtimeSchedule.reduce((count, item) => {
+      const key = getScheduleDateKey(item);
+      const date = parseYmd(key);
+      if (!date) return count;
+      if (date.getMonth() === month && date.getFullYear() === year) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+  }, [overtimeSchedule, anchorDate]);
+
   const handleDayClick = (date) => {
     const ymd = formatYmd(date);
     const dayHolidays = processedHolidays[ymd]?.items || [];
     const dayShifts = groupedData[ymd] || [];
+    const dayOvertime = groupedOvertimeData[ymd] || [];
 
-    if (dayHolidays.length > 0 || dayShifts.length > 0) {
-      setSelectedDayInfo({ date, holidays: dayHolidays, shifts: dayShifts });
+    if (
+      dayHolidays.length > 0 ||
+      dayShifts.length > 0 ||
+      dayOvertime.length > 0
+    ) {
+      setSelectedDayInfo({
+        date,
+        holidays: dayHolidays,
+        shifts: dayShifts,
+        overtime: dayOvertime,
+      });
       setIsModalOpen(true);
     }
   };
@@ -257,6 +360,7 @@ export default function PersonalSchedulePage() {
   const renderBadges = (date) => {
     const ymd = formatYmd(date);
     const shifts = groupedData[ymd] || [];
+    const overtime = groupedOvertimeData[ymd] || [];
     const hInfo = processedHolidays[ymd]?.items || [];
 
     return (
@@ -287,6 +391,15 @@ export default function PersonalSchedulePage() {
             {item.shift?.shiftName || "Ca làm"}
           </div>
         ))}
+
+        {overtime.map((item, idx) => (
+          <div
+            key={`ot-${idx}`}
+            className="px-2 py-1 rounded-lg border text-[10px] font-bold truncate bg-amber-50 text-amber-700 border-amber-200"
+          >
+            {getOvertimeLabel(item)}
+          </div>
+        ))}
       </div>
     );
   };
@@ -311,12 +424,12 @@ export default function PersonalSchedulePage() {
                 })}
               </h2>
               <p className="text-sm md:text-base text-slate-600 max-w-2xl">
-                Theo dõi nhanh các ca làm, ngày lễ và lịch làm bù của bạn trong
-                cùng một giao diện trực quan.
+                Theo dõi nhanh các ca làm, lịch tăng ca, ngày lễ và lịch làm bù
+                của bạn trong cùng một giao diện trực quan.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full lg:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full lg:w-auto">
               <Card className="border-cyan-100 bg-cyan-50/70 shadow-none">
                 <CardContent className="p-4">
                   <p className="text-[10px] uppercase text-slate-500 font-black tracking-widest">
@@ -357,6 +470,16 @@ export default function PersonalSchedulePage() {
                   </p>
                   <p className="text-2xl font-black text-slate-800 leading-none mt-2">
                     {viewMode === VIEW_MODE.WEEK ? "Tuần" : "Tháng"}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-amber-100 bg-amber-50/70 shadow-none">
+                <CardContent className="p-4">
+                  <p className="text-[10px] uppercase text-slate-500 font-black tracking-widest">
+                    Số ca OT
+                  </p>
+                  <p className="text-2xl font-black text-amber-700 leading-none mt-2">
+                    {monthlyOvertimeCount}
                   </p>
                 </CardContent>
               </Card>
@@ -491,6 +614,10 @@ export default function PersonalSchedulePage() {
                   <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" /> Hôm
                   nay
                 </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  Tăng ca
+                </span>
               </div>
             </div>
           </CardHeader>
@@ -596,7 +723,7 @@ export default function PersonalSchedulePage() {
                   })}
                 </span>
                 <p className="text-xs text-slate-500 font-medium mt-0.5 uppercase tracking-wider">
-                  Chi tiết lịch làm việc & Ngày nghỉ
+                  Chi tiết lịch làm việc, tăng ca & Ngày nghỉ
                 </p>
               </div>
             </DialogTitle>
@@ -653,7 +780,7 @@ export default function PersonalSchedulePage() {
             ))}
 
             {/* Display Shifts */}
-            {selectedDayInfo?.shifts.length > 0 && (
+            {selectedDayInfo?.shifts?.length > 0 && (
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <CalendarCheck className="w-4 h-4" /> Ca làm việc được phân
@@ -673,6 +800,37 @@ export default function PersonalSchedulePage() {
                         </p>
                         <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter">
                           Mã: {s.shift?.shiftCode || "STD"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedDayInfo?.overtime?.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Clock8 className="w-4 h-4" /> Lịch tăng ca
+                </h4>
+                {selectedDayInfo.overtime.map((ot, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-3 p-4 bg-amber-50/70 rounded-2xl border border-amber-100 hover:bg-white hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 bg-white rounded-xl shadow-sm border border-amber-100 text-amber-600">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-slate-800 truncate">
+                          {getOvertimeLabel(ot)}
+                        </p>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter">
+                          {formatDate(ot.workDate)} ·{" "}
+                          {ot.totalHours != null
+                            ? `${Number(ot.totalHours).toFixed(2)} giờ`
+                            : "—"}
                         </p>
                       </div>
                     </div>

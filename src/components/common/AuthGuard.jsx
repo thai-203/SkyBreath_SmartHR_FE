@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, notFound } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Skeleton } from "./Skeleton";
 import { authService } from "@/services";
+import { ShieldX, ArrowLeft, Home } from "lucide-react";
+import Link from "next/link";
 
 const ROUTE_PERMISSIONS = {
   // Public routes
@@ -65,7 +67,7 @@ const ROUTE_PERMISSIONS = {
 
   // Requests
   "/requests/my-requests": { permissions: ["REQUEST_READ_OWN"] },
-  "/requests/pending-approvals": { permissions: ["REQUEST_READ"] },
+  "/requests/pending-approvals": { permissions: ["REQUEST_READ", "REQUEST_APPROVE"] },
   "/requests/groups": { permissions: ["REQUEST_GROUP_READ"] },
   "/requests/groups/[id]": { permissions: ["REQUEST_GROUP_READ"] },
   "/requests/types": { permissions: ["REQUEST_TYPE_READ"] },
@@ -127,20 +129,23 @@ const ROUTE_PERMISSIONS = {
 
 export function AuthGuard({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
   const requiredPerms = ROUTE_PERMISSIONS[pathname];
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  // null = loading, true = authenticated, 'forbidden' = no permission, 'unauthenticated' = not logged in
+  const [authState, setAuthState] = useState(null);
 
   useEffect(() => {
     if (!authService.isAuthenticated()) {
-      notFound();
+      router.replace("/login");
     } else if (requiredPerms && !canAccess(requiredPerms)) {
-      notFound();
+      setAuthState("forbidden");
     } else {
-      setIsAuthenticated(true);
+      setAuthState(true);
     }
   }, [pathname]);
 
-  if (isAuthenticated === null) {
+  // Loading state
+  if (authState === null) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-50 p-6">
         <div className="w-full max-w-md space-y-4">
@@ -149,6 +154,51 @@ export function AuthGuard({ children }) {
           <div className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-5/6" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 403 Forbidden page
+  if (authState === "forbidden") {
+    return (
+      <div className="flex min-h-[80vh] flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-lg">
+          <div className="relative mx-auto mb-8">
+            <div className="text-[160px] font-extrabold text-slate-200 leading-none select-none">
+              403
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-24 w-24 rounded-full bg-red-500 flex items-center justify-center text-white shadow-2xl shadow-red-500/30">
+                <ShieldX className="h-10 w-10" />
+              </div>
+            </div>
+          </div>
+
+          <h1 className="mb-3 text-2xl font-bold text-slate-900">
+            Không có quyền truy cập
+          </h1>
+          <p className="mx-auto mb-8 max-w-md text-slate-500">
+            Bạn không có quyền truy cập trang này. Vui lòng liên hệ quản trị viên nếu bạn cho rằng đây là lỗi.
+          </p>
+
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <button
+              onClick={() => window.history.back()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Quay lại
+            </button>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-lg shadow-lg transition-colors"
+              style={{ backgroundColor: 'var(--primary)', boxShadow: '0 4px 14px rgba(var(--primary-rgb, 79,70,229), 0.3)' }}
+            >
+              <Home className="h-4 w-4" />
+              Về Dashboard
+            </Link>
           </div>
         </div>
       </div>

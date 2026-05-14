@@ -47,7 +47,7 @@ export default function SalaryDetailTable({
                     <thead className="bg-[#f8fafc] text-slate-700 uppercase z-0 border-b border-slate-200">
                         {/* Group Headers */}
                         <tr className="border-b border-slate-300 bg-slate-100/50">
-                            <th colSpan={3} className="bg-slate-100 z-40 border-r border-slate-300 py-4">Thông tin nhân sự</th>
+                            <th colSpan={3} className="sticky left-0 bg-slate-100 z-[60] border-r border-slate-300 py-4 shadow-sm">Thông tin nhân sự</th>
                             <th colSpan={5} className="bg-amber-50 border-r border-slate-300">I. Định mức Hợp đồng & Công (1-5)</th>
                             <th colSpan={4} className="bg-slate-50 border-r border-slate-300">II. Dữ liệu công chốt (6-9)</th>
                             <th colSpan={6} className="bg-blue-50 border-r border-slate-300">III. Thu nhập thực nhận (10-15)</th>
@@ -61,9 +61,9 @@ export default function SalaryDetailTable({
                         
                         {/* Column Names (36 Indicators) */}
                         <tr className="bg-white text-slate-600 divide-x divide-slate-200 shadow-sm">
-                            <th className="w-[45px] text-center">STT</th>
-                            <th className="w-[100px] text-center">Mã NV</th>
-                            <th className="w-[200px] text-left px-4">Họ tên</th>
+                            <th className="sticky left-0 bg-white z-[60] w-[45px] text-center border-r border-slate-100">STT</th>
+                            <th className="sticky left-[45px] bg-white z-[60] w-[100px] text-center border-r border-slate-100">Mã NV</th>
+                            <th className="sticky left-[145px] bg-white z-[60] w-[200px] text-left px-4 border-r border-slate-200 shadow-[2px_0_10px_rgba(0,0,0,0.02)]">Họ tên</th>
                             
                             {/* Group I */}
                             <th className="w-[150px] bg-amber-50/30">Lương đóng BHXH (1.1)</th>
@@ -101,7 +101,6 @@ export default function SalaryDetailTable({
                             {/* Group VI - Deductions */}
                             <th className="w-[150px] bg-rose-50/50">BHXH NLĐ (52)</th>
                             <th className="w-[120px] bg-rose-50/50">Truy thu BH (53)</th>
-                            <th className="w-[120px] bg-rose-50/50">CĐ phí NLĐ (54)</th>
                             <th className="w-[120px] bg-rose-50/50">Đảng phí (55)</th>
                             <th className="w-[180px] bg-rose-50/50">Giảm trừ gia cảnh (12.2)</th>
                             <th className="w-[180px] bg-rose-50/50">TN tính thuế (12.3)</th>
@@ -132,54 +131,75 @@ export default function SalaryDetailTable({
                                     <td colSpan={36} className="bg-slate-50/40"></td>
                                 </tr>
                                 {items.map((item, idx) => {
-                                    // ── CALCULATIONS BASED ON THE 36-INDICATOR FORMULA ──
+                                    // ── LẤY DỮ LIỆU TỪ DATABASE ──
                                     const ncChuẩn = parseFloat(item.standardDays || 26);
                                     const ncChínhThức = parseFloat(item.officialDays || 0);
                                     const ncThửViệc = parseFloat(item.probationDays || 0);
                                     const ncKhác = parseFloat(item.benefitLeaveDays || 0) + parseFloat(item.holidayDays || 0) + parseFloat(item.businessTripDays || 0) + parseFloat(item.annualLeaveDays || 0);
-                                    const kpi = parseFloat(item.kpiPercentage || 0) / 100;
 
-                                    // (31) = (11 / NC chuẩn) * (22 + 26 + 26.1 + 27 + 28)
-                                    const p1ThựcNhận = (parseFloat(item.p1Salary || item.baseSalary || 0) / ncChuẩn) * (ncChínhThức + ncKhác);
-                                    
-                                    // (32) = (12 / NC chuẩn) * (22 + 26 + 26.1 + 27 + 28) * % KPI
-                                    const p21ThựcNhận = (parseFloat(item.p21Salary || 0) / ncChuẩn) * (ncChínhThức + ncKhác) * kpi;
-                                    
-                                    // (33) = (13 * % KPI)
-                                    const p22ThựcNhận = parseFloat(item.p22Salary || 0) * kpi;
-                                    
-                                    // (34) = (14 / NC chuẩn) * (23)
-                                    const probationThựcNhận = (parseFloat(item.probationSalary || 0) / ncChuẩn) * ncThửViệc;
+                                    // % P2.1, % P2.2 từ performance_reviews (đã tính sẵn)
+                                    const p21Percent = parseFloat(item.p1p2Percentage || 0);
+                                    const p22Percent = parseFloat(item.p3Percentage || 0);
+                                    const totalKpiPercent = p21Percent + p22Percent;  // Tổng KPI = P2.1 + P2.2
+
+                                    // ── LƯƠNG THỰC NHẬN (đã tính sẵn trong backend) ──
+                                    const p1ThựcNhận = parseFloat(item.p1Amount || 0);
+                                    const p21ThựcNhận = parseFloat(item.p21Amount || 0);
+                                    const p22ThựcNhận = parseFloat(item.p22Amount || 0);
+                                    const pTVThựcNhận = parseFloat(item.probationAmount || 0);
 
                                     // (36) = (31) + (32) + (33) + (34)
-                                    const tổngLươngChính = p1ThựcNhận + p21ThựcNhận + p22ThựcNhận + probationThựcNhận;
+                                    const tổngLươngChính = p1ThựcNhận + p21ThựcNhận + p22ThựcNhận + pTVThựcNhận;
 
                                     // (51) = (36) + (36.1) + SUM(43 -> 50.1)
-                                    // Note: Using fields mapped from item or provided in formulas
+                                    // Ưu tiên dùng totalGrossIncome đã lưu từ backend
                                     const phụCấp = parseFloat(item.allowanceAmount || 0);
                                     const ot = parseFloat(item.overtimePay || 0);
                                     const thưởngP3 = parseFloat(item.bonus || 0);
                                     const truyThuTínhThuế = parseFloat(item.adjustmentTaxable || 0);
                                     const truyThuKoThuế = parseFloat(item.adjustmentNonTaxable || 0);
-                                    const khácKoThuế = parseFloat(item.otherIncomeNonTaxable || 0);
+                                    const khácKoThuế = parseFloat(item.otherNonTaxable || 0); // (50.1)
 
-                                    const tổngThuNhập = tổngLươngChính + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
+                                    // Dùng totalGrossIncome đã lưu nếu có; fallback tính lại
+                                    const tổngThuNhập = parseFloat(item.totalGrossIncome) > 0
+                                        ? parseFloat(item.totalGrossIncome)
+                                        : tổngLươngChính + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
 
-                                    // (52) = 10.5% * (1.1)
-                                    const bhxhNLĐ = 0.105 * parseFloat(item.baseSalary || 0);
-                                    
-                                    // Total Deductions (65.1)
-                                    const thuếTNCN = parseFloat(item.taxDeduction || 0);
-                                    const khấuTrừKhác = parseFloat(item.penalty || 0) + parseFloat(item.deduction || 0);
-                                    const tổngKhấuTrừ = bhxhNLĐ + parseFloat(item.insuranceAdjustment || 0) + parseFloat(item.unionFee || 0) + parseFloat(item.partyFee || 0) + thuếTNCN + parseFloat(item.taxAdjustment || 0) + khấuTrừKhác;
+                                    // (52) BH NLĐ = BHXH+BHYT+BHTN = 10.5%
+                                    // Dùng insuranceDeduction đã lưu (= 10.5%), không tính lại từng phần
+                                    const bhxhNLĐ = parseFloat(item.insuranceDeduction) > 0
+                                        ? parseFloat(item.insuranceDeduction)
+                                        : parseFloat(item.baseSalary || 0) * 0.105; // fallback 10.5%
 
-                                    // (66) = (51) - (65.1)
-                                    const thựcLĩnh = tổngThuNhập - tổngKhấuTrừ;
+                                    // (65.1) Tổng khấu trừ = (52)+(53)+(54)+(55)+(63)+(64)+(65)
+                                    const thuếTNCN       = parseFloat(item.taxDeduction         || 0); // (63)
+                                    const cdPhíNLD       = parseFloat(item.employeeUnionFee     || 0); // (54) CĐ phí NLĐ
+                                    const khấuTrừKhác   = parseFloat(item.otherDeduction        || 0); // (65) Trừ khác
+                                    const tổngKhấuTrừ = parseFloat(item.totalDeduction) > 0
+                                        ? parseFloat(item.totalDeduction)  // Ưu tiên giá trị đã lưu
+                                        : bhxhNLĐ
+                                            + parseFloat(item.insuranceAdjustment || 0) // (53)
+                                            + cdPhíNLD                               // (54)
+                                            + parseFloat(item.partyFee            || 0) // (55)
+                                            + thuếTNCN                               // (63)
+                                            + parseFloat(item.taxAdjustment        || 0) // (64)
+                                            + khấuTrừKhác;                          // (65)
 
-                                    // Costs
-                                    const kpcđCty = parseFloat(item.companyUnionFee || 0);
-                                    const bhxhCty = parseFloat(item.companyInsurance || 0);
-                                    const tổngChiPhíNS = tổngThuNhập + kpcđCty + bhxhCty;
+                                    // (66) Dùng netSalary từ DB; fallback tính lại
+                                    const thựcLĩnh = parseFloat(item.netSalary) > 0
+                                        ? parseFloat(item.netSalary)
+                                        : tổngThuNhập - tổngKhấuTrừ;
+
+                                    // (71) KPCĐ công ty, (75) BH công ty
+                                    const kpcđCty = parseFloat(item.unionFee || 0);
+                                    const bhxhCty = parseFloat(item.companyInsurance || 0)
+                                        || (parseFloat(item.companySocialInsurance || 0)
+                                            + parseFloat(item.companyHealthInsurance || 0)
+                                            + parseFloat(item.companyUnemploymentInsurance || 0));
+                                    // (79.1) = (51) + (71) + (75) — dùng totalGrossIncome
+                                    const tổngChiPhíNS = parseFloat(item.totalHrCost) > 0
+                                        ? parseFloat(item.totalHrCost)
+                                        : tổngThuNhập + kpcđCty + bhxhCty;
 
                                     return (
                                         <tr key={item.id} className="group hover:bg-indigo-50/30 transition-colors divide-x divide-slate-100">
@@ -187,12 +207,17 @@ export default function SalaryDetailTable({
                                             <td className="sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 px-2.5 py-3 font-bold text-slate-500">{item.employee?.employeeCode || "—"}</td>
                                             <td className="sticky left-[145px] bg-white group-hover:bg-slate-50 z-10 px-4 py-3 font-black text-slate-800 truncate">{item.employee?.fullName || "—"}</td>
                                             
-                                            {/* Group I */}
+                                            {/* Group I - Định mức hợp đồng */}
+                                            {/* (1.1) Lương đóng BHXH */}
                                             <td className="px-3 text-right text-slate-600 bg-amber-50/10 italic">{fmt(item.baseSalary)}</td>
-                                            <td className="px-3 text-right text-slate-600 font-medium">{fmt(item.p1Salary || item.baseSalary)}</td>
-                                            <td className="px-3 text-right text-slate-600">{fmt(item.p21Salary)}</td>
-                                            <td className="px-3 text-right text-slate-600">{fmt(item.p22Salary)}</td>
-                                            <td className="px-3 text-right text-slate-600">{fmt(item.probationSalary)}</td>
+                                            {/* (11) Lương vị trí P1: ưu tiên positionSalary, fallback baseSalary */}
+                                            <td className="px-3 text-right text-slate-600 font-medium">{fmt(item.positionSalary || item.baseSalary)}</td>
+                                            {/* (12) Thưởng HQCV P2.1: ưu tiên performanceBonusSalary, fallback p21Amount */}
+                                            <td className="px-3 text-right text-slate-600">{fmt(item.performanceBonusSalary || item.p21Amount)}</td>
+                                            {/* (13) Khoán CV P2.2: ưu tiên taskContractSalary, fallback p22Amount */}
+                                            <td className="px-3 text-right text-slate-600">{fmt(item.taskContractSalary || item.p22Amount)}</td>
+                                            {/* (14) Lương TV: ưu tiên probationBaseSalary, fallback probationAmount */}
+                                            <td className="px-3 text-right text-slate-600">{fmt(item.probationBaseSalary || item.probationAmount || 0)}</td>
 
                                             {/* Group II */}
                                             <td className="px-3 text-center font-bold text-slate-500">{ncChuẩn}</td>
@@ -201,11 +226,11 @@ export default function SalaryDetailTable({
                                             <td className="px-3 text-center text-indigo-400 italic">{ncKhác}</td>
 
                                             {/* Group III */}
-                                            <td className="px-3 text-center font-black text-blue-600">{item.kpiPercentage || 100}%</td>
+                                            <td className="px-3 text-center font-black text-blue-600">{totalKpiPercent.toFixed(1)}%</td>
                                             <td className="px-3 text-right font-bold text-blue-800">{fmt(p1ThựcNhận)}</td>
                                             <td className="px-3 text-right font-bold text-blue-800">{fmt(p21ThựcNhận)}</td>
                                             <td className="px-3 text-right font-bold text-blue-800">{fmt(p22ThựcNhận)}</td>
-                                            <td className="px-3 text-right font-bold text-blue-800">{fmt(probationThựcNhận)}</td>
+                                            <td className="px-3 text-right font-bold text-blue-800">{fmt(pTVThựcNhận)}</td>
                                             <td className="px-3 text-right font-black text-indigo-900 bg-indigo-50/50">{fmt(tổngLươngChính)}</td>
 
                                             {/* Group IV */}
@@ -223,13 +248,13 @@ export default function SalaryDetailTable({
                                             {/* Group VI - Deductions */}
                                             <td className="px-3 text-right text-rose-600 font-medium">{fmt(bhxhNLĐ)}</td>
                                             <td className="px-3 text-right text-rose-400">{fmt(item.insuranceAdjustment)}</td>
-                                            <td className="px-3 text-right text-rose-400">{fmt(item.unionFee)}</td>
                                             <td className="px-3 text-right text-rose-400">{fmt(item.partyFee)}</td>
                                             <td className="px-3 text-right text-slate-400 italic text-[10px]">{fmt(item.familyDeduction)}</td>
-                                            <td className="px-3 text-right text-slate-500 font-medium">{fmt(item.taxableIncome)}</td>
+                                            {/* (12.3) Thu nhập tính thuế — dùng taxableIncomePaid đã lưu */}
+                                            <td className="px-3 text-right text-slate-500 font-medium">{fmt(item.taxableIncomePaid)}</td>
                                             <td className="px-3 text-right text-rose-700 font-bold">{fmt(thuếTNCN)}</td>
                                             <td className="px-3 text-right text-rose-500">{fmt(item.taxAdjustment)}</td>
-                                            <td className="px-3 text-right text-rose-500">{fmt( khấuTrừKhác )}</td>
+                                            <td className="px-3 text-right text-rose-500">{fmt(khấuTrừKhác)}</td>
                                             <td className="px-3 text-right font-black text-white bg-rose-600 text-xs">{fmt(tổngKhấuTrừ)}</td>
 
                                             {/* Group VII - Net */}

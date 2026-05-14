@@ -5,6 +5,8 @@ import { authService } from "@/services/auth.service";
 import { payrollService } from "@/services/payroll.service";
 import { timesheetsService } from "@/services/timesheets.service";
 import { employeesService } from "@/services/employees.service";
+import { employeeSalariesService } from "@/services/employee-salaries.service";
+import { performanceReviewsService } from "@/services/performance-reviews.service";
 import {
     Dialog,
     DialogContent,
@@ -25,6 +27,7 @@ import {
     FileSpreadsheet,
     FileText,
     History,
+    Info,
     Lock,
     Mail,
     Maximize2,
@@ -48,6 +51,7 @@ import * as XLSX from "xlsx";
 import PayrollSlipTable from "./PayrollSlipTable";
 import SalaryDetailTable from "./SalaryDetailTable";
 import SalarySummaryTable from "./SalarySummaryTable";
+import PayrollAttachments from "./PayrollAttachments";
 
 
 const SummaryField = ({ label, value, icon: Icon, editable, isEditingHeader, type = "text", name, onChange }) => (
@@ -154,6 +158,25 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                             timesheets.map((ts, idx) => {
                                 const detail = payrollDetails.find(d => d.employeeId === ts.id);
                                 const hourlyRate = (detail?.baseSalary || 0) / (ts.standardDays || 26) / 8;
+
+                                // Calculate OT values for immediate feedback
+                                const currentTotalHours =
+                                    Number(ts.otWeekday || 0) +
+                                    Number(ts.otWeekdayNight || 0) +
+                                    Number(ts.otWeekend || 0) +
+                                    Number(ts.otWeekendNight || 0) +
+                                    Number(ts.otHoliday || 0) +
+                                    Number(ts.otHolidayNight || 0);
+
+                                const currentOtPay = (
+                                    (Number(ts.otWeekday || 0) * 1.5) +
+                                    (Number(ts.otWeekdayNight || 0) * 2.1) +
+                                    (Number(ts.otWeekend || 0) * 2.0) +
+                                    (Number(ts.otWeekendNight || 0) * 2.7) +
+                                    (Number(ts.otHoliday || 0) * 3.0) +
+                                    (Number(ts.otHolidayNight || 0) * 3.9)
+                                ) * hourlyRate;
+
                                 return (
                                     <tr key={ts.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="px-2 py-3 text-center text-slate-400 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/50 z-[5]">{idx + 1}</td>
@@ -162,10 +185,11 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                         <td className="px-3 py-3 border-r border-slate-50 text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">{ts.positionName || "—"}</td>
                                         <td className="px-4 py-3 border-r border-slate-100 text-slate-500 whitespace-nowrap font-medium">{ts.departmentName || "—"}</td>
 
-                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
+                                        <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekday || 0}
                                                     onChange={(e) => onChange(ts.id, 'otWeekday', e.target.value)}
@@ -176,8 +200,9 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekdayNight || 0}
                                                     onChange={(e) => onChange(ts.id, 'otWeekdayNight', e.target.value)}
@@ -188,8 +213,9 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekend || 0}
                                                     onChange={(e) => onChange(ts.id, 'otWeekend', e.target.value)}
@@ -200,8 +226,9 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otWeekendNight || 0}
                                                     onChange={(e) => onChange(ts.id, 'otWeekendNight', e.target.value)}
@@ -212,8 +239,9 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otHoliday || 0}
                                                     onChange={(e) => onChange(ts.id, 'otHoliday', e.target.value)}
@@ -224,8 +252,9 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
 
                                         <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600 bg-indigo-50/10">
                                             {isEditing ? (
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
+                                                    min={0}
                                                     className="w-12 bg-white border border-indigo-200 rounded text-center outline-none focus:ring-1 focus:ring-indigo-500"
                                                     value={ts.otHolidayNight || 0}
                                                     onChange={(e) => onChange(ts.id, 'otHolidayNight', e.target.value)}
@@ -235,8 +264,8 @@ const OvertimeMatrixTable = ({ timesheets = [], payrollDetails = [], loading = f
                                         <td className="px-2 py-3 text-center border-r border-slate-50 text-slate-300">3.9</td>
 
                                         <td className="px-2 py-3 text-right border-r border-slate-50 text-slate-500 font-medium">{fmt(hourlyRate)}</td>
-                                        <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600">{ts.totalOtHours || 0}</td>
-                                        <td className="px-3 py-3 text-right font-bold text-emerald-600 bg-emerald-50/30 whitespace-nowrap">{fmt(detail?.overtimePay || 0)}</td>
+                                        <td className="px-2 py-3 text-center border-r border-slate-50 font-bold text-indigo-600">{currentTotalHours || 0}</td>
+                                        <td className="px-3 py-3 text-right font-bold text-emerald-600 bg-emerald-50/30 whitespace-nowrap">{fmt(currentOtPay || 0)}</td>
                                     </tr>
                                 );
                             })
@@ -304,64 +333,51 @@ const PayrollDetailView = React.memo(({
     });
     const [isEditingData, setIsEditingData] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     // Add Personnel Modal State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [availableEmployees, setAvailableEmployees] = useState([]);
     const [isFetchingEmployees, setIsFetchingEmployees] = useState(false);
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
     const [empSearch, setEmpSearch] = useState("");
+    const [salaryData, setSalaryData] = useState(null);
+    const [performanceData, setPerformanceData] = useState([]);
 
     // Derived active period (from payroll or from edit form)
     const activeMonth = isEditingHeader ? (formData.payrollMonth || payroll?.payrollMonth) : payroll?.payrollMonth;
     const activeYear = isEditingHeader ? (formData.payrollYear || payroll?.payrollYear) : payroll?.payrollYear;
 
-    const handleRefreshSection = (sectionId) => {
+    // Fetch performance reviews when payroll loads
+    useEffect(() => {
+        if (payroll?.payrollMonth && payroll?.payrollYear) {
+            performanceReviewsService.getByPeriod(payroll.payrollMonth, payroll.payrollYear)
+                .then(res => {
+                    const reviews = res?.data?.data || res?.data || [];
+                    setPerformanceData(reviews);
+                })
+                .catch(err => {
+                    console.error("Error fetching performance reviews:", err);
+                    setPerformanceData([]);
+                });
+        }
+    }, [payroll?.payrollMonth, payroll?.payrollYear]);
+
+    const handleRefreshSection = async (sectionId) => {
         setIsRefreshing(true);
         if (sectionId === "timesheet") {
             setTimesheetData(null);
         } else if (sectionId === "input") {
-            // Reset input rows from current payroll details
-            if (payroll?.details) {
-                const rows = [];
-                payroll.details.forEach(d => {
-                    // KPI Row
-                    if (d.p1p2Percentage > 0 || d.p21Salary > 0) {
-                        rows.push({
-                            id: `kpi-${d.id}`,
-                            employeeCode: d.employee?.employeeCode,
-                            fullName: d.employee?.fullName,
-                            item: "Thưởng KPI",
-                            kpiPercentage: d.p1p2Percentage || 100,
-                            maxKpiSalary: d.p21Salary || 0,
-                            amount: (d.p1p2Percentage / 100) * d.p21Salary || 0,
-                            note: d.note || ""
-                        });
-                    }
-                    // Penalty Row
-                    if (d.penalty > 0) {
-                        rows.push({
-                            id: `penalty-${d.id}`,
-                            employeeCode: d.employee?.employeeCode,
-                            fullName: d.employee?.fullName,
-                            item: "Phạt vi phạm",
-                            amount: d.penalty,
-                            note: d.note || ""
-                        });
-                    }
-                    // Deduction Row
-                    if (d.deduction > 0) {
-                        rows.push({
-                            id: `deduction-${d.id}`,
-                            employeeCode: d.employee?.employeeCode,
-                            fullName: d.employee?.fullName,
-                            item: "Truy thu thuế",
-                            amount: d.deduction,
-                            note: d.note || ""
-                        });
-                    }
-                });
-                setInputRows(rows);
+            try {
+                setInputRows([]);
+                setTimesheetData(null);
+                // Fetch fresh salary data to get actual KPI salary
+                const res = await employeeSalariesService.getAll();
+                const salaries = res?.data || res || [];
+                setSalaryData(salaries);
+                toast.success("Đã đồng bộ lại dữ liệu từ hệ thống lương");
+            } catch (err) {
+                console.error("Error refreshing salary data:", err);
+                toast.error("Không thể lấy dữ liệu lương");
             }
         } else if (sectionId === "payroll") {
             window.location.reload();
@@ -371,9 +387,65 @@ const PayrollDetailView = React.memo(({
 
     // Matrix-based input rows for all employees
     useEffect(() => {
-        if (timesheetData && timesheetData.length > 0 && payroll?.details && inputRows.length === 0) {
+        if (timesheetData && timesheetData.length > 0 && payroll?.details && salaryData && (inputRows.length === 0)) {
             const rows = timesheetData.map(ts => {
                 const detail = payroll.details.find(d => d.employeeId === ts.id);
+
+                // Lấy performance review để tính % KPI
+                const perf = performanceData.find(p => p.employeeId === ts.id);
+
+                // Lấy performanceSalary từ employee_salaries (đây là Lương P2 gốc)
+                const salary = salaryData?.find(s =>
+                    Number(s.employeeId) === Number(ts.id) ||
+                    s.employee?.id === ts.id ||
+                    s.employee?.employeeCode === ts.employeeCode
+                );
+                const performanceSalary = parseFloat(salary?.performanceSalary || 0);
+
+                // Tính % KPI từ performance_reviews
+                // Cấu trúc điểm: 1.1-1.5 (max 5.0) + 2.1 (max 5.0) = Total max 10.0
+                // ── KPI % CHỈ CHIẾM 50% MỖI PHẦN ──
+                // P2.1: sum(1.1-1.5) / max(5) * 50%
+                // P2.2: scoreResult / max(5) * 50%
+                // Total KPI = P2.1% + P2.2% (max = 100%)
+                let p21Percent = 0;
+                let p22Percent = 0;
+                let totalKpiPercent = 0;
+
+                if (perf) {
+                    const sumScore11to15 =
+                        (parseFloat(perf.scoreCompliance || 0) +
+                            parseFloat(perf.scoreAttitude || 0) +
+                            parseFloat(perf.scoreLearning || 0) +
+                            parseFloat(perf.scoreTeamwork || 0) +
+                            parseFloat(perf.scoreSkills || 0));
+
+                    p21Percent = sumScore11to15 / 5 * 50;  // P2.1 chiếm 50%
+                    p22Percent = parseFloat(perf.scoreResult || 0) / 5 * 50;  // P2.2 chiếm 50%
+                    totalKpiPercent = p21Percent + p22Percent;  // Tổng KPI (max = 100%)
+                }
+
+                // Tính P2.1 thực và P2.2 thực
+                // P2.1 thực = performanceSalary × %P2.1 / 100 × hệ số ngày công
+                // P2.2 thực = performanceSalary × %P2.2 / 100 × hệ số ngày công
+                const standardDays = parseFloat(ts.standardDays) || 22;
+                // Công chính thức = officialDays + annualLeaveDays (phép năm hưởng lương)
+                const workingDays = (parseFloat(ts.officialDays || 0) + parseFloat(ts.probationDays || 0) +
+                    parseFloat(ts.businessTripDays || 0) + parseFloat(ts.holidayDays || 0) + 
+                    parseFloat(ts.benefitLeaveDays || 0) + parseFloat(ts.annualLeaveDays || 0));
+                const dayFactor = standardDays > 0 ? workingDays / standardDays : 0;
+
+                const p21Actual = performanceSalary * (p21Percent / 100) * dayFactor;
+                const p22Actual = performanceSalary * (p22Percent / 100) * dayFactor;
+
+                // Tính tổng phụ cấp từ employee_salaries (lunch + fuel + phone + other)
+                // Đây là giá trị MẶC ĐỊNH, không nhân với số công
+                const totalAllowance = 
+                    parseFloat(salary?.lunchAllowance || 0) +
+                    parseFloat(salary?.fuelAllowance || 0) +
+                    parseFloat(salary?.phoneAllowance || 0) +
+                    parseFloat(salary?.otherAllowance || 0);
+
                 return {
                     id: ts.id,
                     employeeId: ts.id,
@@ -385,30 +457,52 @@ const PayrollDetailView = React.memo(({
                     standardDays: ts.standardDays || 26,
                     officialDays: ts.officialDays || 0,
                     probationDays: ts.probationDays || 0,
-                    // Editable fields
-                    performanceSalary: detail?.performanceSalary ?? (ts.performanceSalary || 0),
-                    p1p2Percentage: detail?.p1p2Percentage ?? 100,
-                    p3Percentage: detail?.p3Percentage ?? 100,
+                    // P2 từ employee_salaries (performanceSalary)
+                    performanceSalary: performanceSalary,
+                    // % KPI từ performance_reviews (P2.1 + P2.2 = 100%)
+                    kpiPercent: totalKpiPercent,
+                    p1p2Percentage: p21Percent,
+                    p3Percentage: p22Percent,
+                    // P2.1 thực và P2.2 thực (đã tính)
+                    p21Actual: p21Actual,
+                    p22Actual: p22Actual,
                     bonus: detail?.bonus ?? 0,
-                    allowanceAmount: detail?.allowanceAmount ?? 0,
+                    // Phụ cấp: mặc định lấy tổng 4 trường, không cho sửa
+                    allowanceAmount: totalAllowance,
+                    // Lưu lại để hiển thị chi tiết
+                    lunchAllowance: salary?.lunchAllowance || 0,
+                    fuelAllowance: salary?.fuelAllowance || 0,
+                    phoneAllowance: salary?.phoneAllowance || 0,
+                    otherAllowance: salary?.otherAllowance || 0,
                     penalty: detail?.penalty ?? 0,
                     deduction: detail?.deduction ?? 0,
-                    socialInsurancePercentage: detail?.socialInsurancePercentage ?? 0,
-                    healthInsurancePercentage: detail?.healthInsurancePercentage ?? 0,
-                    unemploymentInsurancePercentage: detail?.unemploymentInsurancePercentage ?? 0,
-                    unionFeePercentage: detail?.unionFeePercentage ?? 0,
+                    // Insurance rates cố định
+                    socialInsurancePercentage: 8,
+                    healthInsurancePercentage: 1.5,
+                    unemploymentInsurancePercentage: 1,
+                    unionFee: detail?.unionFee ?? 0,
                     taxDeduction: detail?.taxDeduction ?? 0,
                     note: detail?.note || ""
                 };
             });
             setInputRows(rows);
         }
-    }, [timesheetData, payroll?.details]);
+    }, [timesheetData, payroll?.details, salaryData, performanceData, inputRows.length]);
 
     const handleInputRowChange = (id, field, value) => {
-        setInputRows(prev => prev.map(row => 
-            row.id === id ? { ...row, [field]: value } : row
-        ));
+        // Validation: Prevent negative values for numeric fields
+        const isNumeric = !isNaN(parseFloat(value)) && isFinite(value);
+        if (isNumeric && parseFloat(value) < 0) {
+            toast.error("Vui lòng nhập giá trị dương (>= 0)");
+            return;
+        }
+
+        setInputRows(prev => prev.map(row => {
+            if (row.id === id) {
+                return { ...row, [field]: value };
+            }
+            return row;
+        }));
     };
 
     const handleExportExcel = () => {
@@ -450,7 +544,7 @@ const PayrollDetailView = React.memo(({
             employeeCode: "",
             fullName: "",
             item: "Thưởng KPI",
-            kpiPercentage: 100,
+            dummyPercent: 100,
             maxKpiSalary: 0,
             amount: 0,
             note: ""
@@ -463,11 +557,11 @@ const PayrollDetailView = React.memo(({
         try {
             const res = await employeesService.getAll({ limit: 2000, status: 'ACTIVE' });
             const allEmp = res?.data?.items || res?.items || [];
-            
+
             // Filter out employees already in the timesheet
             const currentIds = new Set(timesheetData?.map(ts => ts.id) || []);
             const filtered = allEmp.filter(emp => !currentIds.has(emp.id));
-            
+
             setAvailableEmployees(filtered);
         } catch (err) {
             console.error("Error fetching employees:", err);
@@ -489,31 +583,56 @@ const PayrollDetailView = React.memo(({
             return;
         }
 
+        const month = parseInt(activeMonth);
+        const year = parseInt(activeYear);
+
+        if (isNaN(month) || isNaN(year)) {
+            toast.error("Không xác định được kỳ lương (tháng/năm)");
+            return;
+        }
+
         setIsSaving(true);
         try {
             // Add employees to timesheet period
-            await Promise.all(selectedEmployeeIds.map(empId => 
+            const results = await Promise.allSettled(selectedEmployeeIds.map(empId =>
                 timesheetsService.addEmployee({
-                    employeeId: empId,
-                    month: activeMonth,
-                    year: activeYear
+                    employeeId: parseInt(empId),
+                    month: month,
+                    year: year
                 })
             ));
-            
-            toast.success(`Đã thêm ${selectedEmployeeIds.length} nhân sự thành công`);
+
+            const failed = results.filter(r => r.status === 'rejected');
+            if (failed.length > 0) {
+                console.error("Some employees failed to add:", failed);
+                if (failed.length === selectedEmployeeIds.length) {
+                    throw new Error(failed[0].reason?.message || "Tất cả nhân sự đều lỗi khi thêm");
+                }
+                toast.warning(`Đã thêm thành công ${results.length - failed.length} nhân sự, ${failed.length} nhân sự bị lỗi.`);
+            } else {
+                toast.success(`Đã thêm ${selectedEmployeeIds.length} nhân sự thành công`);
+            }
+
             setIsAddModalOpen(false);
-            
+
             // Refresh timesheet data
             handleRefreshSection("timesheet");
         } catch (err) {
             console.error("Error adding employees:", err);
-            toast.error("Lỗi khi thêm nhân sự: " + (err.message || "Unknown error"));
+            toast.error("Lỗi khi thêm nhân sự: " + (err.response?.data?.message || err.message || "Unknown error"));
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleTimesheetChange = (id, field, value) => {
+        // Validation: Prevent negative values for numeric fields
+        const isNumeric = !isNaN(parseFloat(value)) && isFinite(value);
+        if (isNumeric && parseFloat(value) < 0) {
+            toast.error("Vui lòng nhập giá trị dương (>= 0)");
+            return;
+        }
+
         setTimesheetData(prev => prev.map(item =>
             item.id === id ? { ...item, [field]: value } : item
         ));
@@ -530,8 +649,13 @@ const PayrollDetailView = React.memo(({
                 const updates = timesheetData.map(item => {
                     const detail = payroll?.details?.find(d => d.employeeId === item.id);
                     if (!detail) return null;
+
+                    // Merge with data from inputRows
+                    const inputRow = inputRows.find(ir => ir.id === item.id);
+
                     return {
                         id: detail.id,
+                        // Attendance fields
                         standardDays: item.standardDays,
                         workingDays: item.workingDays,
                         officialDays: item.officialDays,
@@ -546,6 +670,20 @@ const PayrollDetailView = React.memo(({
                         otWeekendNight: item.otWeekendNight,
                         otHoliday: item.otHoliday,
                         otHolidayNight: item.otHolidayNight,
+                        // Financial fields from inputRow
+                        performanceSalary: inputRow?.p21Salary, // Matrix P2 total
+                        p1p2Percentage: inputRow?.p1p2Percentage,
+                        p3Percentage: inputRow?.p3Percentage,
+                        bonus: inputRow?.bonus, // Matrix P3
+                        // allowanceAmount: KHÔNG gửi - backend tự tính từ employee_salaries
+                        penalty: inputRow?.penalty,
+                        deduction: inputRow?.deduction,
+                        socialInsurancePercentage: inputRow?.socialInsurancePercentage,
+                        healthInsurancePercentage: inputRow?.healthInsurancePercentage,
+                        unemploymentInsurancePercentage: inputRow?.unemploymentInsurancePercentage,
+                        unionFee: inputRow?.unionFee,
+                        taxDeduction: inputRow?.taxDeduction,
+                        note: inputRow?.note
                     };
                 }).filter(Boolean);
 
@@ -573,78 +711,124 @@ const PayrollDetailView = React.memo(({
     // Constructed full details list to ensure all personnel from timesheet appear in Salary/Slip tabs
     const fullPayrollDetails = useMemo(() => {
         if (!timesheetData || !payroll?.details) return payroll?.details || [];
-        
+
         return timesheetData.map(tsItem => {
             const existingDetail = payroll.details.find(d => d.employeeId === tsItem.id);
-            if (existingDetail) {
-                return {
-                    ...existingDetail,
-                    // Ensure fresh attendance data from timesheet is used for calculations
-                    standardDays: tsItem.standardDays,
-                    officialDays: tsItem.officialDays,
-                    probationDays: tsItem.probationDays,
-                    benefitLeaveDays: tsItem.benefitLeaveDays,
-                    holidayDays: tsItem.holidayDays,
-                    businessTripDays: tsItem.businessTripDays,
-                    annualLeaveDays: tsItem.annualLeaveDays,
-                    kpiPercentage: tsItem.kpiPercentage,
-                    otWeekday: tsItem.otWeekday,
-                    otWeekdayNight: tsItem.otWeekdayNight,
-                    otWeekend: tsItem.otWeekend,
-                    otWeekendNight: tsItem.otWeekendNight,
-                    otHoliday: tsItem.otHoliday,
-                    otHolidayNight: tsItem.otHolidayNight,
-                };
+            const inputRow = inputRows.find(ir => ir.id === tsItem.id);
+
+            // ── LẤY PERFORMANCE REVIEW ĐỂ TÍNH % KPI ──
+            // Cấu trúc điểm: 1.1-1.5 (max 5.0) + 2.1 (max 5.0) = Total max 10.0
+            const perf = performanceData.find(p => p.employeeId === tsItem.id);
+
+            // ── KPI % CHỈ CHIẾM 50% MỖI PHẦN ──
+            // P2.1: sum(1.1-1.5) / max(5) * 50%
+            // P2.2: scoreResult / max(5) * 50%
+            let p21Percent = 0;
+            let p22Percent = 0;
+
+            if (perf) {
+                const sumScore11to15 =
+                    (parseFloat(perf.scoreCompliance || 0) +
+                        parseFloat(perf.scoreAttitude || 0) +
+                        parseFloat(perf.scoreLearning || 0) +
+                        parseFloat(perf.scoreTeamwork || 0) +
+                        parseFloat(perf.scoreSkills || 0));
+
+                p21Percent = sumScore11to15 / 5 * 50;  // P2.1 chiếm 50%
+                p22Percent = parseFloat(perf.scoreResult || 0) / 5 * 50;  // P2.2 chiếm 50%
             }
-            
-            // Create virtual detail record for employees missing from payroll batch
+
+            // ── TÍNH LƯƠNG THỰC NHẬN ──
+            const performanceSalary = parseFloat(existingDetail?.performanceSalary || tsItem.performanceSalary || 0);
+            const standardDays = parseFloat(tsItem.standardDays || 26);
+            const officialDays = parseFloat(tsItem.officialDays || 0);
+            const probationDays = parseFloat(tsItem.probationDays || 0);
+            const businessTripDays = parseFloat(tsItem.businessTripDays || 0);
+            const holidayDays = parseFloat(tsItem.holidayDays || 0);
+            const benefitLeaveDays = parseFloat(tsItem.benefitLeaveDays || 0);
+            const annualLeaveDays = parseFloat(tsItem.annualLeaveDays || 0);
+
+            // fullPayDays = officialDays + probationDays + businessTripDays + holidayDays + benefitLeaveDays + annualLeaveDays
+            // (Nhất quán với backend _calcWorkingDays)
+            const fullPayDays = officialDays + probationDays + businessTripDays + holidayDays + benefitLeaveDays + annualLeaveDays;
+            const dayFactor = standardDays > 0 ? fullPayDays / standardDays : 0;
+
+            // P2.1 thực = performanceSalary × %P2.1 / 100 × hệ số ngày công
+            const p21Amount = performanceSalary * (p21Percent / 100) * dayFactor;
+            // P2.2 thực = performanceSalary × %P2.2 / 100 × hệ số ngày công
+            const p22Amount = performanceSalary * (p22Percent / 100) * dayFactor;
+            // P1 thực = baseSalary × hệ số ngày công
+            const p1Amount = parseFloat(existingDetail?.baseSalary || tsItem.baseSalary || 0) * dayFactor;
+            // Lương TV thực = baseSalary × ngày công TV / standardDays × 0.85
+            const probationAmount = standardDays > 0 ?
+                (parseFloat(existingDetail?.baseSalary || tsItem.baseSalary || 0) / standardDays) * probationDays * 0.85 : 0;
+
+            // Calculate OT Pay for the table view based on current hours in timesheet matrix
+            const p1Base = parseFloat(existingDetail?.baseSalary || tsItem.baseSalary || 0);
+            const hourlyRate = standardDays > 0 ? p1Base / standardDays / 8 : 0;
+            const currentOtPay = (
+                (Number(tsItem.otWeekday || 0) * 1.5) +
+                (Number(tsItem.otWeekdayNight || 0) * 2.1) +
+                (Number(tsItem.otWeekend || 0) * 2.0) +
+                (Number(tsItem.otWeekendNight || 0) * 2.7) +
+                (Number(tsItem.otHoliday || 0) * 3.0) +
+                (Number(tsItem.otHolidayNight || 0) * 3.9)
+            ) * hourlyRate;
+
             return {
-                id: `temp-${tsItem.id}`,
+                ...(existingDetail || {}),
+                id: existingDetail?.id || `temp-${tsItem.id}`,
                 employeeId: tsItem.id,
-                employee: {
+                employee: existingDetail?.employee || {
                     id: tsItem.id,
                     fullName: tsItem.fullName,
                     employeeCode: tsItem.employeeCode,
                     department: { departmentName: tsItem.departmentName },
                     position: { positionName: tsItem.positionName }
                 },
-                baseSalary: tsItem.baseSalary || 0,
-                p1Salary: tsItem.p1Salary || tsItem.baseSalary || 0,
-                p21Salary: tsItem.p21Salary || 0,
-                p22Salary: tsItem.p22Salary || 0,
-                probationSalary: tsItem.probationSalary || 0,
-                standardDays: tsItem.standardDays || 26,
-                officialDays: tsItem.officialDays || 0,
-                probationDays: tsItem.probationDays || 0,
-                benefitLeaveDays: tsItem.benefitLeaveDays || 0,
-                holidayDays: tsItem.holidayDays || 0,
-                businessTripDays: tsItem.businessTripDays || 0,
-                annualLeaveDays: tsItem.annualLeaveDays || 0,
-                kpiPercentage: tsItem.kpiPercentage || 100,
-                otWeekday: tsItem.otWeekday || 0,
-                otWeekdayNight: tsItem.otWeekdayNight || 0,
-                otWeekend: tsItem.otWeekend || 0,
-                otWeekendNight: tsItem.otWeekendNight || 0,
-                otHoliday: tsItem.otHoliday || 0,
-                otHolidayNight: tsItem.otHolidayNight || 0,
-                bonus: 0,
-                allowanceAmount: 0,
-                overtimePay: 0,
-                adjustmentTaxable: 0,
-                adjustmentNonTaxable: 0,
-                otherIncomeNonTaxable: 0,
-                insuranceDeduction: 0,
-                taxDeduction: 0,
-                penalty: 0,
-                deduction: 0,
-                note: "Chưa được tính toán"
+                // Fresh attendance from timesheetData
+                standardDays: tsItem.standardDays,
+                officialDays: tsItem.officialDays,
+                probationDays: tsItem.probationDays,
+                benefitLeaveDays: tsItem.benefitLeaveDays,
+                holidayDays: tsItem.holidayDays,
+                businessTripDays: tsItem.businessTripDays,
+                annualLeaveDays: tsItem.annualLeaveDays,
+                otWeekday: tsItem.otWeekday,
+                otWeekdayNight: tsItem.otWeekdayNight,
+                otWeekend: tsItem.otWeekend,
+                otWeekendNight: tsItem.otWeekendNight,
+                otHoliday: tsItem.otHoliday,
+                otHolidayNight: tsItem.otHolidayNight,
+                overtimePay: currentOtPay,
+                // Lương P2 từ employee_salaries
+                performanceSalary: performanceSalary,
+                // % KPI từ performance_reviews (P2.1 = 1.1-1.5, P2.2 = scoreResult)
+                p1p2Percentage: p21Percent,
+                p3Percentage: p22Percent,
+                // Lương thực nhận đã tính lại từ performance
+                p1Amount: p1Amount,
+                p21Amount: p21Amount,
+                p22Amount: p22Amount,
+                probationAmount: probationAmount,
+                // Bonus, penalty, deduction từ inputRows hoặc existingDetail
+                bonus: inputRow?.bonus !== undefined ? inputRow.bonus : (existingDetail?.bonus || 0),
+                penalty: inputRow?.penalty !== undefined ? inputRow.penalty : (existingDetail?.penalty || 0),
+                deduction: inputRow?.deduction !== undefined ? inputRow.deduction : (existingDetail?.deduction || 0),
+                allowanceAmount: inputRow?.allowanceAmount ?? existingDetail?.allowanceAmount ?? 0,
+                socialInsurancePercentage: inputRow?.socialInsurancePercentage ?? existingDetail?.socialInsurancePercentage ?? 0,
+                healthInsurancePercentage: inputRow?.healthInsurancePercentage ?? existingDetail?.healthInsurancePercentage ?? 0,
+                unemploymentInsurancePercentage: inputRow?.unemploymentInsurancePercentage ?? existingDetail?.unemploymentInsurancePercentage ?? 0,
+                unionFee: inputRow?.unionFee ?? existingDetail?.unionFee ?? 0,
+                taxDeduction: inputRow?.taxDeduction ?? existingDetail?.taxDeduction ?? 0,
+                note: inputRow?.note ?? (existingDetail?.note || "")
             };
         });
-    }, [timesheetData, payroll?.details]);
+    }, [timesheetData, payroll?.details, inputRows, performanceData]);
 
     const filteredTimesheetData = useMemo(() => {
         if (!timesheetData) return [];
-        
+
         let data = [...timesheetData];
 
         // User wants to show all personnel, so we comment out the filter
@@ -669,7 +853,7 @@ const PayrollDetailView = React.memo(({
 
         if (tsSearch.trim()) {
             const term = tsSearch.toLowerCase();
-            data = data.filter(item => 
+            data = data.filter(item =>
                 item.fullName?.toLowerCase().includes(term) ||
                 item.employeeCode?.toLowerCase().includes(term) ||
                 item.departmentName?.toLowerCase().includes(term)
@@ -680,12 +864,12 @@ const PayrollDetailView = React.memo(({
 
     const filteredOvertimeData = useMemo(() => {
         if (!timesheetData) return [];
-        
+
         let data = [...timesheetData];
 
         if (otSearch.trim()) {
             const term = otSearch.toLowerCase();
-            data = data.filter(item => 
+            data = data.filter(item =>
                 item.fullName?.toLowerCase().includes(term) ||
                 item.employeeCode?.toLowerCase().includes(term)
             );
@@ -732,22 +916,26 @@ const PayrollDetailView = React.memo(({
             // Only fetch if data is missing
             if (timesheetData) return;
 
-            const fetchTs = async () => {
+            const fetchData = async () => {
                 setTimesheetLoading(true);
                 try {
-                    const res = await timesheetsService.getSummaryMatrix({
-                        month: activeMonth,
-                        year: activeYear,
-                        limit: 1000
-                    });
-                    setTimesheetData(res?.data?.items || res?.items || []);
+                    const [tsRes, salaryRes] = await Promise.all([
+                        timesheetsService.getSummaryMatrix({
+                            month: activeMonth,
+                            year: activeYear,
+                            limit: 1000
+                        }),
+                        employeeSalariesService.getAll()
+                    ]);
+                    setTimesheetData(tsRes?.data?.items || tsRes?.items || []);
+                    setSalaryData(salaryRes?.data || salaryRes || []);
                 } catch (err) {
-                    console.error("Error fetching timesheet data:", err);
+                    console.error("Error fetching initial data:", err);
                 } finally {
                     setTimesheetLoading(false);
                 }
             };
-            fetchTs();
+            fetchData();
         }
     }, [payroll?.id, activeMonth, activeYear, timesheetData]);
 
@@ -777,17 +965,18 @@ const PayrollDetailView = React.memo(({
 
                 return {
                     id: detail.id,
-                    performanceSalary: parseFloat(row.performanceSalary) || 0,
+                    p21Salary: parseFloat(row.p21Salary) || 0,
+                    performanceSalary: parseFloat(row.p21Salary) || 0,
                     p1p2Percentage: parseFloat(row.p1p2Percentage) || 0,
                     p3Percentage: parseFloat(row.p3Percentage) || 0,
                     bonus: parseFloat(row.bonus) || 0,
-                    allowanceAmount: parseFloat(row.allowanceAmount) || 0,
+                    // allowanceAmount: KHÔNG gửi - backend tự tính từ employee_salaries
                     penalty: parseFloat(row.penalty) || 0,
                     deduction: parseFloat(row.deduction) || 0,
                     socialInsurancePercentage: parseFloat(row.socialInsurancePercentage) || 0,
                     healthInsurancePercentage: parseFloat(row.healthInsurancePercentage) || 0,
                     unemploymentInsurancePercentage: parseFloat(row.unemploymentInsurancePercentage) || 0,
-                    unionFeePercentage: parseFloat(row.unionFeePercentage) || 0,
+                    unionFee: parseFloat(row.unionFee) || 0,
                     taxDeduction: parseFloat(row.taxDeduction) || 0,
                     note: row.note || ""
                 };
@@ -1006,7 +1195,7 @@ const PayrollDetailView = React.memo(({
                                                     <XCircle className="h-3.5 w-3.5" /> Từ chối
                                                 </Button>
                                             </div>
-                                            
+
                                             <div className="h-6 w-[1px] bg-slate-200 mx-1" />
 
                                             <div className="flex items-center gap-1.5">
@@ -1147,7 +1336,7 @@ const PayrollDetailView = React.memo(({
                                         )}
                                         {isEditingData ? (isSaving ? 'Đang lưu...' : 'Lưu thay đổi') : 'Chỉnh sửa'}
                                     </button>
-                                    <button 
+                                    <button
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
                                         onClick={handleOpenAddModal}
                                     >
@@ -1168,7 +1357,7 @@ const PayrollDetailView = React.memo(({
                                             <RefreshCw className={`h-3 w-3 ${actionLoading ? 'animate-spin' : ''}`} /> Cập nhật lại & Tính lương
                                         </button>
                                     )}
-                                    <label 
+                                    <label
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                                         onClick={() => document.getElementById("excel-import-input").click()}
                                     >
@@ -1181,8 +1370,8 @@ const PayrollDetailView = React.memo(({
                                         <Download className="h-3 w-3" /> Xuất Excel
                                     </button>
                                     <div className="ml-auto flex items-center gap-1">
-                                        <button 
-                                            className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" 
+                                        <button
+                                            className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                                             title="Làm mới"
                                             onClick={() => handleRefreshSection("timesheet")}
                                         >
@@ -1332,6 +1521,7 @@ const PayrollDetailView = React.memo(({
                                                                             {isEditingData ? (
                                                                                 <input
                                                                                     type="number"
+                                                                                    min={0}
                                                                                     className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-center focus:ring-1 focus:ring-indigo-500 outline-none"
                                                                                     value={item.standardDays || 26}
                                                                                     onChange={(e) => handleTimesheetChange(item.id, 'standardDays', e.target.value)}
@@ -1350,6 +1540,7 @@ const PayrollDetailView = React.memo(({
                                                                             {isEditingData ? (
                                                                                 <input
                                                                                     type="number"
+                                                                                    min={0}
                                                                                     className="w-16 px-1 py-0.5 border border-emerald-300 rounded text-center focus:ring-1 focus:ring-emerald-500 outline-none"
                                                                                     value={item.officialDays || 0}
                                                                                     onChange={(e) => handleTimesheetChange(item.id, 'officialDays', e.target.value)}
@@ -1362,6 +1553,7 @@ const PayrollDetailView = React.memo(({
                                                                             {isEditingData ? (
                                                                                 <input
                                                                                     type="number"
+                                                                                    min={0}
                                                                                     className="w-16 px-1 py-0.5 border border-slate-300 rounded text-center focus:ring-1 focus:ring-indigo-500 outline-none"
                                                                                     value={item.probationDays || 0}
                                                                                     onChange={(e) => handleTimesheetChange(item.id, 'probationDays', e.target.value)}
@@ -1406,7 +1598,7 @@ const PayrollDetailView = React.memo(({
                             {/* ── Consolidated Header Block ── */}
                             <div className="sticky top-0 bg-white/95 backdrop-blur-md z-[30] border-b border-slate-200 shadow-sm transition-all duration-300 px-4 pt-3 pb-2 space-y-3 -mx-4 -mt-4 mb-4 rounded-t-xl">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <button 
+                                    <button
                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${isEditingData ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}`}
                                         onClick={handleToggleEditData}
                                         disabled={isSaving}
@@ -1475,12 +1667,12 @@ const PayrollDetailView = React.memo(({
                             onToggle={toggleSection}
                         >
                             <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
+                                {/* <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
                                     <Pencil className="h-3 w-3" /> Chỉnh sửa hàng loạt
-                                </button>
-                                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
+                                </button> */}
+                                {/* <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
                                     <Upload className="h-3 w-3" /> Import Excel
-                                </button>
+                                </button> */}
                                 {canEdit && payroll?.payrollStatus === "DRAFT" && (
                                     <button
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors shadow-sm"
@@ -1526,36 +1718,118 @@ const PayrollDetailView = React.memo(({
                                                 <th className="px-3 py-3 text-center w-[50px] sticky left-0 bg-slate-50 z-20">STT</th>
                                                 <th className="px-3 py-3 text-left w-[100px] sticky left-[50px] bg-slate-50 z-20">Mã NV</th>
                                                 <th className="px-3 py-3 text-left w-[200px] sticky left-[150px] bg-slate-50 z-20 border-r border-slate-200">Họ tên nhân sự</th>
-                                                
+
                                                 {/* Attendance Group */}
-                                                <th colSpan={3} className="px-3 py-3 text-center bg-blue-50/50 text-blue-700 border-r border-slate-200 italic">Dữ liệu công (Tham chiếu)</th>
-                                                
-                                                {/* Editable Columns */}
-                                                <th className="px-3 py-3 text-right w-[130px] bg-amber-50 text-amber-800">Lương P2</th>
-                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700">% P2.1</th>
-                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700">% P2.2</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700">Thưởng P3</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700">Phụ cấp</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700">Phạt</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700">K.Trừ khác</th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHXH</th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHYT</th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% BHTN</th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900">% KPCĐ</th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-200/50 text-rose-950 font-black">Thuế TNCN</th>
+                                                <th colSpan={3} className="px-3 py-3 text-center bg-blue-50/50 text-blue-700 border-r border-slate-200 italic group relative">
+                                                    Dữ liệu công (Tham chiếu)
+                                                    <span className="ml-1 cursor-help text-blue-400 hover:text-blue-600" title="Dữ liệu chấm công từ bảng timesheets, dùng làm tham chiếu tính lương">ⓘ</span>
+                                                </th>
+
+                                                {/* P2 từ employee_salaries & performance_reviews */}
+                                                <th className="px-3 py-3 text-right w-[130px] bg-amber-50 text-amber-800 group relative">
+                                                    Lương P2
+                                                    <span className="ml-1 cursor-help text-amber-400 hover:text-amber-600" title="Lương hiệu năng từ bảng employee_salaries, bao gồm P2.1 và P2.2">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-amber-50 text-amber-800 group relative">
+                                                    % KPI
+                                                    <span className="ml-1 cursor-help text-amber-400 hover:text-amber-600" title="Tổng % KPI = % P2.1 + % P2.2 (tối đa 100%)">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700 group relative">
+                                                    % P2.1
+                                                    <span className="ml-1 cursor-help text-indigo-400 hover:text-indigo-600" title="Phần trăm lương hiệu năng từ điểm hành vi (1.1-1.5): Tuân thủ, Thái độ, Học tập, Làm việc nhóm, Kỹ năng. Tối đa 50%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-center w-[90px] bg-indigo-50 text-indigo-700 group relative">
+                                                    % P2.2
+                                                    <span className="ml-1 cursor-help text-indigo-400 hover:text-indigo-600" title="Phần trăm lương hiệu năng từ điểm kết quả công việc (2.1). Tối đa 50%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-indigo-50 text-indigo-700 group relative">
+                                                    Thưởng P2.1
+                                                    <span className="ml-1 cursor-help text-indigo-400 hover:text-indigo-600" title="Lương P2.1 thực nhận = Lương P2 × % P2.1 ÷ 100 × hệ số ngày công">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-indigo-50 text-indigo-700 group relative">
+                                                    Khoán P2.2
+                                                    <span className="ml-1 cursor-help text-indigo-400 hover:text-indigo-600" title="Lương P2.2 thực nhận = Lương P2 × % P2.2 ÷ 100 × hệ số ngày công">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700 group relative">
+                                                    Thưởng P3
+                                                    <span className="ml-1 cursor-help text-emerald-400 hover:text-emerald-600" title="Khoản thưởng thêm ngoài lương P1, P2 (thưởng doanh thu, thưởng tháng, v.v.)">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-emerald-50 text-emerald-700 group relative">
+                                                    Phụ cấp
+                                                    <span className="ml-1 cursor-help text-emerald-400 hover:text-emerald-600" title="Tổng phụ cấp cố định mỗi tháng: ăn trưa + xăng + điện thoại + khác. Không phụ thuộc ngày công.">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700 group relative">
+                                                    Phạt
+                                                    <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Khoản phạt do vi phạm nội quy,迟到, vắng không phép, etc.">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700 group relative">
+                                                    K.Trừ khác
+                                                    <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Các khoản khấu trừ khác ngoài BH và thuế (trừ lương, bảo hiểm, thuế)">ⓘ</span>
+                                                </th>
+                                                {/* Insurance rates cố định */}
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
+                                                    % BHXH
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Bảo hiểm xã hội: 8% lương đóng BH (tối đa 20×2.340.000đ). Công ty đóng thêm 17.5%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
+                                                    % BHYT
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Bảo hiểm y tế: 1.5% lương đóng BH. Công ty đóng thêm 3%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
+                                                    % BHTN
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Bảo hiểm thất nghiệp: 1% lương đóng BH. Công ty đóng thêm 1%">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
+                                                    KPCĐ (VNĐ)
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Kinh phí công đoàn công ty: Nhập trực tiếp số tiền (mặc định = 2% lương đóng BH)">ⓘ</span>
+                                                </th>
+                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-200/50 text-rose-950 font-black group relative">
+                                                    Thuế TNCN
+                                                    <span className="ml-1 cursor-help text-rose-600 hover:text-rose-800" title="Thuế thu nhập cá nhân: Áp dụng biểu thuế lũy tiến từng phần (5%-35%). Thu nhập tính thuế = Tổng lương + PC + OT + Thưởng - BH - 11.000.000đ (giảm trừ gia cảnh)">ⓘ</span>
+                                                </th>
                                                 <th className="px-3 py-3 text-left">Ghi chú</th>
                                             </tr>
                                             <tr className="bg-slate-50/50 text-[9px] text-slate-400 divide-x divide-slate-100 border-b border-slate-200">
                                                 <th colSpan={3} className="sticky left-0 bg-slate-50/50 z-20 border-r border-slate-200"></th>
-                                                <th className="px-2 py-1 text-center bg-blue-50/20">Công chuẩn</th>
-                                                <th className="px-2 py-1 text-center bg-blue-50/20">Chính thức</th>
-                                                <th className="px-2 py-1 text-center bg-blue-50/20 border-r border-slate-200">Thử việc</th>
-                                                <th className="px-2 py-1 text-center italic bg-amber-50/20">(P2 base)</th>
-                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(10)</th>
-                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2.2%)</th>
-                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20">(36.1)</th>
-                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20">(43)</th>
-                                                <th className="px-2 py-1 text-center italic bg-rose-50/20">(65)</th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20 group relative">
+                                                    Công chuẩn
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Số ngày làm việc chuẩn trong tháng (trừ T7, CN, ngày lễ)">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20 group relative">
+                                                    Chính thức
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Số ngày công chính thức của nhân viên chính thức">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center bg-blue-50/20 border-r border-slate-200 group relative">
+                                                    Thử việc
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Số ngày công thử việc (lương thử việc = P1 × 85%)">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-amber-50/20">(VND)</th>
+                                                <th className="px-2 py-1 text-center italic bg-amber-50/20 group relative">
+                                                    (kpiScore/10)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="% KPI tổng = %P2.1 + %P2.2 (tối đa 100%)">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20 group relative">
+                                                    (1.1-1.5)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Tổng điểm 5 tiêu chí hành vi (1.1 Tuân thủ, 1.2 Thái độ, 1.3 Học tập, 1.4 Làm việc nhóm, 1.5 Kỹ năng), mỗi tiêu chí max 1.0, tổng max 5.0">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20 group relative">
+                                                    (2.1)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Điểm kết quả công việc (2.1), max 5.0">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2×%÷100)</th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2×%÷100)</th>
+                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20 group relative">
+                                                    (36.1)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Khoản thưởng/thưởng P3, không phụ thuộc vào KPI">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-emerald-50/20 group relative">
+                                                    (43)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Phụ cấp cố định: ăn trưa + xăng + điện thoại + khác. Không phụ thuộc ngày công.">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-50/20 group relative">
+                                                    (65)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Tiền phạt do vi phạm nội quy,迟到, vắng không phép">ⓘ</span>
+                                                </th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-50/20">(K.Trừ)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHXH)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHYT)</th>
@@ -1575,60 +1849,113 @@ const PayrollDetailView = React.memo(({
                                                     <td className="px-3 py-2 text-center text-slate-400 sticky left-0 bg-white group-hover:bg-slate-50 z-10">{idx + 1}</td>
                                                     <td className="px-3 py-2 font-bold text-slate-700 sticky left-[50px] bg-white group-hover:bg-slate-50 z-10">{row.employeeCode}</td>
                                                     <td className="px-3 py-2 font-medium text-slate-900 sticky left-[150px] bg-white group-hover:bg-slate-50 z-10 border-r border-slate-100">{row.fullName}</td>
-                                                    
+
                                                     {/* Attendance Reference */}
                                                     <td className="px-3 py-2 text-center text-slate-500 bg-blue-50/10">{row.standardDays}</td>
                                                     <td className="px-3 py-2 text-center font-bold text-blue-600 bg-blue-50/10">{row.officialDays}</td>
                                                     <td className="px-3 py-2 text-center text-slate-400 bg-blue-50/10 border-r border-slate-100">{row.probationDays}</td>
 
-                                                    {/* Editable Performance/Allowance */}
+                                                    {/* Lương P2 (từ employee_salaries.performanceSalary) */}
                                                     <td className="px-3 py-2 bg-amber-50/20">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            className="w-full bg-white border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 focus:ring-2 focus:ring-amber-500 outline-none"
+                                                            disabled
+                                                            className="w-full bg-amber-50 border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 outline-none cursor-not-allowed"
                                                             value={row.performanceSalary ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'performanceSalary', e.target.value)}
                                                         />
                                                     </td>
-                                                    <td className="px-3 py-2 bg-indigo-50/20">
-                                                        <input
-                                                            type="number"
-                                                            className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                            value={row.p1p2Percentage ?? 100}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'p1p2Percentage', e.target.value)}
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-2 bg-indigo-50/20">
-                                                        <input
-                                                            type="number"
-                                                            className="w-full bg-white border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                            value={row.p3Percentage ?? 100}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'p3Percentage', e.target.value)}
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-2 bg-emerald-50/20">
+                                                    {/* % KPI (từ performance_reviews.kpiScore / 10 * 100) */}
+                                                    <td className="px-3 py-2 bg-amber-50/20">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            className="w-full bg-white border border-emerald-200 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                            disabled
+                                                            className="w-full bg-amber-50 border border-amber-200 rounded text-center py-1 font-bold text-amber-700 outline-none cursor-not-allowed"
+                                                            value={row.kpiPercent ?? 0}
+                                                        />
+                                                    </td>
+                                                    {/* % P2.1 (từ performance_reviews, đã tính %) */}
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-indigo-50 border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 outline-none cursor-not-allowed"
+                                                            value={row.p1p2Percentage ?? 0}
+                                                        />
+                                                    </td>
+                                                    {/* % P2.2 (từ performance_reviews, đã tính %) */}
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-indigo-50 border border-indigo-200 rounded text-center py-1 font-black text-indigo-600 outline-none cursor-not-allowed"
+                                                            value={row.p3Percentage ?? 0}
+                                                        />
+                                                    </td>
+                                                    {/* Thưởng P2.1 thực = performanceSalary × %P2.1 / 100 × hệ số ngày công */}
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-indigo-50 border border-indigo-200 rounded text-right py-1 px-2 font-bold text-indigo-700 outline-none cursor-not-allowed"
+                                                            value={(row.p21Actual ?? 0).toFixed(2)}
+                                                        />
+                                                    </td>
+                                                    {/* Khoán P2.2 thực = performanceSalary × %P2.2 / 100 × hệ số ngày công */}
+                                                    <td className="px-3 py-2 bg-indigo-50/20">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            disabled
+                                                            className="w-full bg-indigo-50 border border-indigo-200 rounded text-right py-1 px-2 font-bold text-indigo-700 outline-none cursor-not-allowed"
+                                                            value={(row.p22Actual ?? 0).toFixed(2)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 bg-emerald-50/50">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min={0}
+                                                            className="w-full bg-white border border-emerald-300 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
                                                             value={row.bonus ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'bonus', e.target.value)}
                                                         />
                                                     </td>
-                                                    <td className="px-3 py-2 bg-emerald-50/20">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            className="w-full bg-white border border-emerald-200 rounded text-right py-1 px-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none"
-                                                            value={row.allowanceAmount ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'allowanceAmount', e.target.value)}
-                                                        />
+                                                    <td className="px-3 py-2 bg-emerald-50/20 relative group/allowance">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <span className="font-bold text-emerald-700">
+                                                                {(row.allowanceAmount ?? 0).toLocaleString('vi-VN')}
+                                                            </span>
+                                                            <div className="relative">
+                                                                <Info className="h-3.5 w-3.5 text-emerald-500 cursor-help" />
+                                                                
+                                                                {/* Tooltip */}
+                                                                <div className="absolute bottom-full right-0 mb-1 hidden group-hover/allowance:block z-50">
+                                                                    <div className="bg-slate-800 text-white text-[10px] rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
+                                                                        <p className="font-semibold mb-1">Phụ cấp mặc định</p>
+                                                                        <div className="space-y-0.5">
+                                                                            <p>Ăn trưa: <span className="text-emerald-300">{((row.lunchAllowance || 0)).toLocaleString('vi-VN')} đ</span></p>
+                                                                            <p>Xăng xe: <span className="text-emerald-300">{((row.fuelAllowance || 0)).toLocaleString('vi-VN')} đ</span></p>
+                                                                            <p>Điện thoại: <span className="text-emerald-300">{((row.phoneAllowance || 0)).toLocaleString('vi-VN')} đ</span></p>
+                                                                            <p>Khác: <span className="text-emerald-300">{((row.otherAllowance || 0)).toLocaleString('vi-VN')} đ</span></p>
+                                                                        </div>
+                                                                        <div className="border-t border-slate-600 mt-1 pt-1 font-bold text-emerald-400">
+                                                                            Tổng: {(row.allowanceAmount ?? 0).toLocaleString('vi-VN')} đ
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                     <td className="px-3 py-2 bg-rose-50/20">
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-600 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.penalty ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'penalty', e.target.value)}
@@ -1638,51 +1965,58 @@ const PayrollDetailView = React.memo(({
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-600 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.deduction ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'deduction', e.target.value)}
                                                         />
                                                     </td>
+                                                    {/* % BHXH (cố định - không chỉnh sửa) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
-                                                            value={row.socialInsurancePercentage ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'socialInsurancePercentage', e.target.value)}
+                                                            disabled
+                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-center py-1 font-bold text-rose-800 outline-none cursor-not-allowed"
+                                                            value={row.socialInsurancePercentage ?? 8}
                                                         />
                                                     </td>
+                                                    {/* % BHYT (cố định - không chỉnh sửa) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
-                                                            value={row.healthInsurancePercentage ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'healthInsurancePercentage', e.target.value)}
+                                                            disabled
+                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-center py-1 font-bold text-rose-800 outline-none cursor-not-allowed"
+                                                            value={row.healthInsurancePercentage ?? 1.5}
                                                         />
                                                     </td>
+                                                    {/* % BHTN (cố định - không chỉnh sửa) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
-                                                            value={row.unemploymentInsurancePercentage ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'unemploymentInsurancePercentage', e.target.value)}
+                                                            disabled
+                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-center py-1 font-bold text-rose-800 outline-none cursor-not-allowed"
+                                                            value={row.unemploymentInsurancePercentage ?? 1}
                                                         />
                                                     </td>
+                                                    {/* KPCĐ (cho người dùng nhập trực tiếp số tiền) */}
                                                     <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            className="w-full bg-white border border-rose-200 rounded text-center py-1 font-bold text-rose-800 focus:ring-2 focus:ring-rose-500 outline-none"
-                                                            value={row.unionFeePercentage ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'unionFeePercentage', e.target.value)}
+                                                            min="0"
+                                                            className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-800 outline-none focus:ring-2 focus:ring-rose-400/50 focus:border-rose-400"
+                                                            value={row.unionFee ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'unionFee', parseFloat(e.target.value) || 0)}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 bg-rose-200/20">
                                                         <input
                                                             type="number"
                                                             step="0.01"
+                                                            min={0}
                                                             className="w-full bg-white border border-rose-300 rounded text-right py-1 px-2 font-black text-rose-950 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.taxDeduction ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'taxDeduction', e.target.value)}
@@ -1719,10 +2053,11 @@ const PayrollDetailView = React.memo(({
                             isOpen={openSections.files}
                             onToggle={toggleSection}
                         >
-                            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/30">
-                                <Paperclip className="h-8 w-8 text-slate-300 mb-3" />
-                                <p className="text-slate-400 text-sm font-medium italic">Kéo thả file vào đây (PDF, XLSX, DOCX)</p>
-                            </div>
+                            <PayrollAttachments
+                                payrollId={payroll?.id}
+                                isLocked={payroll?.payrollStatus === "LOCKED"}
+                                canEdit={authService.hasPermission("PAYROLL_UPDATE")}
+                            />
                         </Section>
                         <Section
                             id="history"
@@ -1773,7 +2108,7 @@ const PayrollDetailView = React.memo(({
                                 </Button>
                                 <div className="h-8 w-[1px] bg-slate-100 mx-1 hidden sm:block" />
                                 <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-lg border border-slate-100">
-                                    <button 
+                                    <button
                                         onClick={() => handleRefreshSection("payroll")}
                                         className="p-2 rounded-md hover:bg-white hover:shadow-sm text-slate-400 hover:text-indigo-600 transition-all"
                                     >
@@ -1805,23 +2140,58 @@ const PayrollDetailView = React.memo(({
                     />
                 )}
 
-                {activeTab === "slips" && (
-                    <PayrollSlipTable
-                        details={fullPayrollDetails}
-                        onSendEmail={(ids) => toast.success(`Đã xếp lịch gửi ${ids.length} phiếu lương vào hàng đợi!`)}
-                        onRecalculate={() => onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear })}
-                        onUpdateDetail={onEditDetail}
-                    />
-                )}
+                {activeTab === "slips" && (() => {
+                    const handleSendEmail = async (selectedDetailIds) => {
+                        if (!selectedDetailIds || selectedDetailIds.length === 0) {
+                            toast.error("Vui lòng chọn ít nhất một nhân sự để gửi phiếu lương.");
+                            return;
+                        }
+                        const toastId = toast.loading(`Đang gửi ${selectedDetailIds.length} phiếu lương...`);
+                        try {
+                            const res = await payrollService.sendPayslipsSelected(payroll.id, selectedDetailIds);
+                            const data = res?.data || res || {};
+                            const sent = data.sent ?? 0;
+                            const total = data.total ?? selectedDetailIds.length;
+                            const failed = data.failed || [];
+
+                            toast.dismiss(toastId);
+                            if (sent === total) {
+                                toast.success(`Đã gửi thành công ${sent}/${total} phiếu lương qua email!`);
+                            } else if (sent > 0) {
+                                toast.warning(
+                                    `Đã gửi ${sent}/${total} phiếu lương. ${failed.length} nhân sự không có email hoặc gửi lỗi.`
+                                );
+                            } else {
+                                toast.error(
+                                    `Không gửi được phiếu lương. ${failed.map(f => f.name || f.email).join(', ')} — kiểm tra lại email nhân viên.`
+                                );
+                            }
+                        } catch (err) {
+                            toast.dismiss(toastId);
+                            toast.error(err?.response?.data?.message || "Lỗi khi gửi phiếu lương. Vui lòng thử lại.");
+                            console.error("[PayrollDetailView] sendPayslipsSelected error:", err);
+                        }
+                    };
+
+                    return (
+                        <PayrollSlipTable
+                            details={fullPayrollDetails}
+                            onSendEmail={handleSendEmail}
+                            onRecalculate={() => onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear })}
+                            onUpdateDetail={onEditDetail}
+                        />
+                    );
+                })()}
+
             </div>
 
             {/* Add Personnel Modal */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white">
                     <DialogHeader className="px-6 py-4 border-b">
                         <DialogTitle className="text-xl font-bold text-slate-800">Thêm nhân sự vào bảng chấm công</DialogTitle>
                     </DialogHeader>
-                    
+
                     <div className="p-6 space-y-4 flex-1 overflow-hidden flex flex-col">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -1840,7 +2210,7 @@ const PayrollDetailView = React.memo(({
                                     <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
                                     <p className="text-sm text-slate-400">Đang tải danh sách nhân sự...</p>
                                 </div>
-                            ) : availableEmployees.filter(emp => 
+                            ) : availableEmployees.filter(emp =>
                                 emp.fullName?.toLowerCase().includes(empSearch.toLowerCase()) ||
                                 emp.employeeCode?.toLowerCase().includes(empSearch.toLowerCase()) ||
                                 emp.departmentName?.toLowerCase().includes(empSearch.toLowerCase())
@@ -1849,25 +2219,25 @@ const PayrollDetailView = React.memo(({
                                     Không tìm thấy nhân sự phù hợp
                                 </div>
                             ) : (
-                                availableEmployees.filter(emp => 
+                                availableEmployees.filter(emp =>
                                     emp.fullName?.toLowerCase().includes(empSearch.toLowerCase()) ||
                                     emp.employeeCode?.toLowerCase().includes(empSearch.toLowerCase()) ||
                                     emp.departmentName?.toLowerCase().includes(empSearch.toLowerCase())
                                 ).map((emp) => (
-                                    <div 
-                                        key={emp.id} 
+                                    <div
+                                        key={emp.id}
                                         className={`flex items-center gap-4 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer ${selectedEmployeeIds.includes(emp.id) ? 'bg-indigo-50/50' : ''}`}
                                         onClick={() => {
-                                            setSelectedEmployeeIds(prev => 
-                                                prev.includes(emp.id) 
-                                                    ? prev.filter(id => id !== emp.id) 
+                                            setSelectedEmployeeIds(prev =>
+                                                prev.includes(emp.id)
+                                                    ? prev.filter(id => id !== emp.id)
                                                     : [...prev, emp.id]
                                             );
                                         }}
                                     >
-                                        <Checkbox 
+                                        <Checkbox
                                             checked={selectedEmployeeIds.includes(emp.id)}
-                                            onCheckedChange={() => {}} // Handled by div onClick
+                                            onCheckedChange={() => { }} // Handled by div onClick
                                         />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-slate-700 truncate">{emp.fullName}</p>
@@ -1883,7 +2253,7 @@ const PayrollDetailView = React.memo(({
 
                         <div className="flex items-center justify-between text-xs text-slate-400 font-medium px-1">
                             <span>Đã chọn: <span className="text-indigo-600 font-bold">{selectedEmployeeIds.length}</span> nhân sự</span>
-                            <button 
+                            <button
                                 className="text-indigo-600 hover:underline"
                                 onClick={() => setSelectedEmployeeIds(availableEmployees.map(e => e.id))}
                             >
@@ -1892,9 +2262,9 @@ const PayrollDetailView = React.memo(({
                         </div>
                     </div>
 
-                    <DialogFooter className="px-6 py-4 border-t bg-slate-50/50">
+                    <DialogFooter className="px-6 py-4 border-t bg-slate-50">
                         <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Hủy</Button>
-                        <Button 
+                        <Button
                             className="bg-indigo-600 hover:bg-indigo-700 font-bold"
                             onClick={handleConfirmAddPersonnel}
                             disabled={isSaving || selectedEmployeeIds.length === 0}

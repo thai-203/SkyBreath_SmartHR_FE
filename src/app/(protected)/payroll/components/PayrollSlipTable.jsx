@@ -169,7 +169,7 @@ export default function PayrollSlipTable({ details = [], onSendEmail, onRecalcul
                                                 {item.payslipSentAt ? (
                                                     <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black border border-emerald-100 shadow-sm">Đã gửi</span>
                                                 ) : (
-                                                    <span className="text-indigo-600 italic font-black text-[12px] tracking-tight">Chưa gửi</span>
+                                                    <span className="text-slate-400 italic font-medium text-[11px]">Chưa gửi</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -199,6 +199,7 @@ export default function PayrollSlipTable({ details = [], onSendEmail, onRecalcul
                     onPrev={handlePrev}
                     onNext={handleNext}
                     onSaveNote={(id, note) => onUpdateDetail(id, { note })}
+                    onSendEmail={onSendEmail}
                 />
             )}
             

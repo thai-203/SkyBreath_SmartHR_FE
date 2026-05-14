@@ -14,11 +14,21 @@ import {
 } from "@/components/ui/card";
 import { attendanceBlockingConfigService } from "@/services/attendance-blocking-config.service";
 import { AttendanceBlockingTable } from "./components/AttendanceBlockingTable";
+import { AttendanceLogsTable } from "./components/AttendanceLogsTable";
+import { LogDetailModal } from "./components/LogDetailModal";
 import { EditModal } from "./components/EditModal";
 import { DeleteModal } from "./components/DeleteModal";
 import { useToast } from "@/components/common/Toast";
 import { PermissionGate } from "@/components/common/AuthGuard";
-
+import { Input } from "@/components/ui/input";
+import { Search, History, Filter } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 // Import các components đã tách
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -55,8 +65,19 @@ export default function AttendanceConfig() {
   const [ruleToDelete, setRuleToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // States cho Logs
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsMeta, setLogsMeta] = useState({ total: 0, page: 1, totalPages: 1 });
+  const [logSearch, setLogSearch] = useState("");
+  const [logActionType, setLogActionType] = useState("ALL");
+  const [logStatus, setLogStatus] = useState("ALL");
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [logDetailOpen, setLogDetailOpen] = useState(false);
+
   useEffect(() => {
     fetchRules();
+    fetchLogs();
   }, []);
 
   const fetchRules = async () => {
@@ -71,6 +92,25 @@ export default function AttendanceConfig() {
     }
   };
 
+  const fetchLogs = async (page = 1) => {
+    try {
+      setLogsLoading(true);
+      const res = await attendanceBlockingConfigService.getLogs({
+        page,
+        limit: 10,
+        search: logSearch || undefined,
+        actionType: logActionType === "ALL" ? undefined : logActionType || undefined,
+        status: logStatus === "ALL" ? undefined : logStatus || undefined,
+      });
+      const payload = res.data ?? res;
+      setLogs(payload.items ?? []);
+      setLogsMeta({ total: payload.total, page: payload.page, totalPages: payload.totalPages });
+    } catch {
+      toastError("Lỗi tải lịch sử log");
+    } finally {
+      setLogsLoading(false);
+    }
+  };
   // ─── Handlers cho Form ───────────────────────────────────────────────────────
   const openAddModal = () => {
     setEditingRule(null);
@@ -265,6 +305,104 @@ export default function AttendanceConfig() {
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={confirmDelete}
         isDeleting={isDeleting}
+      />
+
+      {/* Logs Section */}
+      <motion.div variants={itemVariants}>
+        <Card className="overflow-hidden border-border/40 bg-white backdrop-blur-md">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-10">
+                <History className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Lịch sử điểm danh</CardTitle>
+                <CardDescription>Log check-in, check-out từ hệ thống</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-6 pb-4 space-y-3">
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm tên, mã nhân viên..."
+                  value={logSearch}
+                  onChange={(e) => setLogSearch(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
+              <Select value={logActionType} onValueChange={setLogActionType}>
+                <SelectTrigger className="h-9 w-40 text-sm">
+                  <SelectValue placeholder="Loại hành động" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả</SelectItem>
+                  <SelectItem value="check_in">Check-in</SelectItem>
+                  <SelectItem value="check_out">Check-out</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={logStatus} onValueChange={setLogStatus}>
+                <SelectTrigger className="h-9 w-36 text-sm">
+                  <SelectValue placeholder="Trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả</SelectItem>
+                  <SelectItem value="SUCCESS">Thành công</SelectItem>
+                  <SelectItem value="FAILED">Thất bại</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={() => fetchLogs(1)} className="h-9 gap-1.5">
+                <Filter className="w-4 h-4" />
+                Lọc
+              </Button>
+            </div>
+          </CardContent>
+          <CardContent className="p-0">
+            {logsLoading ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">Đang tải...</p>
+            ) : (
+              <AttendanceLogsTable
+                logs={logs}
+                onViewDetail={(log) => { setSelectedLog(log); setLogDetailOpen(true); }}
+              />
+            )}
+          </CardContent>
+          {/* Pagination */}
+          {logsMeta.totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-3 border-t border-border/40">
+              <span className="text-xs text-muted-foreground">
+                Tổng: {logsMeta.total} bản ghi
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={logsMeta.page <= 1}
+                  onClick={() => fetchLogs(logsMeta.page - 1)}
+                >
+                  Trước
+                </Button>
+                <span className="text-sm">{logsMeta.page} / {logsMeta.totalPages}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={logsMeta.page >= logsMeta.totalPages}
+                  onClick={() => fetchLogs(logsMeta.page + 1)}
+                >
+                  Sau
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      </motion.div>
+
+      <LogDetailModal
+        isOpen={logDetailOpen}
+        onClose={() => setLogDetailOpen(false)}
+        log={selectedLog}
       />
     </motion.div>
   );

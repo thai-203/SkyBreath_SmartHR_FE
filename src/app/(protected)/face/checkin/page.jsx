@@ -49,10 +49,13 @@ function isWithinShiftWindow(startTime, endTime, hasCheckedIn) {
   if (!startTime || !endTime) return false;
 
   const now = new Date();
-  const today = now.toISOString().slice(0, 10);
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const today = `${year}-${month}-${day}`;
 
-  let start = new Date(`${today} ${startTime}`);
-  let end = new Date(`${today} ${endTime}`);
+  let start = new Date(`${today}T${startTime}`);
+  let end = new Date(`${today}T${endTime}`);
 
   // handle ca qua đêm
   if (end < start) {
@@ -413,14 +416,6 @@ const Index = () => {
                   <Clock className="h-4 w-4" />
                   <span>
                     {ctx?.currentShift?.name}: {ctx?.currentShift?.startTime} — {ctx?.currentShift?.endTime}
-                  </span>
-                </div>
-              )}
-              {ctx?.overtime && (
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
-                  <TrendingUp className="h-4 w-4" />
-                  <span> {'Tăng ca: '}
-                    {ctx?.overtime?.startTime} — {ctx?.overtime?.endTime}
                   </span>
                 </div>
               )}

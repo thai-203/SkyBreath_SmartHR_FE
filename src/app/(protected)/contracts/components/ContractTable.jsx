@@ -217,7 +217,7 @@ export default function ContractTable({
                   </Button>
                 </PermissionGate>
               )}
-              <PermissionGate permission="CONTRACT_DELETE">
+              {/* <PermissionGate permission="CONTRACT_DELETE">
                 <Button
                   size="icon"
                   variant="ghost"
@@ -226,7 +226,7 @@ export default function ContractTable({
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
-              </PermissionGate>
+              </PermissionGate> */}
             </div>
           );
         },

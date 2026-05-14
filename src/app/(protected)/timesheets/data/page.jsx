@@ -1,24 +1,24 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/common/Button";
 import { PermissionGate } from "@/components/common/AuthGuard";
-import { Select } from "@/components/common/Select";
-import { ConfirmModal } from "@/components/common/Modal";
+import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
+import { ConfirmModal } from "@/components/common/Modal";
 import { Pagination } from "@/components/common/Pagination";
+import { Select } from "@/components/common/Select";
 import { useToast } from "@/components/common/Toast";
-import { timesheetsService } from "@/services/timesheets.service";
+import { authService } from "@/services/auth.service";
 import { departmentsService } from "@/services/departments.service";
 import { employeesService } from "@/services/employees.service";
-import { authService } from "@/services/auth.service";
-import CalendarView from "../components/CalendarView";
+import { timesheetsService } from "@/services/timesheets.service";
+import { Download, Eye, FileSpreadsheet, LayoutGrid, Lock, RefreshCw, Search, Unlock } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import AttendanceDetailModal from "../components/AttendanceDetailModal";
+import CalendarView from "../components/CalendarView";
 import ExcuseRequestModal from "../components/ExcuseRequestModal";
-import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
-import { Download, FileSpreadsheet, LayoutGrid, Calendar as CalendarIcon, FilterX, RefreshCw, Search, Eye, Lock, Unlock } from "lucide-react";
 import ProcessedRecordEditModal from "../components/ProcessedRecordEditModal";
+import { useTimesheetDetail } from "../hooks/useTimesheetDetail";
 
 const currentDate = new Date();
 
@@ -352,7 +352,7 @@ export default function DataManagementPage() {
         });
 
         if (!dayData) return '-';
-        if (dayData.attendanceStatus === 'WEEKEND') return 'N';
+        if (dayData.attendanceStatus === 'WEEKEND' || dayData.attendanceStatus === 'N') return 'N';
         if (['X', 'KL', 'ABSENT', '0'].includes(dayData.attendanceStatus)) {
             return dayData.workingHours !== undefined && dayData.workingHours !== null ? dayData.workingHours : 0;
         }
@@ -368,10 +368,17 @@ export default function DataManagementPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">
-                            {isEmployeeOnly ? "Ma trận bảng công cá nhân" : "Ma trận dữ liệu chấm công"}
+                            {isEmployeeOnly ? "bảng công cá nhân" : "Dữ liệu chấm công"}
                         </h1>
-                        <p className="text-sm text-slate-500">
-                            {isEmployeeOnly ? "Xem chi tiết dữ liệu công ma trận của bạn" : "Hiển thị dữ liệu công dạng ma trận theo tháng"}
+                        <p className="text-sm text-slate-500 mt-1">
+                            {isEmployeeOnly 
+                                ? "Xem chi tiết dữ liệu công của bạn" 
+                                : `Kỳ công: Tháng ${filters.month}/${filters.year} • ${
+                                    filters.departmentId 
+                                        ? (departments.find(d => d.id?.toString() === filters.departmentId)?.departmentName || "Phòng ban đã chọn") 
+                                        : "Tất cả phòng ban"
+                                  }`
+                            }
                         </p>
                     </div>
                 </div>
@@ -412,9 +419,9 @@ export default function DataManagementPage() {
                 <div className="flex items-center gap-2">
 
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border">
-                        <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
+                        {/* <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
                             <LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Ma trận</span>
-                        </button>
+                        </button> */}
 
                     </div>
                 </div>
@@ -454,7 +461,7 @@ export default function DataManagementPage() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Đang tải dữ liệu ma trận...</td></tr>
+                                    <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Đang tải dữ liệu...</td></tr>
                                 ) : matrixData.length === 0 ? (
                                     <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Không có dữ liệu bảng công cho kỳ này</td></tr>
                                 ) : (
@@ -572,9 +579,9 @@ export default function DataManagementPage() {
                     confirmModal.action === "bulkRecalculate"
                         ? "Tính lại tất cả bảng công chưa khóa?"
                         : confirmModal.action === "finalizeMatrix"
-                            ? `Chốt công sẽ khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Sau khi chốt, bạn không thể chỉnh sửa từng ngày. Xác nhận?`
+                            ? `Chốt công sẽ khóa toàn bộ bản ghi trong theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Sau khi chốt, bạn không thể chỉnh sửa từng ngày. Xác nhận?`
                             : confirmModal.action === "unfinalizeMatrix"
-                                ? `Bỏ chốt sẽ mở khóa toàn bộ bản ghi trong ma trận theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Xác nhận?`
+                                ? `Bỏ chốt sẽ mở khóa toàn bộ bản ghi trong theo bộ lọc hiện tại (Tháng ${filters.month}/${filters.year}${filters.departmentId ? `, phòng ban #${filters.departmentId}` : ''}${search ? `, tìm kiếm "${search}"` : ''}). Xác nhận?`
                                 : "Xác nhận?"
                 }
                 loading={confirmLoading}

@@ -10,11 +10,10 @@ import { useRouter } from "next/navigation";
 
 const DEFAULT_CONFIG = {
   recognitionThreshold: 0.6,
-  similarityMetric: "cosine",
   maxEmbeddingsPerUser: 5,
   spoofThreshold: 0.8,
-  livenessMode: "MULTI_FRAME",
-  requiredFrames: 10,
+  livenessMode: "SINGLE_FRAME",
+  requiredFrames: 1,
   captureIntervalMs: 1000,
   faceDetectionMinSize: 80,
   maxFacesAllowed: 1,

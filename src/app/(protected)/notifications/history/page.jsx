@@ -12,8 +12,7 @@ const SOURCE_OPTIONS = [
     { value: "MANUAL", label: "Thủ công" },
     { value: "WORKFLOW", label: "Phê duyệt" },
     { value: "HOLIDAY", label: "Ngày lễ" },
-    { value: "PAYSLIP", label: "Phiếu lương" },
-    { value: "AI_RISK", label: "Cảnh báo AI" },
+    { value: "PAYSLIP", label: "Phiếu lương" }
 ];
 
 const STATUS_OPTIONS = [

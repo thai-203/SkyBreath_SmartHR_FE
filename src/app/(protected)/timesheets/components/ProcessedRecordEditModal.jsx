@@ -20,7 +20,7 @@ const STATUS_LABELS = {
 };
 
 /**
- * Popup hiển thị chi tiết 1 ô ngày công trong ma trận và cho HR sửa work_value.
+ * Popup hiển thị chi tiết 1 ô ngày công trong và cho HR sửa work_value.
  * Props:
  *   isOpen     – bool
  *   onClose    – fn()

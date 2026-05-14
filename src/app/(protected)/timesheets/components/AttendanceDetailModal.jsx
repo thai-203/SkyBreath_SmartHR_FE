@@ -138,6 +138,10 @@ export default function AttendanceDetailModal({
                         {timesheet?.employee?.fullName} ({timesheet?.employee?.employeeCode})
                     </p>
                     <p className="text-sm text-slate-600">
+                        <span className="font-medium">Phòng ban:</span>{" "}
+                        {timesheet?.employee?.department?.departmentName || "-"}
+                    </p>
+                    <p className="text-sm text-slate-600">
                         <span className="font-medium">Kỳ:</span>{" "}
                         Tháng {timesheet?.month}/{timesheet?.year}
                     </p>
