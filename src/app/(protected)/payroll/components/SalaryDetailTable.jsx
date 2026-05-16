@@ -48,12 +48,12 @@ export default function SalaryDetailTable({
                         {/* Group Headers */}
                         <tr className="border-b border-slate-300 bg-slate-100/50">
                             <th colSpan={3} className="sticky left-0 bg-slate-100 z-[60] border-r border-slate-300 py-4 shadow-sm">Thông tin nhân sự</th>
-                            <th colSpan={5} className="bg-amber-50 border-r border-slate-300">I. Định mức Hợp đồng & Công (1-5)</th>
-                            <th colSpan={4} className="bg-slate-50 border-r border-slate-300">II. Dữ liệu công chốt (6-9)</th>
+                            <th className="bg-amber-50 border-r border-slate-300">I. Định mức Công chuẩn</th>
+                            <th colSpan={3} className="bg-slate-50 border-r border-slate-300">II. Dữ liệu công chốt (6-9)</th>
                             <th colSpan={6} className="bg-blue-50 border-r border-slate-300">III. Thu nhập thực nhận (10-15)</th>
                             <th colSpan={6} className="bg-indigo-50 border-r border-slate-300">IV. Thu nhập khác & Phụ cấp (16-21)</th>
                             <th colSpan={2} className="bg-emerald-600 text-white border-r border-white">Tổng thu nhập (22)</th>
-                            <th colSpan={10} className="bg-rose-50 border-r border-slate-300 text-rose-700">V. Khấu trừ & Thuế (23-32)</th>
+                            <th colSpan={9} className="bg-rose-50 border-r border-slate-300 text-rose-700">V. Khấu trừ & Thuế (23-32)</th>
                             <th className="bg-amber-600 text-white border-r border-white">Thực lĩnh (33)</th>
                             <th colSpan={3} className="bg-slate-800 text-slate-200 border-r border-slate-700">VI. Chi phí Doanh nghiệp (34-36)</th>
                             <th className="bg-slate-50">Ghi chú</th>
@@ -65,13 +65,6 @@ export default function SalaryDetailTable({
                             <th className="sticky left-[45px] bg-white z-[60] w-[100px] text-center border-r border-slate-100">Mã NV</th>
                             <th className="sticky left-[145px] bg-white z-[60] w-[200px] text-left px-4 border-r border-slate-200 shadow-[2px_0_10px_rgba(0,0,0,0.02)]">Họ tên</th>
                             
-                            {/* Group I */}
-                            <th className="w-[150px] bg-amber-50/30">Lương đóng BHXH (1.1)</th>
-                            <th className="w-[150px] bg-amber-50/30">Lương vị trí (11)</th>
-                            <th className="w-[150px] bg-amber-50/30">Thưởng HQCV (12)</th>
-                            <th className="w-[150px] bg-amber-50/30">Khoán CV (13)</th>
-                            <th className="w-[150px] bg-amber-50/30">Lương thử việc (14)</th>
-
                             {/* Group II */}
                             <th className="w-[100px]">Công chuẩn</th>
                             <th className="w-[100px]">Công chính thức (22)</th>
@@ -99,11 +92,11 @@ export default function SalaryDetailTable({
                             <th className="w-[100px] bg-emerald-400/20">Mã (51)</th>
 
                             {/* Group VI - Deductions */}
-                            <th className="w-[150px] bg-rose-50/50">BHXH NLĐ (52)</th>
-                            <th className="w-[120px] bg-rose-50/50">Truy thu BH (53)</th>
+                            <th className="w-[150px] bg-rose-50/50">BHXH NLĐ (52) 8%</th>
+                            <th className="w-[120px] bg-rose-50/50">BHYT 1.5%</th>
+                            <th className="w-[120px] bg-rose-50/50">BHTN 1%</th>
                             <th className="w-[120px] bg-rose-50/50">Đảng phí (55)</th>
                             <th className="w-[180px] bg-rose-50/50">Giảm trừ gia cảnh (12.2)</th>
-                            <th className="w-[180px] bg-rose-50/50">TN tính thuế (12.3)</th>
                             <th className="w-[150px] bg-rose-50/50">Thuế TNCN (63)</th>
                             <th className="w-[120px] bg-rose-50/50">Truy thu thuế (64)</th>
                             <th className="w-[120px] bg-rose-50/50">Trừ khác (65)</th>
@@ -144,9 +137,10 @@ export default function SalaryDetailTable({
 
                                     // ── LƯƠNG THỰC NHẬN (đã tính sẵn trong backend) ──
                                     const p1ThựcNhận = parseFloat(item.p1Amount || 0);
-                                    const p21ThựcNhận = parseFloat(item.p21Amount || 0);
-                                    const p22ThựcNhận = parseFloat(item.p22Amount || 0);
+                                    const p21ThựcNhận = parseFloat(item.p21Actual || item.p21Amount || 0);
+                                    const p22ThựcNhận = parseFloat(item.p22Actual || item.p22Amount || 0);
                                     const pTVThựcNhận = parseFloat(item.probationAmount || 0);
+                                    const baseSalary = parseFloat(item.baseSalary || 0); // Lương đóng BH
 
                                     // (36) = (31) + (32) + (33) + (34)
                                     const tổngLươngChính = p1ThựcNhận + p21ThựcNhận + p22ThựcNhận + pTVThựcNhận;
@@ -165,11 +159,15 @@ export default function SalaryDetailTable({
                                         ? parseFloat(item.totalGrossIncome)
                                         : tổngLươngChính + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
 
-                                    // (52) BH NLĐ = BHXH+BHYT+BHTN = 10.5%
-                                    // Dùng insuranceDeduction đã lưu (= 10.5%), không tính lại từng phần
-                                    const bhxhNLĐ = parseFloat(item.insuranceDeduction) > 0
-                                        ? parseFloat(item.insuranceDeduction)
-                                        : parseFloat(item.baseSalary || 0) * 0.105; // fallback 10.5%
+                                    // ── BẢO HIỂM NLĐ (52) ── Tính theo Lương P1 thực nhận (21)
+                                    const siRate = parseFloat(item.socialInsurancePercentage || 8) / 100;      // 8%
+                                    const hiRate = parseFloat(item.healthInsurancePercentage || 1.5) / 100;    // 1.5%
+                                    const uiRate = parseFloat(item.unemploymentInsurancePercentage || 1) / 100; // 1%
+                                    
+                                    const bhxhNLĐ = p1ThựcNhận * siRate;     // BHXH 8%
+                                    const bhytNLĐ = p1ThựcNhận * hiRate;     // BHYT 1.5%
+                                    const bhtnNLĐ = p1ThựcNhận * uiRate;     // BHTN 1%
+                                    const tongBHNLD = bhxhNLĐ + bhytNLĐ + bhtnNLĐ; // Tổng 10.5%
 
                                     // (65.1) Tổng khấu trừ = (52)+(53)+(54)+(55)+(63)+(64)+(65)
                                     const thuếTNCN       = parseFloat(item.taxDeduction         || 0); // (63)
@@ -177,7 +175,7 @@ export default function SalaryDetailTable({
                                     const khấuTrừKhác   = parseFloat(item.otherDeduction        || 0); // (65) Trừ khác
                                     const tổngKhấuTrừ = parseFloat(item.totalDeduction) > 0
                                         ? parseFloat(item.totalDeduction)  // Ưu tiên giá trị đã lưu
-                                        : bhxhNLĐ
+                                        : tongBHNLD  // BHXH 8% + BHYT 1.5% + BHTN 1% = 10.5% theo baseSalary
                                             + parseFloat(item.insuranceAdjustment || 0) // (53)
                                             + cdPhíNLD                               // (54)
                                             + parseFloat(item.partyFee            || 0) // (55)
@@ -207,20 +205,10 @@ export default function SalaryDetailTable({
                                             <td className="sticky left-[45px] bg-white group-hover:bg-slate-50 z-10 px-2.5 py-3 font-bold text-slate-500">{item.employee?.employeeCode || "—"}</td>
                                             <td className="sticky left-[145px] bg-white group-hover:bg-slate-50 z-10 px-4 py-3 font-black text-slate-800 truncate">{item.employee?.fullName || "—"}</td>
                                             
-                                            {/* Group I - Định mức hợp đồng */}
-                                            {/* (1.1) Lương đóng BHXH */}
-                                            <td className="px-3 text-right text-slate-600 bg-amber-50/10 italic">{fmt(item.baseSalary)}</td>
-                                            {/* (11) Lương vị trí P1: ưu tiên positionSalary, fallback baseSalary */}
-                                            <td className="px-3 text-right text-slate-600 font-medium">{fmt(item.positionSalary || item.baseSalary)}</td>
-                                            {/* (12) Thưởng HQCV P2.1: ưu tiên performanceBonusSalary, fallback p21Amount */}
-                                            <td className="px-3 text-right text-slate-600">{fmt(item.performanceBonusSalary || item.p21Amount)}</td>
-                                            {/* (13) Khoán CV P2.2: ưu tiên taskContractSalary, fallback p22Amount */}
-                                            <td className="px-3 text-right text-slate-600">{fmt(item.taskContractSalary || item.p22Amount)}</td>
-                                            {/* (14) Lương TV: ưu tiên probationBaseSalary, fallback probationAmount */}
-                                            <td className="px-3 text-right text-slate-600">{fmt(item.probationBaseSalary || item.probationAmount || 0)}</td>
+                                            {/* Group I */}
+                                            <td className="px-3 text-center font-bold text-slate-500">{ncChuẩn}</td>
 
                                             {/* Group II */}
-                                            <td className="px-3 text-center font-bold text-slate-500">{ncChuẩn}</td>
                                             <td className="px-3 text-center text-indigo-600 font-bold">{ncChínhThức}</td>
                                             <td className="px-3 text-center text-indigo-600">{ncThửViệc}</td>
                                             <td className="px-3 text-center text-indigo-400 italic">{ncKhác}</td>
@@ -247,11 +235,10 @@ export default function SalaryDetailTable({
 
                                             {/* Group VI - Deductions */}
                                             <td className="px-3 text-right text-rose-600 font-medium">{fmt(bhxhNLĐ)}</td>
-                                            <td className="px-3 text-right text-rose-400">{fmt(item.insuranceAdjustment)}</td>
+                                            <td className="px-3 text-right text-rose-400">{fmt(bhytNLĐ)}</td>
+                                            <td className="px-3 text-right text-rose-400">{fmt(bhtnNLĐ)}</td>
                                             <td className="px-3 text-right text-rose-400">{fmt(item.partyFee)}</td>
                                             <td className="px-3 text-right text-slate-400 italic text-[10px]">{fmt(item.familyDeduction)}</td>
-                                            {/* (12.3) Thu nhập tính thuế — dùng taxableIncomePaid đã lưu */}
-                                            <td className="px-3 text-right text-slate-500 font-medium">{fmt(item.taxableIncomePaid)}</td>
                                             <td className="px-3 text-right text-rose-700 font-bold">{fmt(thuếTNCN)}</td>
                                             <td className="px-3 text-right text-rose-500">{fmt(item.taxAdjustment)}</td>
                                             <td className="px-3 text-right text-rose-500">{fmt(khấuTrừKhác)}</td>

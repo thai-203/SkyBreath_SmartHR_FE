@@ -22,8 +22,8 @@ export default function PayrollDetailEditModal({ isOpen, onClose, onSubmit, load
     const netPreview = Math.round((() => {
         // Lương đã tính sẵn từ backend
         const p1ThựcNhận = parseFloat(detail.p1Amount || 0);
-        const p21ThựcNhận = parseFloat(detail.p21Amount || 0);
-        const p22ThựcNhận = parseFloat(detail.p22Amount || 0);
+        const p21ThựcNhận = parseFloat(detail.p21Actual || detail.p21Amount || 0);
+        const p22ThựcNhận = parseFloat(detail.p22Actual || detail.p22Amount || 0);
         const pTVThựcNhận = parseFloat(detail.probationAmount || 0);
 
         const totalInc = p1ThựcNhận + p21ThựcNhận + p22ThựcNhận + pTVThựcNhận +
@@ -91,11 +91,11 @@ export default function PayrollDetailEditModal({ isOpen, onClose, onSubmit, load
                             </div>
                             <div>
                                 <p className="text-slate-500 text-xs">P2.1 thực</p>
-                                <p className="font-bold text-indigo-700">{fmt(detail.p21Amount || 0)}</p>
+                                <p className="font-bold text-indigo-700">{fmt(detail.p21Actual || detail.p21Amount || 0)}</p>
                             </div>
                             <div>
                                 <p className="text-slate-500 text-xs">P2.2 thực</p>
-                                <p className="font-bold text-indigo-700">{fmt(detail.p22Amount || 0)}</p>
+                                <p className="font-bold text-indigo-700">{fmt(detail.p22Actual || detail.p22Amount || 0)}</p>
                             </div>
                         </div>
                     </div>

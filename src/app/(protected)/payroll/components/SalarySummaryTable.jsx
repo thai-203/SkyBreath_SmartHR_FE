@@ -47,7 +47,7 @@ export default function SalarySummaryTable({ details = [], unitName = "CTCP cấ
             const updateMetrics = (m) => {
                 m.empCount += 1;
                 m.p1 += parseFloat(item.p1Amount || 0);
-                m.p2 += parseFloat(item.p21Amount || 0) + parseFloat(item.p22Amount || 0);
+                m.p2 += parseFloat(item.p21Actual || item.p21Amount || 0) + parseFloat(item.p22Actual || item.p22Amount || 0);
                 m.pBonus += parseFloat(item.bonus || 0);
                 m.pProb += parseFloat(item.probationAmount || 0);
                 m.allowance += parseFloat(item.allowanceAmount || 0);
