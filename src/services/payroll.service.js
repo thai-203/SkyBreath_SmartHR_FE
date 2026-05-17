@@ -19,6 +19,12 @@ export const payrollService = {
         return response.data;
     },
 
+    // UC27 - Bulk upsert payroll details
+    upsertDetails: async (payrollId, details) => {
+        const response = await api.post(`/payroll/${payrollId}/upsert-details`, { details });
+        return response.data;
+    },
+
     // UC28 - Update general payroll info
     update: async (id, data) => {
         const response = await api.patch(`/payroll/${id}`, data);

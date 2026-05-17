@@ -506,8 +506,8 @@ const PayrollDetailView = React.memo(({
                     adjustmentTaxable: detail?.adjustmentTaxable ?? 0,
                     adjustmentNonTaxable: detail?.adjustmentNonTaxable ?? 0,
                     otherNonTaxable: detail?.otherNonTaxable ?? 0,
-                    // Dependent
-                    dependentCount: detail?.dependentCount ?? 0,
+                    // Dependent - giữ nguyên giá trị từ DB (nếu có), mặc định 0 để user tự nhập
+                    dependentCount: parseInt(detail?.dependentCount ?? 0),
                     // Editable inputs
                     unionFee: detail?.unionFee ?? 0,
                     partyFee: detail?.partyFee ?? 0,
@@ -520,6 +520,54 @@ const PayrollDetailView = React.memo(({
             setInputRows(rows);
         }
     }, [timesheetData, payroll?.details, salaryData, performanceData, inputRows.length]);
+
+    // Sync payroll.details into inputRows (runs when details change from empty -> populated after save)
+    useEffect(() => {
+        if (!payroll?.details?.length || !inputRows.length) return;
+
+        // Only update if there are changes - when details have detail.id but inputRows don't
+        const needsUpdate = inputRows.some(row => !row.detailId && payroll.details.some(d => d.employeeId === row.employeeId));
+        if (!needsUpdate) return;
+
+        const updatedRows = inputRows.map(row => {
+            const detail = payroll.details.find(d => d.employeeId === row.employeeId);
+            if (!detail) return row;
+
+            return {
+                ...row,
+                detailId: detail.id, // Store detail.id for reference
+                // Sync all editable fields from saved detail
+                bonus: detail.bonus ?? row.bonus,
+                penalty: detail.penalty ?? row.penalty,
+                deduction: detail.deduction ?? row.deduction,
+                unionFee: detail.unionFee ?? row.unionFee,
+                otWeekday: detail.otWeekday ?? row.otWeekday,
+                otWeekdayNight: detail.otWeekdayNight ?? row.otWeekdayNight,
+                otWeekend: detail.otWeekend ?? row.otWeekend,
+                otWeekendNight: detail.otWeekendNight ?? row.otWeekendNight,
+                otHoliday: detail.otHoliday ?? row.otHoliday,
+                otHolidayNight: detail.otHolidayNight ?? row.otHolidayNight,
+                totalOtHours: detail.totalOtHours ?? row.totalOtHours,
+                unpaidLeaveDays: detail.unpaidLeaveDays ?? row.unpaidLeaveDays,
+                nightShiftOfficialDays: detail.nightShiftOfficialDays ?? row.nightShiftOfficialDays,
+                nightShiftProbationDays: detail.nightShiftProbationDays ?? row.nightShiftProbationDays,
+                waitingDays: detail.waitingDays ?? row.waitingDays,
+                insuranceAdjustment: detail.insuranceAdjustment ?? row.insuranceAdjustment,
+                employeeUnionFee: detail.employeeUnionFee ?? row.employeeUnionFee,
+                adjustmentTaxable: detail.adjustmentTaxable ?? row.adjustmentTaxable,
+                adjustmentNonTaxable: detail.adjustmentNonTaxable ?? row.adjustmentNonTaxable,
+                otherNonTaxable: detail.otherNonTaxable ?? row.otherNonTaxable,
+                dependentCount: detail.dependentCount ?? row.dependentCount,
+                taxAdjustment: detail.taxAdjustment ?? row.taxAdjustment,
+                // familyDeduction: giữ nguyên từ DB, mặc định 0
+                familyDeduction: detail.familyDeduction ?? row.familyDeduction ?? 0,
+                taxDeduction: detail.taxDeduction ?? row.taxDeduction,
+                note: detail.note || row.note,
+            };
+        });
+
+        setInputRows(updatedRows);
+    }, [payroll?.details]);
 
     const handleInputRowChange = (id, field, value) => {
         // Validation: Prevent negative values for numeric fields
@@ -722,14 +770,14 @@ const PayrollDetailView = React.memo(({
                     };
                 }).filter(Boolean);
 
-                if (updates.length > 0) {
+                    if (updates.length > 0) {
                     // Update server records via service calls
                     await Promise.all(updates.map(u => payrollService.updateDetail(u.id, u)));
                     toast.success("Đã cập nhật thay đổi thành công.");
 
                     // After saving, we trigger a calculation if it's draft, so net salaries are refreshed.
-                    if (onCalculate && payroll?.payrollStatus === "DRAFT") {
-                        onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear });
+                    if (onCalculate && payroll?.payrollStatus === "DRAFT" && payroll?.id) {
+                        await onCalculate(payroll);
                     }
                 }
             } catch (err) {
@@ -1019,115 +1067,90 @@ const PayrollDetailView = React.memo(({
     const handleSaveInputRows = async () => {
         console.log("[DEBUG handleSaveInputRows] Button clicked!");
         console.log("[DEBUG handleSaveInputRows] inputRows:", inputRows);
-        console.log("[DEBUG handleSaveInputRows] payroll full object:", payroll);
-        console.log("[DEBUG handleSaveInputRows] payroll?.details:", payroll?.details);
-        console.log("[DEBUG handleSaveInputRows] payroll keys:", Object.keys(payroll || {}));
-        console.log("[DEBUG handleSaveInputRows] payroll status:", payroll?.payrollStatus);
-        
-        // Check if payroll details exist
-        if (!payroll?.details?.length) {
-            console.log("[DEBUG handleSaveInputRows] WARNING: payroll?.details is empty or undefined!");
-            // Check if details might be under different key
-            const possibleKeys = Object.keys(payroll || {}).filter(k => 
-                k.toLowerCase().includes('detail') || k.toLowerCase().includes('employee')
-            );
-            // console.log("[DEBUG handleSaveInputRows] Possible keys containing 'detail' or 'employee':", possibleKeys);
-            // console.log("[DEBUG handleSaveInputRows] payroll.details value:", payroll?.details);
-            // console.log("[DEBUG handleSaveInputRows] payroll.employees value:", payroll?.employees);
-            // console.log("[DEBUG handleSaveInputRows] payroll.payrollDetails value:", payroll?.payrollDetails);
-            
-            // // If payroll details are empty, we need to either:
-            // // 1. Calculate first (auto-creates payroll details from timesheet data)
-            // // 2. Or show error message
-            // if (timesheetData && timesheetData.length > 0) {
-            //     console.log("[DEBUG handleSaveInputRows] timesheetData has employees, prompting to calculate first...");
-            //     toast.error("Vui lòng nhấn 'Tính lương' trước khi lưu dữ liệu nhập liệu!");
-            //     toast.info("Hệ thống cần tạo chi tiết bảng lương từ dữ liệu chấm công trước.");
-            // } else {
-            //     toast.error("Không có dữ liệu chấm công. Vui lòng thêm nhân sự và chấm công trước.");
-            // }
-            setIsSaving(false);
+
+        // Validate: chỉ cho phép lưu khi status = DRAFT
+        if (payroll?.payrollStatus !== 'DRAFT') {
+            toast.error("Chỉ có thể chỉnh sửa bảng lương ở trạng thái Nháp!");
             return;
         }
-        
+
+        // Validate: có dữ liệu mới lưu
         if (!inputRows.length) {
-            console.log("[DEBUG handleSaveInputRows] Early return: inputRows is empty");
             toast.error("Không có dữ liệu để lưu");
-            setIsSaving(false);
+            return;
+        }
+
+        // Validate: cần có payroll id
+        if (!payroll?.id) {
+            toast.error("Không tìm thấy thông tin bảng lương");
             return;
         }
 
         try {
             setIsSaving(true);
-            console.log("[DEBUG handleSaveInputRows] Starting to map updates...");
-            const updates = inputRows.map(row => {
-                const employeeIdToMatch = row.employeeId || row.id;
-                const detail = payroll?.details?.find(d => d.employeeId === employeeIdToMatch);
-                if (!detail) return null;
+            toast.info("Đang lưu dữ liệu...");
 
-                return {
-                    id: detail.id,
-                    standardDays: parseFloat(row.standardDays) || 22,
-                    workingDays: parseFloat(row.workingDays) || 0,
-                    officialDays: parseFloat(row.officialDays) || 0,
-                    probationDays: parseFloat(row.probationDays) || 0,
-                    businessTripDays: parseFloat(row.businessTripDays) || 0,
-                    holidayDays: parseFloat(row.holidayDays) || 0,
-                    benefitLeaveDays: parseFloat(row.benefitLeaveDays) || 0,
-                    annualLeaveDays: parseFloat(row.annualLeaveDays) || 0,
-                    unpaidLeaveDays: parseFloat(row.unpaidLeaveDays) || 0,
-                    nightShiftOfficialDays: parseFloat(row.nightShiftOfficialDays) || 0,
-                    nightShiftProbationDays: parseFloat(row.nightShiftProbationDays) || 0,
-                    waitingDays: parseFloat(row.waitingDays) || 0,
-                    otWeekday: parseFloat(row.otWeekday) || 0,
-                    otWeekdayNight: parseFloat(row.otWeekdayNight) || 0,
-                    otWeekend: parseFloat(row.otWeekend) || 0,
-                    otWeekendNight: parseFloat(row.otWeekendNight) || 0,
-                    otHoliday: parseFloat(row.otHoliday) || 0,
-                    otHolidayNight: parseFloat(row.otHolidayNight) || 0,
-                    totalOtHours: parseFloat(row.totalOtHours) || 0,
-                    bonus: parseFloat(row.bonus) || 0,
-                    penalty: parseFloat(row.penalty) || 0,
-                    otherDeduction: parseFloat(row.deduction) || 0,
-                    unionFee: parseFloat(row.unionFee) || 0,
-                    socialInsurancePercentage: parseFloat(row.socialInsurancePercentage) || 8,
-                    healthInsurancePercentage: parseFloat(row.healthInsurancePercentage) || 1.5,
-                    unemploymentInsurancePercentage: parseFloat(row.unemploymentInsurancePercentage) || 1,
-                    insuranceAdjustment: parseFloat(row.insuranceAdjustment) || 0,
-                    employeeUnionFee: parseFloat(row.employeeUnionFee) || 0,
-                    partyFee: parseFloat(row.partyFee) || 0,
-                    familyDeduction: parseFloat(row.familyDeduction) || 0,
-                    taxAdjustment: parseFloat(row.taxAdjustment) || 0,
-                    adjustmentTaxable: parseFloat(row.adjustmentTaxable) || 0,
-                    adjustmentNonTaxable: parseFloat(row.adjustmentNonTaxable) || 0,
-                    otherNonTaxable: parseFloat(row.otherNonTaxable) || 0,
-                    taxDeduction: parseFloat(row.taxDeduction) || 0,
-                    dependentCount: parseInt(row.dependentCount) || 0,
-                    note: row.note || ""
-                };
-            }).filter(u => u && u.id);
-            
-            console.log("[DEBUG handleSaveInputRows] Final updates array:", updates);
+            // Chuẩn bị dữ liệu gửi lên BE - gửi employeeId + các trường editable
+            const payload = inputRows.map(row => ({
+                employeeId: row.employeeId || row.id,
+                standardDays: parseFloat(row.standardDays) || 22,
+                workingDays: parseFloat(row.workingDays) || 0,
+                officialDays: parseFloat(row.officialDays) || 0,
+                probationDays: parseFloat(row.probationDays) || 0,
+                businessTripDays: parseFloat(row.businessTripDays) || 0,
+                holidayDays: parseFloat(row.holidayDays) || 0,
+                benefitLeaveDays: parseFloat(row.benefitLeaveDays) || 0,
+                annualLeaveDays: parseFloat(row.annualLeaveDays) || 0,
+                unpaidLeaveDays: parseFloat(row.unpaidLeaveDays) || 0,
+                nightShiftOfficialDays: parseFloat(row.nightShiftOfficialDays) || 0,
+                nightShiftProbationDays: parseFloat(row.nightShiftProbationDays) || 0,
+                waitingDays: parseFloat(row.waitingDays) || 0,
+                otWeekday: parseFloat(row.otWeekday) || 0,
+                otWeekdayNight: parseFloat(row.otWeekdayNight) || 0,
+                otWeekend: parseFloat(row.otWeekend) || 0,
+                otWeekendNight: parseFloat(row.otWeekendNight) || 0,
+                otHoliday: parseFloat(row.otHoliday) || 0,
+                otHolidayNight: parseFloat(row.otHolidayNight) || 0,
+                totalOtHours: parseFloat(row.totalOtHours) || 0,
+                bonus: parseFloat(row.bonus) || 0,
+                penalty: parseFloat(row.penalty) || 0,
+                deduction: parseFloat(row.deduction) || 0,
+                unionFee: parseFloat(row.unionFee) || 0,
+                socialInsurancePercentage: parseFloat(row.socialInsurancePercentage) || 8,
+                healthInsurancePercentage: parseFloat(row.healthInsurancePercentage) || 1.5,
+                unemploymentInsurancePercentage: parseFloat(row.unemploymentInsurancePercentage) || 1,
+                insuranceAdjustment: parseFloat(row.insuranceAdjustment) || 0,
+                employeeUnionFee: parseFloat(row.employeeUnionFee) || 0,
+                partyFee: parseFloat(row.partyFee) || 0,
+                // dependentCount phải đứng trước familyDeduction để BE tính đúng
+                dependentCount: parseInt(row.dependentCount) || 0,
+                familyDeduction: parseFloat(row.familyDeduction) || 0,
+                taxAdjustment: parseFloat(row.taxAdjustment) || 0,
+                adjustmentTaxable: parseFloat(row.adjustmentTaxable) || 0,
+                adjustmentNonTaxable: parseFloat(row.adjustmentNonTaxable) || 0,
+                otherNonTaxable: parseFloat(row.otherNonTaxable) || 0,
+                taxDeduction: parseFloat(row.taxDeduction) || 0,
+                note: row.note || ''
+            }));
 
-            if (updates.length > 0) {
-                console.log("[DEBUG handleSaveInputRows] Calling API...");
-                // Update in batches or parallel
-                await Promise.all(updates.map(u => payrollService.updateDetail(u.id, u)));
-                console.log("[DEBUG handleSaveInputRows] API call completed successfully");
-                toast.success(`Đã lưu dữ liệu nhập liệu cho ${updates.length} nhân sự thành công!`);
+            console.log("[DEBUG handleSaveInputRows] Payload:", payload);
 
-                // Recalculate to reflect changes
-                if (onCalculate && payroll?.payrollStatus === "DRAFT") {
-                    console.log("[DEBUG handleSaveInputRows] Triggering recalculate...");
-                    await onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear });
-                }
-            } else {
-                console.log("[DEBUG handleSaveInputRows] No updates to save (updates.length === 0)");
+            // Gọi API bulk upsert - BE sẽ tự INSERT/UPDATE từng record
+            const result = await payrollService.upsertDetails(payroll.id, payload);
+            console.log("[DEBUG handleSaveInputRows] Result:", result);
+
+            // Refresh data từ BE để binding lại inputRows
+            const updatedPayroll = await payrollService.getById(payroll.id);
+            console.log("[DEBUG handleSaveInputRows] Updated details count:", updatedPayroll?.details?.length);
+
+            if (onCalculate && updatedPayroll?.id) {
+                await onCalculate(updatedPayroll);
             }
+
+            toast.success(`Đã lưu dữ liệu nhập liệu cho ${payload.length} nhân sự!`);
         } catch (err) {
-            console.error("[DEBUG handleSaveInputRows] Error occurred:", err);
-            console.error(err);
-            toast.error("Lỗi khi lưu dữ liệu: " + (err.message || "Unknown error"));
+            console.error("[DEBUG handleSaveInputRows] Error:", err);
+            toast.error("Lỗi khi lưu dữ liệu: " + (err.message || err.response?.data?.message || "Unknown error"));
         } finally {
             setIsSaving(false);
         }
@@ -1481,10 +1504,10 @@ const PayrollDetailView = React.memo(({
                                     >
                                         <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} /> Làm mới bảng
                                     </button>
-                                    {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && (
+                                    {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && payroll?.id && (
                                         <button
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors shadow-sm"
-                                            onClick={() => onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear })}
+                                            onClick={() => onCalculate(payroll)}
                                             disabled={actionLoading}
                                         >
                                             <RefreshCw className={`h-3 w-3 ${actionLoading ? 'animate-spin' : ''}`} /> Cập nhật lại & Tính lương
@@ -1742,10 +1765,10 @@ const PayrollDetailView = React.memo(({
                                     <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
                                         <Upload className="h-3 w-3" /> Import
                                     </button>
-                                    {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && (
+                                    {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && payroll?.id && (
                                         <button
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors shadow-sm"
-                                            onClick={() => onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear })}
+                                            onClick={() => onCalculate(payroll)}
                                             disabled={actionLoading}
                                         >
                                             <RefreshCw className={`h-3 w-3 ${actionLoading ? 'animate-spin' : ''}`} /> Cập nhật lại & Tính lương
@@ -1883,7 +1906,7 @@ const PayrollDetailView = React.memo(({
                                                 </th>
                                                 <th className="px-3 py-3 text-right w-[130px] bg-rose-50 text-rose-700 group relative">
                                                     K.Trừ khác
-                                                    <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Các khoản khấu trừ khác ngoài BH và thuế (trừ lương, bảo hiểm, thuế)">ⓘ</span>
+                                                    <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="(65) Khấu trừ khác: phạt vi phạm nội quy, vắng không phép, etc.">ⓘ</span>
                                                 </th>
                                                 {/* Insurance rates cố định */}
                                                 <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
@@ -1900,11 +1923,11 @@ const PayrollDetailView = React.memo(({
                                                 </th>
                                                 <th className="px-3 py-3 text-right w-[100px] bg-rose-100/50 text-rose-900 group relative">
                                                     KPCĐ (VNĐ)
-                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Kinh phí công đoàn công ty: Nhập trực tiếp số tiền (mặc định = 2% lương đóng BH)">ⓘ</span>
+                                                    <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Kinh phí công đoàn người lao động (hiện tại = 0%, chưa áp dụng)">ⓘ</span>
                                                 </th>
                                                 <th className="px-3 py-3 text-right w-[130px] bg-rose-200/50 text-rose-950 font-black group relative">
                                                     Thuế TNCN
-                                                    <span className="ml-1 cursor-help text-rose-600 hover:text-rose-800" title="Thuế thu nhập cá nhân: Áp dụng biểu thuế lũy tiến từng phần (5%-35%). Thu nhập tính thuế = Tổng lương + PC + OT + Thưởng - BH - 11.000.000đ (giảm trừ gia cảnh)">ⓘ</span>
+                                                    <span className="ml-1 cursor-help text-rose-600 hover:text-rose-800" title="Thuế thu nhập cá nhân: Áp dụng biểu thuế lũy tiến từng phần (5%-35%). Thu nhập tính thuế = Tổng lương + PC + OT + Thưởng - BH - 15.500.000đ (giảm trừ gia cảnh)">ⓘ</span>
                                                 </th>
                                                 <th className="px-3 py-3 text-right w-[110px] bg-rose-100 text-rose-800 group relative">
                                                     Đảng phí
@@ -1912,7 +1935,7 @@ const PayrollDetailView = React.memo(({
                                                 </th>
                                                 <th className="px-3 py-3 text-right w-[110px] bg-rose-50 text-rose-700 group relative">
                                                     GC 12.2
-                                                    <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Giảm trừ gia cảnh: 11tr + NPT×4.4tr">ⓘ</span>
+                                                    <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Giảm trừ gia cảnh: 15.5tr + NPT×4.4tr">ⓘ</span>
                                                 </th>
                                                 <th className="px-3 py-3 text-right w-[100px] bg-rose-200 text-rose-900 group relative">
                                                     TT 64
@@ -1926,18 +1949,12 @@ const PayrollDetailView = React.memo(({
                                                     Công đoàn
                                                     <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Phí công đoàn người lao động">ⓘ</span>
                                                 </th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-amber-50 text-amber-800 group relative">
-                                                    Điều chỉnh thu nhập
-                                                    <span className="ml-1 cursor-help text-amber-400 hover:text-amber-600" title="Điều chỉnh thu nhập chịu thuế">ⓘ</span>
-                                                </th>
-                                                <th className="px-3 py-3 text-right w-[100px] bg-amber-50 text-amber-800 group relative">
-                                                    Điều chỉnh không chịu thuế
-                                                    <span className="ml-1 cursor-help text-amber-400 hover:text-amber-600" title="Điều chỉnh thu nhập không chịu thuế">ⓘ</span>
-                                                </th>
                                                 <th className="px-3 py-3 text-left">Ghi chú</th>
                                             </tr>
                                             <tr className="bg-slate-50/50 text-[9px] text-slate-400 divide-x divide-slate-100 border-b border-slate-200">
                                                 <th className="sticky left-0 bg-slate-50/50 z-20 border-r border-slate-200"></th>
+                                                <th className="px-2 py-1 sticky left-[50px] bg-slate-50/50 z-20"></th>
+                                                <th className="px-2 py-1 sticky left-[150px] bg-slate-50/50 z-20 border-r border-slate-200"></th>
                                                 <th className="px-2 py-1 text-center italic bg-indigo-50/20 group relative">
                                                     (1.1-1.5)
                                                     <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Tổng điểm 5 tiêu chí hành vi (1.1 Tuân thủ, 1.2 Thái độ, 1.3 Học tập, 1.4 Làm việc nhóm, 1.5 Kỹ năng), mỗi tiêu chí max 1.0, tổng max 5.0">ⓘ</span>
@@ -1946,8 +1963,14 @@ const PayrollDetailView = React.memo(({
                                                     (2.1)
                                                     <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Điểm kết quả công việc (2.1), max 5.0">ⓘ</span>
                                                 </th>
-                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2×%÷100)</th>
-                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20">(P2×%÷100)</th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20 group relative">
+                                                    (P2.1×%)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Lương P2.1 thực nhận = Lương P2 × % P2.1 ÷ 100 × hệ số ngày công">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-indigo-50/20 group relative">
+                                                    (P2.2×%)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Lương P2.2 thực nhận = Lương P2 × % P2.2 ÷ 100 × hệ số ngày công">ⓘ</span>
+                                                </th>
                                                 <th className="px-2 py-1 text-center italic bg-emerald-50/20 group relative">
                                                     (36.1)
                                                     <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Khoản thưởng/thưởng P3, không phụ thuộc vào KPI">ⓘ</span>
@@ -1957,10 +1980,13 @@ const PayrollDetailView = React.memo(({
                                                     <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Phụ cấp cố định: ăn trưa + xăng + điện thoại + khác. Không phụ thuộc ngày công.">ⓘ</span>
                                                 </th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-50/20 group relative">
-                                                    (65)
-                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Tiền phạt do vi phạm nội quy,迟到, vắng không phép">ⓘ</span>
+                                                    (50)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Khấu trừ khác: phạt vi phạm nội quy, vắng không phép">ⓘ</span>
                                                 </th>
-                                                <th className="px-2 py-1 text-center italic bg-rose-50/20">(K.Trừ)</th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-50/20 group relative">
+                                                    (65)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="(65) Khấu trừ khác: phạt vi phạm nội quy, vắng không phép">ⓘ</span>
+                                                </th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHXH)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHYT)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-100/30">(BHTN)</th>
@@ -1969,10 +1995,14 @@ const PayrollDetailView = React.memo(({
                                                 <th className="px-2 py-1 text-center italic bg-rose-100/30">(55)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-50/30">(12.2)</th>
                                                 <th className="px-2 py-1 text-center italic bg-rose-200/30">(64)</th>
-                                                <th className="px-2 py-1 text-center italic bg-rose-100/30"></th>
-                                                <th className="px-2 py-1 text-center italic bg-rose-100/30"></th>
-                                                <th className="px-2 py-1 text-center italic bg-amber-50/30"></th>
-                                                <th className="px-2 py-1 text-center italic bg-amber-50/30"></th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-100/30 group relative">
+                                                    (53)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Điều chỉnh bảo hiểm khác">ⓘ</span>
+                                                </th>
+                                                <th className="px-2 py-1 text-center italic bg-rose-100/30 group relative">
+                                                    (54)
+                                                    <span className="ml-0.5 cursor-help opacity-60 hover:opacity-100" title="Phí công đoàn người lao động (hiện tại = 0%, chưa áp dụng)">ⓘ</span>
+                                                </th>
                                                 <th className=""></th>
                                             </tr>
                                         </thead>
@@ -2124,28 +2154,8 @@ const PayrollDetailView = React.memo(({
                                                             onChange={(e) => handleInputRowChange(row.id, 'unionFee', parseFloat(e.target.value) || 0)}
                                                         />
                                                     </td>
-                                                    {/* Đảng phí (55) */}
-                                                    <td className="px-3 py-2 bg-rose-100/10">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
-                                                            className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-800 outline-none focus:ring-2 focus:ring-rose-400/50 focus:border-rose-400"
-                                                            value={row.partyFee ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'partyFee', parseFloat(e.target.value) || 0)}
-                                                        />
-                                                    </td>
-                                                    {/* Giảm trừ gia cảnh (12.2) */}
-                                                    <td className="px-3 py-2 bg-rose-100/10">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
-                                                            className="w-full bg-rose-50 border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-800 outline-none cursor-not-allowed"
-                                                            value={row.familyDeduction ?? 0}
-                                                            disabled
-                                                        />
-                                                    </td>
+                                                  
+                                                   
                                                     {/* Thuế TNCN (63) */}
                                                     <td className="px-3 py-2 bg-rose-200/20">
                                                         <input
@@ -2155,6 +2165,28 @@ const PayrollDetailView = React.memo(({
                                                             className="w-full bg-white border border-rose-300 rounded text-right py-1 px-2 font-black text-rose-950 focus:ring-2 focus:ring-rose-500 outline-none"
                                                             value={row.taxDeduction ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'taxDeduction', e.target.value)}
+                                                        />
+                                                    </td>
+                                                      {/* Đảng phí (55) */}
+                                                      <td className="px-3 py-2 bg-rose-100/10">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-800 outline-none focus:ring-2 focus:ring-rose-400/50 focus:border-rose-400"
+                                                            value={row.partyFee ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'partyFee', parseFloat(e.target.value) || 0)}
+                                                        />
+                                                    </td>
+                                                     {/* Giảm trừ gia cảnh (12.2) */}
+                                                     <td className="px-3 py-2 bg-rose-100/10">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-800 outline-none focus:ring-2 focus:ring-rose-400/50 focus:border-rose-400"
+                                                            value={row.familyDeduction ?? 0}
+                                                            onChange={(e) => handleInputRowChange(row.id, 'familyDeduction', e.target.value)}
                                                         />
                                                     </td>
                                                     {/* Truy thu thuế (64) */}
@@ -2188,28 +2220,6 @@ const PayrollDetailView = React.memo(({
                                                             className="w-full bg-white border border-rose-200 rounded text-right py-1 px-2 font-bold text-rose-700 focus:ring-2 focus:ring-rose-400/50 outline-none"
                                                             value={row.employeeUnionFee ?? 0}
                                                             onChange={(e) => handleInputRowChange(row.id, 'employeeUnionFee', e.target.value)}
-                                                        />
-                                                    </td>
-                                                    {/* Điều chỉnh thu nhập chịu thuế */}
-                                                    <td className="px-3 py-2 bg-amber-50/20">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 focus:ring-2 focus:ring-amber-400/50 outline-none"
-                                                            value={row.adjustmentTaxable ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'adjustmentTaxable', e.target.value)}
-                                                        />
-                                                    </td>
-                                                    {/* Điều chỉnh thu nhập không chịu thuế */}
-                                                    <td className="px-3 py-2 bg-amber-50/20">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-amber-200 rounded text-right py-1 px-2 font-bold text-amber-700 focus:ring-2 focus:ring-amber-400/50 outline-none"
-                                                            value={row.adjustmentNonTaxable ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'adjustmentNonTaxable', e.target.value)}
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2">
@@ -2278,9 +2288,9 @@ const PayrollDetailView = React.memo(({
                                 <p className="text-[11px] text-slate-400 font-medium uppercase tracking-widest mt-0.5 italic">Dữ liệu tính toán dựa trên 3P framework</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                                {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && (
+                                {payroll?.payrollStatus === "DRAFT" && authService.hasPermission("PAYROLL_UPDATE") && payroll?.id && (
                                     <Button
-                                        onClick={() => onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear })}
+                                        onClick={() => onCalculate(payroll)}
                                         loading={actionLoading}
                                         className="gap-2 bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-200/50 border-none px-6 font-bold"
                                     >
@@ -2367,7 +2377,7 @@ const PayrollDetailView = React.memo(({
                         <PayrollSlipTable
                             details={fullPayrollDetails}
                             onSendEmail={handleSendEmail}
-                            onRecalculate={() => onCalculate({ ...payroll, payrollMonth: activeMonth, payrollYear: activeYear })}
+                            onRecalculate={() => payroll?.id && onCalculate(payroll)}
                             onUpdateDetail={onEditDetail}
                         />
                     );
