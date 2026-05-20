@@ -56,7 +56,7 @@ export default function SalarySummaryTable({ details = [], unitName = "CTCP cấ
                 m.otFree += parseFloat(item.overtimePay || 0) * 0.3; // Placeholder ratio
                 m.retroTax += parseFloat(item.otherTaxableIncome || 0);
                 m.retroFree += parseFloat(item.otherNonTaxableIncome || 0);
-                m.totalInc += (parseFloat(item.netSalary) || 0) + (parseFloat(item.insuranceDeduction) || 0) + (parseFloat(item.taxDeduction) || 0) + (parseFloat(item.penalty) || 0) + (parseFloat(item.deduction) || 0);
+                m.totalInc += parseFloat(item.totalGrossIncome || 0);
                 m.taxable += parseFloat(item.taxableIncomePaid || 0);
                 m.pit += parseFloat(item.taxDeduction || 0);
                 // Company

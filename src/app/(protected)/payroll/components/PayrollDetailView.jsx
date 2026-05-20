@@ -1129,7 +1129,7 @@ const PayrollDetailView = React.memo(({
                 adjustmentTaxable: parseFloat(row.adjustmentTaxable) || 0,
                 adjustmentNonTaxable: parseFloat(row.adjustmentNonTaxable) || 0,
                 otherNonTaxable: parseFloat(row.otherNonTaxable) || 0,
-                taxDeduction: parseFloat(row.taxDeduction) || 0,
+                // taxDeduction: KHÔNG gửi lên — BE tự tính thuế TNCN từ biểu thuế lũy tiến
                 note: row.note || ''
             }));
 
@@ -1925,10 +1925,6 @@ const PayrollDetailView = React.memo(({
                                                     KPCĐ (VNĐ)
                                                     <span className="ml-1 cursor-help text-rose-500 hover:text-rose-700" title="Kinh phí công đoàn người lao động (hiện tại = 0%, chưa áp dụng)">ⓘ</span>
                                                 </th>
-                                                <th className="px-3 py-3 text-right w-[130px] bg-rose-200/50 text-rose-950 font-black group relative">
-                                                    Thuế TNCN
-                                                    <span className="ml-1 cursor-help text-rose-600 hover:text-rose-800" title="Thuế thu nhập cá nhân: Áp dụng biểu thuế lũy tiến từng phần (5%-35%). Thu nhập tính thuế = Tổng lương + PC + OT + Thưởng - BH - 15.500.000đ (giảm trừ gia cảnh)">ⓘ</span>
-                                                </th>
                                                 <th className="px-3 py-3 text-right w-[110px] bg-rose-100 text-rose-800 group relative">
                                                     Đảng phí
                                                     <span className="ml-1 cursor-help text-rose-400 hover:text-rose-600" title="Phí đảng viên">ⓘ</span>
@@ -2156,17 +2152,7 @@ const PayrollDetailView = React.memo(({
                                                     </td>
                                                   
                                                    
-                                                    {/* Thuế TNCN (63) */}
-                                                    <td className="px-3 py-2 bg-rose-200/20">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min={0}
-                                                            className="w-full bg-white border border-rose-300 rounded text-right py-1 px-2 font-black text-rose-950 focus:ring-2 focus:ring-rose-500 outline-none"
-                                                            value={row.taxDeduction ?? 0}
-                                                            onChange={(e) => handleInputRowChange(row.id, 'taxDeduction', e.target.value)}
-                                                        />
-                                                    </td>
+
                                                       {/* Đảng phí (55) */}
                                                       <td className="px-3 py-2 bg-rose-100/10">
                                                         <input

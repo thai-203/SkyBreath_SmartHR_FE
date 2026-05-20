@@ -96,15 +96,15 @@ export default function PayslipDetailModal({
         ? parseFloat(detail.totalGrossIncome)
         : tongLuongChinh + thưởngP3 + phuCap + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
 
-    // ── BẢO HIỂM NLĐ (52) ── Tính theo Lương P1 thực nhận (21)
+    // ── BẢO HIỂM NLĐ (52) ── Lấy trực tiếp từ database
     const siRate = parseFloat(detail.socialInsurancePercentage || 8) / 100;      // 8%
     const hiRate = parseFloat(detail.healthInsurancePercentage || 1.5) / 100;    // 1.5%
     const uiRate = parseFloat(detail.unemploymentInsurancePercentage || 1) / 100; // 1%
     
-    const bhxhNLĐ = p1ThựcNhận * siRate;     // BHXH 8%
-    const bhytNLĐ = p1ThựcNhận * hiRate;     // BHYT 1.5%
-    const bhtnNLĐ = p1ThựcNhận * uiRate;     // BHTN 1%
-    const tongBHNLD = bhxhNLĐ + bhytNLĐ + bhtnNLĐ; // Tổng 10.5%
+    const bhxhNLĐ = parseFloat(detail.socialInsurance || 0);     // BHXH
+    const bhytNLĐ = parseFloat(detail.healthInsurance || 0);     // BHYT
+    const bhtnNLĐ = parseFloat(detail.unemploymentInsurance || 0); // BHTN
+    const tongBHNLD = parseFloat(detail.insuranceDeduction || 0); // Tổng BH NLĐ
 
     // Các khoản khấu trừ khác
     const insuranceAdjustment = parseFloat(detail.insuranceAdjustment || 0); // (53) Truy thu BH
@@ -115,15 +115,11 @@ export default function PayslipDetailModal({
     const taxAdjustment = parseFloat(detail.taxAdjustment || 0);           // (64) Truy thu thuế
     const otherDeduction = parseFloat(detail.otherDeduction || 0);        // (65) Trừ khác
 
-    // (65.1) Tổng khấu trừ
-    const totalDeductions = parseFloat(detail.totalDeduction) > 0
-        ? parseFloat(detail.totalDeduction)
-        : tongBHNLD + insuranceAdjustment + employeeUnionFee + partyFee + thuếTNCN + taxAdjustment + otherDeduction;
+    // (65.1) Tổng khấu trừ ── Lấy trực tiếp từ database
+    const totalDeductions = parseFloat(detail.totalDeduction || 0);
 
-    // (66) Thực lĩnh
-    const netSalary = parseFloat(detail.netSalary) > 0
-        ? parseFloat(detail.netSalary)
-        : totalActualEarnings - totalDeductions;
+    // (66) Thực lĩnh ── Lấy trực tiếp từ database
+    const netSalary = parseFloat(detail.netSalary || 0);
 
     const rows = [
         // ── Section 1: Ngày công ──

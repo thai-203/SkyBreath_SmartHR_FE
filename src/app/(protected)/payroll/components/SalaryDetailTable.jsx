@@ -28,7 +28,7 @@ export default function SalaryDetailTable({
     }, [details]);
 
     // Wide table to accommodate all indicators
-    const tableWidth = 4500;
+    const tableWidth = 4620;
 
     if (loading) {
         return <div className="h-64 flex items-center justify-center bg-white rounded-xl border border-slate-200 animate-pulse text-slate-400 font-medium italic">Đang đồng bộ dữ liệu tính toán từ hệ thống...</div>;
@@ -97,7 +97,7 @@ export default function SalaryDetailTable({
                             <th className="w-[120px] bg-rose-50/50">BHTN 1%</th>
                             <th className="w-[120px] bg-rose-50/50">Đảng phí (55)</th>
                             <th className="w-[180px] bg-rose-50/50">Giảm trừ gia cảnh (12.2)</th>
-                            <th className="w-[150px] bg-rose-50/50">Thuế TNCN (63)</th>
+                            <th className="w-[120px] bg-rose-50/50">Thuế TNCN (63)</th>
                             <th className="w-[120px] bg-rose-50/50">Truy thu thuế (64)</th>
                             <th className="w-[120px] bg-rose-50/50">Trừ khác (65)</th>
                             <th className="w-[180px] bg-rose-600 text-white font-black">Tổng khấu trừ (65.1)</th>
@@ -159,29 +159,17 @@ export default function SalaryDetailTable({
                                         ? parseFloat(item.totalGrossIncome)
                                         : tổngLươngChính + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
 
-                                    // ── BẢO HIỂM NLĐ (52) ── Tính theo Lương P1 thực nhận (21)
-                                    const siRate = parseFloat(item.socialInsurancePercentage || 8) / 100;      // 8%
-                                    const hiRate = parseFloat(item.healthInsurancePercentage || 1.5) / 100;    // 1.5%
-                                    const uiRate = parseFloat(item.unemploymentInsurancePercentage || 1) / 100; // 1%
-                                    
-                                    const bhxhNLĐ = p1ThựcNhận * siRate;     // BHXH 8%
-                                    const bhytNLĐ = p1ThựcNhận * hiRate;     // BHYT 1.5%
-                                    const bhtnNLĐ = p1ThựcNhận * uiRate;     // BHTN 1%
-                                    const tongBHNLD = bhxhNLĐ + bhytNLĐ + bhtnNLĐ; // Tổng 10.5%
+                                    // ── BẢO HIỂM NLĐ (52) ── Lấy trực tiếp từ database
+                                    const bhxhNLĐ = parseFloat(item.socialInsurance || 0);     // BHXH
+                                    const bhytNLĐ = parseFloat(item.healthInsurance || 0);     // BHYT
+                                    const bhtnNLĐ = parseFloat(item.unemploymentInsurance || 0); // BHTN
+                                    const tongBHNLD = parseFloat(item.insuranceDeduction || 0); // Tổng BH NLĐ
 
-                                    // (65.1) Tổng khấu trừ = (52)+(53)+(54)+(55)+(63)+(64)+(65)
+                                    // (65.1) Tổng khấu trừ ── Lấy trực tiếp từ database
                                     const thuếTNCN       = parseFloat(item.taxDeduction         || 0); // (63)
                                     const cdPhíNLD       = parseFloat(item.employeeUnionFee     || 0); // (54) CĐ phí NLĐ
                                     const khấuTrừKhác   = parseFloat(item.otherDeduction        || 0); // (65) Trừ khác
-                                    const tổngKhấuTrừ = parseFloat(item.totalDeduction) > 0
-                                        ? parseFloat(item.totalDeduction)  // Ưu tiên giá trị đã lưu
-                                        : tongBHNLD  // BHXH 8% + BHYT 1.5% + BHTN 1% = 10.5% theo baseSalary
-                                            + parseFloat(item.insuranceAdjustment || 0) // (53)
-                                            + cdPhíNLD                               // (54)
-                                            + parseFloat(item.partyFee            || 0) // (55)
-                                            + thuếTNCN                               // (63)
-                                            + parseFloat(item.taxAdjustment        || 0) // (64)
-                                            + khấuTrừKhác;                          // (65)
+                                    const tổngKhấuTrừ    = parseFloat(item.totalDeduction       || 0); // (65.1)
 
                                     // (66) Dùng netSalary từ DB; fallback tính lại
                                     const thựcLĩnh = parseFloat(item.netSalary) > 0
@@ -239,7 +227,7 @@ export default function SalaryDetailTable({
                                             <td className="px-3 text-right text-rose-400">{fmt(bhtnNLĐ)}</td>
                                             <td className="px-3 text-right text-rose-400">{fmt(item.partyFee)}</td>
                                             <td className="px-3 text-right text-slate-400 italic text-[10px]">{fmt(item.familyDeduction)}</td>
-                                            <td className="px-3 text-right text-rose-700 font-bold">{fmt(thuếTNCN)}</td>
+                                            <td className="px-3 text-right text-rose-500 font-bold">{fmt(thuếTNCN)}</td>
                                             <td className="px-3 text-right text-rose-500">{fmt(item.taxAdjustment)}</td>
                                             <td className="px-3 text-right text-rose-500">{fmt(khấuTrừKhác)}</td>
                                             <td className="px-3 text-right font-black text-white bg-rose-600 text-xs">{fmt(tổngKhấuTrừ)}</td>
