@@ -104,7 +104,7 @@ export default function FaceDataDetailModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Chi tiết dữ liệu khuôn mặt"
+      title="Chi tiết dữ liệu sinh trắc học"
       size="xl"
     >
       <div className="max-h-[80vh] overflow-y-auto px-2 space-y-6">

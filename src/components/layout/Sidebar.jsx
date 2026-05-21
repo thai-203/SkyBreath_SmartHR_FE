@@ -26,6 +26,8 @@ import {
   CalendarCheck,
   Bell,
   Bot,
+  Menu,
+  ChevronLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -49,17 +51,17 @@ const menuItems = [
     ],
     children: [
       {
-        title: "Điểm danh (Camera)",
+        title: "Điểm danh",
         href: "/face/checkin",
         permissions: ["ATTENDANCE_READ_OWN"],
       },
       {
-        title: "Đăng ký khuôn mặt",
+        title: "Đăng ký sinh trắc học",
         href: "/face/register",
         permissions: ["ATTENDANCE_FACE_DATA_READ_OWN"],
       },
       {
-        title: "Quản lý Face Data",
+        title: "Quản lý sinh trắc học",
         href: "/face/manage",
         permissions: ["ATTENDANCE_FACE_DATA_READ"],
       },
@@ -125,7 +127,11 @@ const menuItems = [
       //   href: "/timesheets/data",
       //   permissions: ["TIMESHEET_READ", "TIMESHEET_READ_OWN"],
       // },
-      { title: "Bảng tăng ca chi tiết", href: "/timesheets/overtime-detail", permissions: ["TIMESHEET_READ", "TIMESHEET_READ_OWN"] },
+      {
+        title: "Bảng tăng ca chi tiết",
+        href: "/timesheets/overtime-detail",
+        permissions: ["TIMESHEET_READ", "TIMESHEET_READ_OWN"],
+      },
 
       // {
       //   title: "Chốt công",
@@ -201,7 +207,13 @@ const menuItems = [
     title: "Ngày nghỉ lễ",
     icon: Calendar,
     href: "/holidays",
-    permissions: ["HOLIDAY_READ_OWN", "HOLIDAY_READ", 'HOLIDAY_GROUP_READ', 'HOLIDAY_CONFIG', 'HOLIDAY_NOTIFICATION_SEND'],
+    permissions: [
+      "HOLIDAY_READ_OWN",
+      "HOLIDAY_READ",
+      "HOLIDAY_GROUP_READ",
+      "HOLIDAY_CONFIG",
+      "HOLIDAY_NOTIFICATION_SEND",
+    ],
     children: [
       {
         title: "Danh mục ngày lễ",
@@ -361,10 +373,43 @@ const menuItems = [
       {
         title: "Gửi thông báo",
         permissions: ["SEND_MANUAL_NOTIFICATION"],
-        href: "/notifications/manual"
+        href: "/notifications/manual",
       },
-      { title: "Lịch sử thông báo", permissions: ["VIEW_NOTIFICATION_HISTORY"], href: "/notifications/history" },
+      {
+        title: "Lịch sử thông báo",
+        permissions: ["VIEW_NOTIFICATION_HISTORY"],
+        href: "/notifications/history",
+      },
     ],
+  },
+  {
+    title: "Cấu hình hệ thống",
+    icon: Settings,
+    href: "/configurations",
+    roles: ["ADMIN"],
+    permissions: [
+      "ATTENDANCE_FACE_RECOGNITION_CONFIG_READ",
+      "ATTENDANCE_SECURITY_CONFIG_READ",
+      "ATTENDANCE_BLOCKING_CONFIG_READ",
+    ],
+    children: [
+      { title: "Cấu hình chấm công", href: "/configurations" },
+      { title: "Quy trình lương", href: "/configurations/payroll" },
+    ],
+  },
+  {
+    title: "Cấu hình AI",
+    icon: Bot,
+    href: "/ai-configurations",
+    permissions: ["AI_CONFIGURATION_READ"],
+    roles: ["ADMIN"],
+  },
+  {
+    title: "AI Prompts",
+    icon: FileText,
+    href: "/ai-prompts",
+    permissions: ["AI_PROMPT_READ"],
+    roles: ["ADMIN"],
   },
   {
     title: "Cài đặt",
@@ -381,38 +426,17 @@ const menuItems = [
       },
     ],
   },
-  {
-    title: "Cấu hình hệ thống",
-    icon: Settings,
-    href: "/configurations",
-    roles: ["ADMIN"],
-    permissions: [
-      "ATTENDANCE_FACE_RECOGNITION_CONFIG_READ",
-      "ATTENDANCE_SECURITY_CONFIG_READ",
-      "ATTENDANCE_BLOCKING_CONFIG_READ",
-    ],
-    children: [
-      { title: "Tổng quan", href: "/configurations" },
-      { title: "Quy trình lương", href: "/configurations/payroll" },
-    ]
-  },
-  {
-    title: "Cấu hình AI",
-    icon: Bot,
-    href: "/ai-configurations",
-    permissions: ["AI_CONFIGURATION_READ"],
-    roles: ["ADMIN"],
-  },
-  {
-    title: "AI Prompts",
-    icon: FileText,
-    href: "/ai-prompts",
-    permissions: ["AI_PROMPT_READ"],
-    roles: ["ADMIN"],
-  },
 ];
 
-function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose, user }) {
+function MenuItem({
+  item,
+  isActive,
+  isOpen,
+  onToggle,
+  onMobileClose,
+  user,
+  isCollapsed,
+}) {
   const hasChildren = item.children && item.children.length > 0;
   const pathname = usePathname();
 
@@ -434,34 +458,48 @@ function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose, user }) {
             isActive
               ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+            isCollapsed && "justify-center px-2",
           )}
         >
           <span className="flex items-center gap-3">
-            <item.icon className="h-5 w-5" />
-            {item.title}
+            <item.icon
+              className={cn(
+                "h-5 w-5 shrink-0",
+                isActive ? "text-white" : "text-slate-500",
+              )}
+            />
+            {!isCollapsed && <span>{item.title}</span>}
           </span>
-          {isOpen ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
+          {!isCollapsed &&
+            (isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            ))}
         </button>
       ) : (
         <Link
           href={item.href}
           onClick={onMobileClose}
+          title={isCollapsed ? item.title : ""}
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
             isActive
               ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+            isCollapsed && "justify-center px-2",
           )}
         >
-          <item.icon className="h-5 w-5" />
-          {item.title}
+          <item.icon
+            className={cn(
+              "h-5 w-5 shrink-0",
+              isActive ? "text-white" : "text-slate-500",
+            )}
+          />
+          {!isCollapsed && <span>{item.title}</span>}
         </Link>
       )}
-      {hasChildren && isOpen && (
+      {hasChildren && isOpen && !isCollapsed && (
         <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 pl-4">
           {item.children.filter(canShowItem).map((child) => {
             const isEmployeeOnly =
@@ -493,7 +531,12 @@ function MenuItem({ item, isActive, isOpen, onToggle, onMobileClose, user }) {
   );
 }
 
-export function Sidebar({ className, onMobileClose }) {
+export function Sidebar({
+  className,
+  onMobileClose,
+  isCollapsed,
+  onToggleCollapse,
+}) {
   const pathname = usePathname();
   const user = authService.getCurrentUser();
   const [openMenuHref, setOpenMenuHref] = useState(null);
@@ -522,18 +565,31 @@ export function Sidebar({ className, onMobileClose }) {
   return (
     <aside
       className={cn(
-        "flex h-full w-64 flex-col bg-white border-r border-slate-200 transition-transform duration-300",
+        "flex h-full flex-col bg-white border-r border-slate-200 transition-all duration-300",
+        isCollapsed ? "w-20" : "w-64",
         className,
       )}
     >
-      <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-500/20">
+      <div
+        className={cn(
+          "flex h-16 items-center border-b border-slate-200 px-4 transition-all duration-300",
+          isCollapsed ? "justify-center" : "justify-between",
+        )}
+      >
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 overflow-hidden"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-500/20">
             S
           </div>
-          <span className="text-lg font-bold text-slate-900">SmartHR</span>
+          {!isCollapsed && (
+            <span className="text-lg font-bold text-slate-900 truncate">
+              SmartHR
+            </span>
+          )}
         </Link>
-        {onMobileClose && (
+        {!isCollapsed && onMobileClose && (
           <button
             onClick={onMobileClose}
             className="rounded-lg p-2 hover:bg-slate-100 lg:hidden"
@@ -541,7 +597,28 @@ export function Sidebar({ className, onMobileClose }) {
             <X className="h-5 w-5" />
           </button>
         )}
+        {!isCollapsed && (
+          <button
+            onClick={onToggleCollapse}
+            className="hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 lg:block"
+            title="Thu gọn sidebar"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
       </div>
+
+      {isCollapsed && (
+        <div className="flex justify-center p-4 border-b border-slate-50">
+          <button
+            onClick={onToggleCollapse}
+            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+            title="Mở rộng sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
+      )}
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
         {menuItems.filter(canShowItem).map((item) => (
           <MenuItem
@@ -552,6 +629,7 @@ export function Sidebar({ className, onMobileClose }) {
             onToggle={() => handleToggle(item.href)}
             onMobileClose={onMobileClose}
             user={user}
+            isCollapsed={isCollapsed}
           />
         ))}
       </nav>

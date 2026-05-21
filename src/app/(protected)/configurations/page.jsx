@@ -10,7 +10,15 @@ import {
   CardTitle,
 } from "@/components/common/Card";
 import { Button } from "@/components/common/Button";
-import { Camera, Settings, Shield, Activity, ChevronRight, ShieldAlert, Wallet } from "lucide-react";
+import {
+  Camera,
+  Settings,
+  Shield,
+  Activity,
+  ChevronRight,
+  ShieldAlert,
+  Wallet,
+} from "lucide-react";
 
 export default function ConfigurationsPage() {
   const router = useRouter();
@@ -44,24 +52,6 @@ export default function ConfigurationsPage() {
       color: "purple",
       href: "/configurations/attendance-blocking",
       disabled: false,
-    },
-    {
-      id: "payroll-settings",
-      title: "Quy Trình Lương",
-      description: "Cấu hình người phê duyệt, quy trình tính lương và thông báo",
-      icon: Wallet,
-      color: "emerald",
-      href: "/configurations/payroll",
-      disabled: false,
-    },
-    {
-      id: "notification-settings",
-      title: "Cài Đặt Thông Báo",
-      description: "Quản lý các cảnh báo, email thông báo và cấu hình gửi",
-      icon: Activity,
-      color: "orange",
-      href: "/configurations/notification-settings",
-      disabled: true,
     },
   ];
 
@@ -153,9 +143,9 @@ export default function ConfigurationsPage() {
               <li>
                 Bảo Mật Điểm Danh: Bảo vệ hệ thống khỏi truy cập bất hợp pháp
               </li>
-              <li>Cài Đặt Hệ Thống: Định nghĩa quy tắc và tham số hoạt động</li>
               <li>
-                Cài Đặt Thông Báo: Kiểm soát thông báo và cảnh báo hệ thống
+                Cấu Hình Chặn Điểm Danh: Thiết lập quy tắc tự động khóa theo vi
+                phạm
               </li>
             </ul>
           </div>
