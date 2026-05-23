@@ -112,6 +112,7 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
+          console.log("[API Interceptor] Token expired, attempting to refresh...");
           const { authService } = await import("@/services/auth.service");
           const res = await authService.refreshToken();
 
@@ -132,14 +133,17 @@ api.interceptors.response.use(
           }
 
           if (!newAccessToken) {
+            console.error("[API Interceptor] Refresh failed: No new access token in response", res);
             throw new Error("Không thể lấy mã truy cập mới");
           }
 
+          console.log("[API Interceptor] Token refreshed successfully");
           localStorage.setItem("token", newAccessToken);
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           processQueue(null, newAccessToken);
           return api(originalRequest);
         } catch (refreshError) {
+          console.error("[API Interceptor] Refresh error:", refreshError);
           processQueue(refreshError, null);
           return handleForceLogout(
             "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại",

@@ -54,8 +54,8 @@ function FaceItemSkeleton({ index }) {
 }
 
 const FaceItem = React.memo(function FaceItem({ face, index }) {
-  const imageUrl = face.imageUrl
-  
+  const imageUrl = face.imageUrl;
+
   const [imgError, setImgError] = React.useState(false);
 
   return (
@@ -178,10 +178,10 @@ export default function RegisteredFaceTable({
               <Camera className="h-9 w-9 text-primary" />
             </motion.div>
             <h3 className="text-lg font-semibold text-foreground mb-1.5">
-              Chưa có dữ liệu khuôn mặt
+              Chưa có dữ liệu sinh trắc học
             </h3>
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              Đăng ký khuôn mặt để hệ thống nhận diện tự động khi chấm công
+              Đăng ký sinh trắc học để hệ thống nhận diện tự động khi chấm công
             </p>
             {onStartRegister && (
               <PermissionGate
@@ -190,7 +190,7 @@ export default function RegisteredFaceTable({
               >
                 <Button onClick={onStartRegister} className="gap-2">
                   <Sparkles className="h-4 w-4" />
-                  Đăng ký khuôn mặt
+                  Đăng ký sinh trắc học
                 </Button>
               </PermissionGate>
             )}

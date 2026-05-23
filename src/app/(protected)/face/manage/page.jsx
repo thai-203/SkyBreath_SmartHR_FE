@@ -74,7 +74,7 @@ export default function FaceDataManagePage() {
       setTotalPages(data.totalPages || 0);
       setTotalFaces(data.totalFaces || 0);
     } catch (error) {
-      toastError("Không thể tải dữ liệu khuôn mặt");
+      toastError("Không thể tải dữ liệu");
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ export default function FaceDataManagePage() {
       setDetailGroup(result.data || group);
       setIsDetailOpen(true);
     } catch (error) {
-      toastError("Không thể tải chi tiết dữ liệu khuôn mặt");
+      toastError("Không thể tải chi tiết dữ liệu");
     } finally {
       setLoading(false);
     }
@@ -131,10 +131,10 @@ export default function FaceDataManagePage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
-              Quản lý Face Data
+              Quản lý Dữ liệu Sinh trắc học
             </h1>
             <p className="text-sm text-slate-500">
-              Theo dõi và quản lý dữ liệu khuôn mặt đã đăng ký cho hệ thống chấm
+              Theo dõi và quản lý dữ liệu sinh trắc đã đăng ký cho hệ thống chấm
               công
             </p>
           </div>
@@ -154,7 +154,7 @@ export default function FaceDataManagePage() {
           icon={Camera}
           label="Tổng mẫu ảnh"
           value={totalFaces}
-          sub="khuôn mặt đã lưu"
+          sub="ảnh đã lưu"
           colorClass="bg-emerald-50 text-emerald-600"
         />
         <StatCard

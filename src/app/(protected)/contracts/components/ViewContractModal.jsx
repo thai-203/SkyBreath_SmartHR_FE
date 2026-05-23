@@ -248,7 +248,7 @@ export default function ViewContractModal({
           <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Phụ cấp xăng xe</div><div style="font-weight:700;">${escapeHtml(formatCurrency(getSalaryValue("fuelAllowance")))}</div></div>
           <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Phụ cấp điện thoại</div><div style="font-weight:700;">${escapeHtml(formatCurrency(getSalaryValue("phoneAllowance")))}</div></div>
           <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Phụ cấp khác</div><div style="font-weight:700;">${escapeHtml(formatCurrency(getSalaryValue("otherAllowance")))}</div></div>
-          <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Tổng thu nhập</div><div style="font-weight:700;">${escapeHtml(formatCurrency(totalIncome))}</div></div>
+          <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Tổng thu nhập tạm tính</div><div style="font-weight:700;">${escapeHtml(formatCurrency(totalIncome))}</div></div>
         </div>
 
         <h2 style="margin:20px 0 8px;font-size:16px;">Hình ảnh đính kèm</h2>
@@ -464,7 +464,7 @@ export default function ViewContractModal({
 
             <div className="mt-8 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
               <div className="flex justify-between items-center font-bold">
-                <span className="text-sm opacity-90">Tổng thu nhập</span>
+                <span className="text-sm opacity-90">Tổng thu nhập tạm tính</span>
                 <span className="text-xl text-amber-300 font-black">
                   {formatCurrency(totalIncome)}
                 </span>

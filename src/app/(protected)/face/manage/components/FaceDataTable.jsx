@@ -8,7 +8,12 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { Button } from "@/components/common/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/common/Card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/common/Card";
 import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { Pagination } from "@/components/common/Pagination";
@@ -17,15 +22,23 @@ import { PermissionGate } from "@/components/common/AuthGuard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────────
 function getInitials(name = "") {
-  return name.split(" ").map((w) => w[0]).slice(-2).join("").toUpperCase();
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .slice(-2)
+    .join("")
+    .toUpperCase();
 }
 
 function formatDateTime(dateStr) {
   if (!dateStr) return "—";
   try {
     return new Date(dateStr).toLocaleString("vi-VN", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch {
     return String(dateStr);
@@ -78,7 +91,9 @@ export default function FaceDataTable({
         header: "Mã NV",
         size: 100,
         cell: ({ getValue }) => (
-          <span className="font-mono text-sm text-indigo-600">{getValue() || "-"}</span>
+          <span className="font-mono text-sm text-indigo-600">
+            {getValue() || "-"}
+          </span>
         ),
       },
       {
@@ -92,7 +107,10 @@ export default function FaceDataTable({
                 src={row.original.avatar}
                 alt={row.original.fullName}
                 className="h-full w-full object-cover"
-                onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = "none";
+                }}
               />
             ) : (
               getInitials(row.original.fullName)
@@ -105,8 +123,12 @@ export default function FaceDataTable({
         header: "Họ và tên",
         cell: ({ row }) => (
           <div>
-            <div className="font-medium text-slate-900">{row.original.fullName}</div>
-            <div className="text-xs text-slate-500">{row.original.companyEmail || "-"}</div>
+            <div className="font-medium text-slate-900">
+              {row.original.fullName}
+            </div>
+            <div className="text-xs text-slate-500">
+              {row.original.companyEmail || "-"}
+            </div>
           </div>
         ),
       },
@@ -168,7 +190,7 @@ export default function FaceDataTable({
         ),
       },
     ],
-    [onViewDetail, onDeleteEmployee, pagination]
+    [onViewDetail, onDeleteEmployee, pagination],
   );
 
   const table = useReactTable({
@@ -210,7 +232,10 @@ export default function FaceDataTable({
                       className="px-4 py-3 text-left text-sm font-medium text-slate-600"
                       style={{ width: header.getSize() }}
                     >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
                     </th>
                   ))}
                 </tr>
@@ -229,10 +254,17 @@ export default function FaceDataTable({
                 ))
               ) : table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-500">
+                  <td
+                    colSpan={columns.length}
+                    className="px-4 py-8 text-center text-slate-500"
+                  >
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-10 w-10 text-slate-300" />
-                      <p>{search ? "Không tìm thấy nhân viên phù hợp" : "Chưa có dữ liệu khuôn mặt"}</p>
+                      <p>
+                        {search
+                          ? "Không tìm thấy nhân viên phù hợp"
+                          : "Chưa có dữ liệu"}
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -247,9 +279,16 @@ export default function FaceDataTable({
                       <td
                         key={cell.id}
                         className="px-4 py-3 text-sm text-slate-700"
-                        onClick={cell.column.id === "actions" ? (e) => e.stopPropagation() : undefined}
+                        onClick={
+                          cell.column.id === "actions"
+                            ? (e) => e.stopPropagation()
+                            : undefined
+                        }
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -260,7 +299,8 @@ export default function FaceDataTable({
         </div>
         <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
           <p className="text-sm text-slate-500">
-            Hiển thị {data.length} / Trang {pagination.pageIndex + 1} của {totalPages || 1}
+            Hiển thị {data.length} / Trang {pagination.pageIndex + 1} của{" "}
+            {totalPages || 1}
           </p>
           <Pagination
             currentPage={pagination.pageIndex + 1}

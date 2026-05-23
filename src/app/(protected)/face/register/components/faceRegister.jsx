@@ -652,7 +652,7 @@ export default function FaceRegister({ onComplete, config }) {
                 Xác thực sinh trắc học
               </h1>
               <p className="text-xs text-muted-foreground">
-                Đăng ký khuôn mặt — Nhận diện nhân sự
+                Đăng ký sinh trắc học — Nhận diện nhân sự
               </p>
             </div>
           </div>
