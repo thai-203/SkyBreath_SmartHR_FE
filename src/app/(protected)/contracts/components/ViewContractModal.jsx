@@ -100,7 +100,23 @@ export default function ViewContractModal({
     if (formValue !== undefined && formValue !== null && formValue !== "") {
       return Number(formValue) || 0;
     }
-    return Number(data?.[key]) || 0;
+    if (
+      data?.[key] !== undefined &&
+      data?.[key] !== null &&
+      data?.[key] !== ""
+    ) {
+      return Number(data[key]) || 0;
+    }
+    if (
+      data?.employeeSalary?.[key] !== undefined &&
+      data?.employeeSalary?.[key] !== null
+    ) {
+      return Number(data.employeeSalary[key]) || 0;
+    }
+    if (data?.salary?.[key] !== undefined && data?.salary?.[key] !== null) {
+      return Number(data.salary[key]) || 0;
+    }
+    return 0;
   };
 
   const normalizedAttachments = useMemo(() => {
@@ -360,12 +376,20 @@ export default function ViewContractModal({
                   />
                   <InfoItem
                     label="Phòng ban"
-                    value={data.departmentName}
+                    value={
+                      data.departmentName ||
+                      data.employee?.department?.departmentName ||
+                      "---"
+                    }
                     highlight
                   />
                   <InfoItem
                     label="Vị trí"
-                    value={data.positionName}
+                    value={
+                      data.positionName ||
+                      data.employee?.position?.positionName ||
+                      "---"
+                    }
                     highlight
                   />
                 </div>
@@ -409,7 +433,15 @@ export default function ViewContractModal({
                   label="Giờ làm / tuần"
                   value={`${data.workingHours || 40} giờ`}
                 />
-                <InfoItem label="Ngạch lương" value={data.jobGradeName} />
+                <InfoItem
+                  label="Ngạch lương"
+                  value={
+                    data.jobGradeName ||
+                    data.employee?.jobGrade?.name ||
+                    data.employeeSalary?.jobGrade?.name ||
+                    "---"
+                  }
+                />
               </div>
             </div>
           </section>
@@ -464,7 +496,9 @@ export default function ViewContractModal({
 
             <div className="mt-8 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
               <div className="flex justify-between items-center font-bold">
-                <span className="text-sm opacity-90">Tổng thu nhập tạm tính</span>
+                <span className="text-sm opacity-90">
+                  Tổng thu nhập tạm tính
+                </span>
                 <span className="text-xl text-amber-300 font-black">
                   {formatCurrency(totalIncome)}
                 </span>
