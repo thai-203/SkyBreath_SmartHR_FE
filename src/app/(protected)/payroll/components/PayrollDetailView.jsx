@@ -396,7 +396,7 @@ const PayrollDetailView = React.memo(({
                     const match = pCode && tsCode && pCode === tsCode;
                     return false;
                 });
-                
+
 
                 // Lấy performanceSalary từ employee_salaries (đây là Lương P2 gốc)
                 const salary = salaryData?.find(s => {
@@ -585,37 +585,144 @@ const PayrollDetailView = React.memo(({
         }));
     };
 
+    /**
+     * Xuất dữ liệu bảng lương chi tiết của toàn bộ nhân sự ra file Excel (.xlsx).
+     * Dữ liệu được tổng hợp từ nguồn `fullPayrollDetails` đảm bảo khớp 100% 
+     * với giao diện hiển thị 36 chỉ tiêu lương 3P của `SalaryDetailTable`.
+     */
     const handleExportExcel = () => {
-        if (!timesheetData) {
+        // Kiểm tra tính sẵn sàng của dữ liệu tổng hợp
+        if (!fullPayrollDetails || fullPayrollDetails.length === 0) {
             toast.error("Không có dữ liệu để xuất");
             return;
         }
 
-        const data = timesheetData.map((item, idx) => ({
-            "STT": idx + 1,
-            "Mã nhân sự": item.employeeCode,
-            "Tên nhân sự": item.fullName,
-            "Lương cơ bản (Hợp đồng)": item.baseSalary || 0,
-            "Số ngày công chuẩn": item.standardDays || 26,
-            "Tổng công trong tháng": item.totalMonthlyDays || 0,
-            "Ngày công chính thức": item.officialDays || 0,
-            "Ngày công thử việc": item.probationDays || 0,
-            "Công tác": item.businessTripDays || 0,
-            "Nghỉ lễ": item.holidayDays || 0,
-            "Nghỉ chế độ": item.benefitLeaveDays || item.paidLeaveDays || 0,
-            "Nghỉ phép": item.annualLeaveDays || 0,
-            "Nghỉ không lương": item.unpaidLeaveDays || 0,
-            "Nghỉ chờ việc": item.waitingDays || 0,
-            "Tổng cộng ăn": item.mealCount || 0,
-            "Ngày phép đã dùng": item.usedLeaveDays || 0,
-            "Phép tồn": item.remainingLeaveDays || 0
-        }));
+        // Bước 1: Ánh xạ và chuyển đổi dữ liệu thô sang định dạng cột bảng lương chi tiết
+        const data = fullPayrollDetails.map((item, idx) => {
+            // A. Dữ liệu công chốt
+            const ncChuẩn = parseFloat(item.standardDays || 26);
+            const ncChínhThức = parseFloat(item.officialDays || 0);
+            const ncThửViệc = parseFloat(item.probationDays || 0);
+            // Công khác bao gồm nghỉ lễ, phép năm hưởng lương, công tác và nghỉ chế độ
+            const ncKhác = parseFloat(item.benefitLeaveDays || 0) + parseFloat(item.holidayDays || 0) + parseFloat(item.businessTripDays || 0) + parseFloat(item.annualLeaveDays || 0);
 
+            // B. Tỉ lệ hiệu năng KPI
+            const p21Percent = parseFloat(item.p1p2Percentage || 0); // % KPI Hành vi
+            const p22Percent = parseFloat(item.p3Percentage || 0);    // % KPI Kết quả
+            const totalKpiPercent = p21Percent + p22Percent;           // Tổng % KPI hiệu suất
+
+            // C. Lương thực nhận các phần
+            const p1ThựcNhận = parseFloat(item.p1Amount || 0);                        // Lương P1 thực nhận theo công thực tế
+            const p21ThựcNhận = parseFloat(item.p21Actual || item.p21Amount || 0);     // Lương P2.1 thực nhận theo % KPI & công thực tế
+            const p22ThựcNhận = parseFloat(item.p22Actual || item.p22Amount || 0);     // Lương P2.2 thực nhận theo % KPI & công thực tế
+            const pTVThựcNhận = parseFloat(item.probationAmount || 0);                 // Lương thử việc thực nhận (85%)
+
+            // Tổng lương chính (Chỉ tiêu 36) = P1 thực nhận + P2.1 thực + P2.2 thực + Thử việc thực
+            const tổngLươngChính = p1ThựcNhận + p21ThựcNhận + p22ThựcNhận + pTVThựcNhận;
+
+            // D. Phụ cấp, thưởng và truy thu
+            const phụCấp = parseFloat(item.allowanceAmount || 0);            // Tổng phụ cấp (ăn trưa + xăng + điện thoại + khác)
+            const ot = parseFloat(item.overtimePay || 0);                      // Tiền làm thêm giờ (tăng ca)
+            const thưởngP3 = parseFloat(item.bonus || 0);                     // Thưởng P3 hiệu quả công việc
+            const truyThuTínhThuế = parseFloat(item.adjustmentTaxable || 0);   // Điều chỉnh truy thu có tính thuế
+            const truyThuKoThuế = parseFloat(item.adjustmentNonTaxable || 0); // Điều chỉnh truy thu không tính thuế
+            const khácKoThuế = parseFloat(item.otherNonTaxable || 0);        // Các khoản thu nhập khác không tính thuế
+
+            // Tổng thu nhập (Chỉ tiêu 51) = Tổng lương chính + P3 + Phụ cấp + OT + các khoản truy thu, thu nhập khác
+            const tổngThuNhập = parseFloat(item.totalGrossIncome) > 0
+                ? parseFloat(item.totalGrossIncome)
+                : tổngLươngChính + thưởngP3 + phụCấp + ot + truyThuTínhThuế + truyThuKoThuế + khácKoThuế;
+
+            // E. Bảo hiểm trích từ lương NLĐ (Khấu trừ)
+            const bhxhNLĐ = parseFloat(item.socialInsurance || 0);     // 8% đóng Bảo hiểm xã hội
+            const bhytNLĐ = parseFloat(item.healthInsurance || 0);     // 1.5% đóng Bảo hiểm y tế
+            const bhtnNLĐ = parseFloat(item.unemploymentInsurance || 0); // 1% đóng Bảo hiểm thất nghiệp
+
+            // F. Các khoản khấu trừ khác & Thuế
+            const thuếTNCN = parseFloat(item.taxDeduction || 0);      // Thuế thu nhập cá nhân phải nộp
+            const khấuTrừKhác = parseFloat(item.otherDeduction || 0);  // Các khoản phạt hoặc khấu trừ khác (Chỉ tiêu 65)
+            const tổngKhấuTrừ = parseFloat(item.totalDeduction || 0);  // Tổng khấu trừ (Chỉ tiêu 65.1) = Tổng BH + Thuế + Phạt + Phí khác
+
+            // Thực lĩnh NET (Chỉ tiêu 66) = Tổng thu nhập (51) - Tổng khấu trừ (65.1)
+            const thựcLĩnh = parseFloat(item.netSalary) > 0
+                ? parseFloat(item.netSalary)
+                : tổngThuNhập - tổngKhấuTrừ;
+
+            // G. Các khoản Công ty đóng góp (Chi phí doanh nghiệp)
+            const kpcđCty = parseFloat(item.unionFee || 0); // Kinh phí công đoàn Công ty đóng (2%)
+            const bhxhCty = parseFloat(item.companyInsurance || 0)
+                || (parseFloat(item.companySocialInsurance || 0)
+                    + parseFloat(item.companyHealthInsurance || 0)
+                    + parseFloat(item.companyUnemploymentInsurance || 0)); // 21.5% Bảo hiểm Công ty đóng
+
+            // Tổng chi phí nhân sự của DN (Chỉ tiêu 79.1) = Tổng thu nhập + Công đoàn Cty + Bảo hiểm Cty
+            const tổngChiPhíNS = parseFloat(item.totalHrCost) > 0
+                ? parseFloat(item.totalHrCost)
+                : tổngThuNhập + kpcđCty + bhxhCty;
+
+            // Trả về cấu trúc dòng dữ liệu tương ứng với cột Excel
+            return {
+                "STT": idx + 1,
+                "Mã nhân viên": item.employee?.employeeCode || "—",
+                "Họ và tên": item.employee?.fullName || "—",
+                "Phòng ban": item.employee?.department?.departmentName || "—",
+                "Chức danh": item.employee?.position?.positionName || "—",
+                "Định mức công chuẩn": ncChuẩn,
+                "Công chính thức (22)": ncChínhThức,
+                "Công thử việc (23)": ncThửViệc,
+                "Công khác (26+)": ncKhác,
+                "% KPI P2.1 (Hành vi)": p21Percent / 100, // Đưa về dạng thập phân để Excel format dạng %
+                "% KPI P2.2 (Kết quả)": p22Percent / 100, // Đưa về dạng thập phân để Excel format dạng %
+                "Tổng % KPI (10)": totalKpiPercent / 100, // Đưa về dạng thập phân để Excel format dạng %
+                "Lương P1 thực nhận (31)": p1ThựcNhận,
+                "Thưởng P2.1 thực (32)": p21ThựcNhận,
+                "Khoán P2.2 thực (33)": p22ThựcNhận,
+                "Thử việc thực (34)": pTVThựcNhận,
+                "TỔNG LƯƠNG CHÍNH (36)": tổngLươngChính,
+                "Thưởng P3 (36.1)": thưởngP3,
+                "Phụ cấp (43)": phụCấp,
+                "Tăng ca OT (45)": ot,
+                "Truy thu tính thuế (46)": truyThuTínhThuế,
+                "Truy thu không thuế (47)": truyThuKoThuế,
+                "Khác không thuế (50.1)": khácKoThuế,
+                "TỔNG THU NHẬP (51)": tổngThuNhập,
+                "Mã (51)": "#51",
+                "BHXH NLĐ (52) 8%": bhxhNLĐ,
+                "BHYT NLĐ 1.5%": bhytNLĐ,
+                "BHTN NLĐ 1%": bhtnNLĐ,
+                "Đảng phí (55)": parseFloat(item.partyFee || 0),
+                "Giảm trừ gia cảnh (12.2)": parseFloat(item.familyDeduction || 0),
+                "Thuế TNCN (63)": thuếTNCN,
+                "Truy thu thuế (64)": parseFloat(item.taxAdjustment || 0),
+                "Trừ khác (65)": khấuTrừKhác,
+                "TỔNG KHẤU TRỪ (65.1)": tổngKhấuTrừ,
+                "LƯƠNG THỰC NHẬN (66)": thựcLĩnh,
+                "KPCĐ Cty đóng (71)": kpcđCty,
+                "BHXH Cty đóng (75)": bhxhCty,
+                "TỔNG CHI PHÍ NHÂN SỰ (79.1)": tổngChiPhíNS,
+                "Ghi chú": item.note || ""
+            };
+        });
+
+        // Bước 2: Khởi tạo bảng tính SheetJS từ mảng dữ liệu đã chuẩn hóa
         const ws = XLSX.utils.json_to_sheet(data);
+
+        // Bước 3: Tính toán độ rộng tự động cho mỗi cột tránh lỗi tràn chữ hoặc hiển thị ẩn (###)
+        const maxLen = {};
+        data.forEach(row => {
+            Object.keys(row).forEach(key => {
+                const val = String(row[key] || '');
+                maxLen[key] = Math.max(maxLen[key] || 10, val.length + 4); // Cộng thêm đệm khoảng cách cho thẩm mỹ
+            });
+        });
+        ws['!cols'] = Object.keys(maxLen).map(key => ({ wch: maxLen[key] }));
+
+        // Bước 4: Tạo workbook mới, đính kèm sheet và xuất file tải xuống
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Bang Cham Cong");
-        XLSX.writeFile(wb, `Bang_Cham_Cong_${activeMonth || 'M'}_${activeYear || 'Y'}.xlsx`);
-        toast.success("Đã xuất file Excel thành công");
+        XLSX.utils.book_append_sheet(wb, ws, "Bang Luong Chi Tiet");
+        XLSX.writeFile(wb, `Bang_Luong_Chi_Tiet_${activeMonth || 'M'}_${activeYear || 'Y'}.xlsx`);
+        
+        toast.success("Đã xuất bảng lương chi tiết thành công");
     };
 
     const handleAddInputRow = () => {
@@ -770,7 +877,7 @@ const PayrollDetailView = React.memo(({
                     };
                 }).filter(Boolean);
 
-                    if (updates.length > 0) {
+                if (updates.length > 0) {
                     // Update server records via service calls
                     await Promise.all(updates.map(u => payrollService.updateDetail(u.id, u)));
                     toast.success("Đã cập nhật thay đổi thành công.");
@@ -1480,7 +1587,7 @@ const PayrollDetailView = React.memo(({
                             {/* ── Static Header Block ── */}
                             <div className="bg-white z-[0] border-b border-slate-200 shadow-sm px-4 pt-3 pb-2 space-y-3 -mx-4 -mt-4 mb-4 rounded-t-xl">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <button
+                                    {/* <button
                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${isEditingData ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}`}
                                         onClick={handleToggleEditData}
                                         disabled={isSaving}
@@ -1491,7 +1598,7 @@ const PayrollDetailView = React.memo(({
                                             <Pencil className="h-3 w-3" />
                                         )}
                                         {isEditingData ? (isSaving ? 'Đang lưu...' : 'Lưu thay đổi') : 'Chỉnh sửa'}
-                                    </button>
+                                    </button> */}
                                     <button
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
                                         onClick={handleOpenAddModal}
@@ -1513,12 +1620,6 @@ const PayrollDetailView = React.memo(({
                                             <RefreshCw className={`h-3 w-3 ${actionLoading ? 'animate-spin' : ''}`} /> Cập nhật lại & Tính lương
                                         </button>
                                     )}
-                                    <label
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-                                        onClick={() => document.getElementById("excel-import-input").click()}
-                                    >
-                                        <Upload className="h-3 w-3" /> Import
-                                    </label>
                                     <button
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-slate-800 text-white hover:bg-slate-700 transition-colors"
                                         onClick={handleExportExcel}
@@ -2150,11 +2251,11 @@ const PayrollDetailView = React.memo(({
                                                             onChange={(e) => handleInputRowChange(row.id, 'unionFee', parseFloat(e.target.value) || 0)}
                                                         />
                                                     </td>
-                                                  
-                                                   
 
-                                                      {/* Đảng phí (55) */}
-                                                      <td className="px-3 py-2 bg-rose-100/10">
+
+
+                                                    {/* Đảng phí (55) */}
+                                                    <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
@@ -2164,8 +2265,8 @@ const PayrollDetailView = React.memo(({
                                                             onChange={(e) => handleInputRowChange(row.id, 'partyFee', parseFloat(e.target.value) || 0)}
                                                         />
                                                     </td>
-                                                     {/* Giảm trừ gia cảnh (12.2) */}
-                                                     <td className="px-3 py-2 bg-rose-100/10">
+                                                    {/* Giảm trừ gia cảnh (12.2) */}
+                                                    <td className="px-3 py-2 bg-rose-100/10">
                                                         <input
                                                             type="number"
                                                             step="0.01"
