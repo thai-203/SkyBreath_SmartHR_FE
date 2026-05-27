@@ -221,7 +221,10 @@ export default function ContractsPage() {
   const fetchEmployeeList = async () => {
     try {
       // request only employees without an active contract
-      const response = await employeesService.getList({ noContract: true });
+      const response = await employeesService.getList({
+        noContract: true,
+        excludeInactive: true,
+      });
       const items = Array.isArray(response.data) ? response.data : [];
       setEmployeeList(
         items.map((e) => ({
