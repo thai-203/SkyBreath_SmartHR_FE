@@ -1,6 +1,7 @@
 "use client";
 
 import { X, Users, Building2, UserCheck, CheckCircle, Clock, XCircle, AlertTriangle } from "lucide-react";
+import DOMPurify from "isomorphic-dompurify";
 
 const SOURCE_LABELS = {
     MANUAL: "Thủ công",
@@ -101,7 +102,7 @@ export function HistoryDetailModal({ open, onClose, record }) {
                                     [&_li]:mb-0.5
                                     [&_a]:text-indigo-600 [&_a]:underline
                                     [&_blockquote]:border-l-2 [&_blockquote]:border-slate-200 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-slate-500"
-                                dangerouslySetInnerHTML={{ __html: record.message }}
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(record.message) }}
                             />
                         </div>
                     </div>

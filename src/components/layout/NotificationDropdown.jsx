@@ -15,6 +15,7 @@ import {
 import { useSocket } from "../providers/SocketProvider";
 import { cn } from "@/lib/utils";
 import { getNotificationDestination } from "@/lib/notification-link";
+import DOMPurify from "isomorphic-dompurify";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -94,7 +95,10 @@ export default function NotificationDropdown() {
     if (destination) {
       setOpen(false);
       setSelectedNotification(null);
-      router.push(destination);
+      const safeLink = destination.trim();
+      if (safeLink.startsWith('/') || safeLink.startsWith('http://') || safeLink.startsWith('https://')) {
+        router.push(safeLink);
+      }
       return;
     }
 
@@ -299,7 +303,7 @@ export default function NotificationDropdown() {
                                     [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:mb-1
                                     [&_blockquote]:border-l-2 [&_blockquote]:border-slate-200 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-slate-500"
                     dangerouslySetInnerHTML={{
-                      __html: selectedNotification.message,
+                      __html: DOMPurify.sanitize(selectedNotification.message),
                     }}
                   />
                 </div>
@@ -311,7 +315,10 @@ export default function NotificationDropdown() {
                   <button
                     onClick={() => {
                       setSelectedNotification(null);
-                      router.push(selectedDestination);
+                      const safeLink = selectedDestination.trim();
+                      if (safeLink.startsWith('/') || safeLink.startsWith('http://') || safeLink.startsWith('https://')) {
+                        router.push(safeLink);
+                      }
                     }}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
                   >
