@@ -5,12 +5,13 @@ import { useToast } from "@/components/common/Toast";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Button } from "@/components/common/Button";
 import { Skeleton } from "@/components/common/Skeleton";
-import { userService } from "@/services";
+import { contractsService, userService } from "@/services";
 import ProfileEditModal from "./components/ProfileEditModal";
 import { ProfileHeroSection } from "./components/ProfileHeroSection";
 import { ProfileSection } from "./components/ProfileSection";
 import { ProfileField } from "./components/ProfileField";
 import { ExpandableSection } from "./components/ExpandableSection";
+import ViewContractModal from "../../contracts/components/ViewContractModal";
 import {
   Mail,
   Phone,
@@ -23,7 +24,27 @@ import {
   Globe,
   Briefcase,
   Clock,
+  Eye,
 } from "lucide-react";
+
+const CONTRACT_TYPE_LABELS = {
+  probation: "Hợp đồng thử việc",
+  internship: "Hợp đồng học việc",
+  fixed_term: "Hợp đồng lao động có thời hạn",
+  permanent: "Hợp đồng lao động không thời hạn",
+};
+
+const CONTRACT_STATUS_LABELS = {
+  DRAFT: "Bản nháp",
+  PENDING: "Chờ duyệt",
+  NOT_EFFECTIVE: "Chưa hiệu lực",
+  ACTIVE: "Đang hiệu lực",
+  SIGNED: "Đã ký",
+  TERMINATED: "Đã chấm dứt",
+  EXPIRED: "Hết hạn",
+  CANCELLED: "Đã hủy",
+  CANCELED: "Đã hủy",
+};
 
 export default function ProfilePage() {
   const { success: toastSuccess, error: toastError } = useToast();
@@ -31,6 +52,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showSensitive, setShowSensitive] = useState({});
+  const [myContracts, setMyContracts] = useState([]);
+  const [contractsLoading, setContractsLoading] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(null);
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -49,6 +74,26 @@ export default function ProfilePage() {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  const loadMyContracts = useCallback(async () => {
+    try {
+      setContractsLoading(true);
+      const data = await contractsService.getMine();
+      const contracts = Array.isArray(data?.data) ? data.data : [];
+      setMyContracts(contracts);
+    } catch (err) {
+      toastError(
+        err.response?.data?.message || "Không thể tải hợp đồng cá nhân",
+      );
+      setMyContracts([]);
+    } finally {
+      setContractsLoading(false);
+    }
+  }, [toastError]);
+
+  useEffect(() => {
+    loadMyContracts();
+  }, [loadMyContracts]);
 
   const handleProfileUpdated = async () => {
     setIsEditModalOpen(false);
@@ -80,6 +125,42 @@ export default function ProfilePage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const openContractDetail = (contract) => {
+    console.log("Opening contract detail for:", contract);
+    setSelectedContract({
+      ...contract,
+      employeeName:
+        contract.employeeName || contract.employee?.fullName || "N/A",
+      departmentName:
+        contract.departmentName ||
+        contract.employee?.department?.departmentName ||
+        "---",
+      positionName:
+        contract.positionName ||
+        contract.employee?.position?.positionName ||
+        "---",
+      jobGradeName:
+        contract.jobGradeName || contract.employee?.jobGrade?.gradeName || "---",
+    });
+    setIsContractModalOpen(true);
+  };
+
+  const closeContractModal = () => {
+    setIsContractModalOpen(false);
+    setSelectedContract(null);
+  };
+
+  const formatContractType = (type) => {
+    if (!type) return "-";
+    return CONTRACT_TYPE_LABELS[String(type).toLowerCase()] || type;
+  };
+
+  const formatContractStatus = (status) => {
+    if (!status) return "-";
+    const key = String(status).toUpperCase();
+    return CONTRACT_STATUS_LABELS[key] || status;
   };
 
   if (loading) {
@@ -265,6 +346,69 @@ export default function ProfilePage() {
         />
       </ProfileSection>
 
+      <section id="my-contracts" className="scroll-mt-24">
+        <ProfileSection
+          title="Hợp đồng của tôi"
+          description="Danh sách hợp đồng lao động được gán cho tài khoản của bạn"
+        >
+          {contractsLoading ? (
+            <div className="px-6 py-4 text-sm text-slate-500">
+              Đang tải hợp đồng...
+            </div>
+          ) : myContracts.length === 0 ? (
+            <div className="px-6 py-4 text-sm text-slate-500">
+              Chưa có hợp đồng nào được ghi nhận.
+            </div>
+          ) : (
+            myContracts
+              .slice()
+              .sort((a, b) => {
+                const aTime = new Date(
+                  a.startDate || a.createdAt || 0,
+                ).getTime();
+                const bTime = new Date(
+                  b.startDate || b.createdAt || 0,
+                ).getTime();
+                return bTime - aTime;
+              })
+              .map((contract) => (
+                <div
+                  key={contract.id}
+                  className="px-6 py-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="space-y-1">
+                    <div className="text-sm font-semibold text-slate-900">
+                      {contract.contractNumber || `Hợp đồng #${contract.id}`}
+                    </div>
+                    <div className="text-xs text-slate-600">
+                      {formatContractType(contract.contractType)}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Hiệu lực: {formatDate(contract.startDate)} -{" "}
+                      {formatDate(contract.endDate)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                      {formatContractStatus(contract.contractStatus)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-9"
+                      onClick={() => openContractDetail(contract)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Xem chi tiết
+                    </Button>
+                  </div>
+                </div>
+              ))
+          )}
+        </ProfileSection>
+      </section>
+
       {/* Expandable Sections */}
       <div className="space-y-4">
         {/* Personal Details */}
@@ -424,6 +568,12 @@ export default function ProfilePage() {
         onClose={() => setIsEditModalOpen(false)}
         profile={profile}
         onSuccess={handleProfileUpdated}
+      />
+
+      <ViewContractModal
+        isOpen={isContractModalOpen}
+        onClose={closeContractModal}
+        contract={selectedContract}
       />
     </div>
   );
