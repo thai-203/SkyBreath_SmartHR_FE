@@ -5,7 +5,7 @@ export const employeesService = {
     const response = await api.get("/employees", { params });
     return response.data;
   },
-  
+
   getAllForPublic: async (params = {}) => {
     const response = await api.get("/employees/public", { params });
     return response.data;
@@ -53,8 +53,8 @@ export const employeesService = {
     return response.data;
   },
 
-  getEmployeeNoPlanId: async () => {
-    const response = await api.get("/employees/no-plan");
+  getEmployeeNoPlanId: async (params = {}) => {
+    const response = await api.get("/employees/no-plan", { params });
     return response.data;
   },
 };
