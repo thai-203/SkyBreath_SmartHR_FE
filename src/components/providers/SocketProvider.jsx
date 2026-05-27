@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 import { authService } from "@/services/auth.service";
 import { notificationsService } from "@/services/notifications.service";
 import { toast } from "sonner";
+import DOMPurify from "isomorphic-dompurify";
 
 const SocketContext = createContext(null);
 
@@ -80,7 +81,7 @@ export function SocketProvider({ children }) {
                 description: (
                     <div 
                         className="line-clamp-2 text-sm mt-1 text-slate-600 [&_p]:m-0" 
-                        dangerouslySetInnerHTML={{ __html: data.message }} 
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.message) }} 
                     />
                 ),
                 duration: 5000,
@@ -89,7 +90,10 @@ export function SocketProvider({ children }) {
                     onClick: () => {
                         markAsRead(data.id);
                         if (data.link) {
-                            window.location.href = data.link;
+                            const safeLink = data.link.trim();
+                            if (safeLink.startsWith('/') || safeLink.startsWith('http://') || safeLink.startsWith('https://')) {
+                                window.location.href = safeLink;
+                            }
                         } else {
                             window.dispatchEvent(new CustomEvent("open-notification-modal", { detail: data }));
                         }

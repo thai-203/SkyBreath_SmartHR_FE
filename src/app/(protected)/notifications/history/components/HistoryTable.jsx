@@ -72,7 +72,7 @@ export function HistoryTable({ items, loading, onRowClick }) {
                                 <td className="px-4 py-3.5">
                                     <p className="font-medium text-slate-800 truncate max-w-[220px]">{row.title}</p>
                                     <p className="text-xs text-slate-400 truncate max-w-[220px]">
-                                        {(() => { try { const d = document.createElement('div'); d.innerHTML = row.message || ''; return d.textContent || ''; } catch { return (row.message || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' '); } })()}
+                                        {(() => { return (row.message || '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' '); })()}
                                     </p>
                                 </td>
                                 <td className="px-4 py-3.5">

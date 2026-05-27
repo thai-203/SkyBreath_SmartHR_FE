@@ -157,14 +157,10 @@ export default function SchedulePage() {
         }),
       ]);
 
-      console.log("Schedule Response:", scheduleRes);
-      console.log("Overtime Response:", overtimeRes);
-
       setSchedule(scheduleRes.data || []);
       // Xử lý cấu trúc trả về từ API
       const overtimeItems =
         overtimeRes?.data?.items || overtimeRes?.items || [];
-      console.log("Overtime Data Set:", overtimeItems);
       setOvertimeData(overtimeItems);
       setHolidaysData(holidayRes?.data || []);
     } catch (err) {
@@ -336,11 +332,6 @@ export default function SchedulePage() {
                         (ot?.request?.employeeId ??
                           ot?.request?.employee?.id) === row.employeeId &&
                         ot.workDate === str,
-                    );
-                    console.log(
-                      `Employee ${row.employeeId} - Date ${str}:`,
-                      overtimes.length,
-                      "overtime records",
                     );
 
                     return (

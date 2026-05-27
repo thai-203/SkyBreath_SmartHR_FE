@@ -265,11 +265,9 @@ export default function AssignmentFormModal({
 }) {
   const [expandedDept, setExpandedDept] = useState(new Set());
   const todayDateKey = useMemo(() => formatDateKey(new Date()), []);
-  const minEndDate = data.startDate || todayDateKey;
+  const minEndDate = data.startDate || undefined;
   const isInvalidDateRange =
-    !!data.startDate &&
-    ((data.startDate < todayDateKey && !isEditing) ||
-      (!!data.endDate && data.endDate < data.startDate));
+    !!data.startDate && !!data.endDate && data.endDate < data.startDate;
   const allEmployeeIds = useMemo(
     () => employeeList.map((e) => e.id),
     [employeeList],
@@ -445,24 +443,17 @@ export default function AssignmentFormModal({
                   <Input
                     type="date"
                     value={data.startDate || ""}
-                    min={isEditing ? undefined : todayDateKey}
+                    min={undefined}
                     onChange={(e) => {
                       const nextStartDate = e.target.value;
-                      const normalizedStartDate =
-                        !isEditing &&
-                        nextStartDate &&
-                        nextStartDate < todayDateKey
-                          ? todayDateKey
-                          : nextStartDate;
-
                       setData({
                         ...data,
-                        startDate: normalizedStartDate,
+                        startDate: nextStartDate,
                         endDate:
                           data.endDate &&
-                          normalizedStartDate &&
-                          data.endDate < normalizedStartDate
-                            ? normalizedStartDate
+                          nextStartDate &&
+                          data.endDate < nextStartDate
+                            ? nextStartDate
                             : data.endDate,
                       });
                     }}
@@ -482,7 +473,7 @@ export default function AssignmentFormModal({
                       setData({
                         ...data,
                         endDate:
-                          nextEndDate && nextEndDate < minEndDate
+                          nextEndDate && minEndDate && nextEndDate < minEndDate
                             ? minEndDate
                             : nextEndDate,
                       });
