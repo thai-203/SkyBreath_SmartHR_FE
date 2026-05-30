@@ -15,7 +15,7 @@ import {
 import { useSocket } from "../providers/SocketProvider";
 import { cn } from "@/lib/utils";
 import { getNotificationDestination } from "@/lib/notification-link";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "dompurify";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -96,7 +96,11 @@ export default function NotificationDropdown() {
       setOpen(false);
       setSelectedNotification(null);
       const safeLink = destination.trim();
-      if (safeLink.startsWith('/') || safeLink.startsWith('http://') || safeLink.startsWith('https://')) {
+      if (
+        safeLink.startsWith("/") ||
+        safeLink.startsWith("http://") ||
+        safeLink.startsWith("https://")
+      ) {
         router.push(safeLink);
       }
       return;
@@ -316,7 +320,11 @@ export default function NotificationDropdown() {
                     onClick={() => {
                       setSelectedNotification(null);
                       const safeLink = selectedDestination.trim();
-                      if (safeLink.startsWith('/') || safeLink.startsWith('http://') || safeLink.startsWith('https://')) {
+                      if (
+                        safeLink.startsWith("/") ||
+                        safeLink.startsWith("http://") ||
+                        safeLink.startsWith("https://")
+                      ) {
                         router.push(safeLink);
                       }
                     }}

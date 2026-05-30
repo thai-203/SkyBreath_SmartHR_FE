@@ -12,10 +12,10 @@ import {
 } from "@/components/common/Card";
 import { useToast } from "@/components/common/Toast";
 import {
+  attendanceService,
   holidayService,
   requestsService,
   shiftAssignmentsService,
-  timesheetsService,
   userService,
 } from "@/services";
 import {
@@ -71,6 +71,19 @@ const formatDate = (value) => {
   if (!value) return "—";
   if (typeof value === "string") return value.slice(0, 10);
   return formatYmd(new Date(value));
+};
+
+const formatAttendanceTime = (value) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 };
 
 const parseYmd = (ymd) => {
@@ -146,6 +159,19 @@ const normalizeAttendanceStatus = (detail) => {
     .trim()
     .toLowerCase();
 
+  const hasCheckIn = Boolean(
+    detail?.checkInTime ||
+    detail?.check_in_time ||
+    detail?.checkIn ||
+    detail?.check_in,
+  );
+  const hasCheckOut = Boolean(
+    detail?.checkOutTime ||
+    detail?.check_out_time ||
+    detail?.checkOut ||
+    detail?.check_out,
+  );
+
   const lateMinutes = Number(detail?.lateMinutes ?? detail?.late_minutes ?? 0);
   const earlyLeaveMinutes = Number(
     detail?.earlyLeaveMinutes ?? detail?.early_leave_minutes ?? 0,
@@ -161,6 +187,26 @@ const normalizeAttendanceStatus = (detail) => {
 
   if (rawStatus === "weekend" || rawStatus === "holiday") {
     return rawStatus;
+  }
+
+  if (hasCheckIn || hasCheckOut) {
+    if (hasCheckIn && hasCheckOut) {
+      if (lateMinutes > 0 && earlyLeaveMinutes > 0) {
+        return "half_day";
+      }
+
+      if (lateMinutes > 0) {
+        return "late";
+      }
+
+      if (earlyLeaveMinutes > 0) {
+        return "early_leave";
+      }
+
+      return "present";
+    }
+
+    return "incomplete";
   }
 
   if (workingDayValue > 0 && workingDayValue < 1) {
@@ -229,6 +275,10 @@ const getAttendanceBadgeMeta = (detail) => {
       label: "Chưa chấm công",
       className: "bg-rose-50 text-rose-700 border-rose-200",
     },
+    incomplete: {
+      label: "Chưa hoàn tất",
+      className: "bg-slate-100 text-slate-600 border-slate-200",
+    },
     half_day: {
       label: "Nửa ngày",
       className: "bg-indigo-50 text-indigo-700 border-indigo-200",
@@ -278,7 +328,6 @@ export default function PersonalSchedulePage() {
   const { error: toastError } = useToast();
 
   const [employeeId, setEmployeeId] = useState(null);
-  const [employeeCode, setEmployeeCode] = useState("");
   const [viewMode, setViewMode] = useState(VIEW_MODE.MONTH);
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [schedule, setSchedule] = useState([]);
@@ -318,9 +367,6 @@ export default function PersonalSchedulePage() {
         } else {
           toastError("Tài khoản chưa liên kết hồ sơ nhân viên");
         }
-        setEmployeeCode(
-          data?.employeeCode || data?.employee?.employeeCode || "",
-        );
       } catch {
         toastError("Không thể xác thực thông tin nhân viên");
       } finally {
@@ -332,20 +378,40 @@ export default function PersonalSchedulePage() {
 
   const fetchData = useCallback(async () => {
     if (!employeeId || !isReady) return;
+
     const startYmd = formatYmd(range.start);
     const endYmd = formatYmd(range.end);
     const overtimePeriods = getMonthPeriodsInRange(range.start, range.end);
-    const attendancePeriods = getMonthPeriodsInRange(range.start, range.end);
+
     setLoading(true);
     try {
-      const [scheduleRes, holidayRes] = await Promise.all([
-        shiftAssignmentsService.getEmployeeSchedule(
-          employeeId,
-          startYmd,
-          endYmd,
-        ),
-        holidayService.findAllPublic({ startDate: startYmd, endDate: endYmd }),
-      ]);
+      const [scheduleRes, holidayRes, attendanceRes, overtimeResults] =
+        await Promise.all([
+          shiftAssignmentsService.getEmployeeSchedule(
+            employeeId,
+            startYmd,
+            endYmd,
+          ),
+          holidayService.findAllPublic({
+            startDate: startYmd,
+            endDate: endYmd,
+          }),
+          attendanceService.getMyRecords({
+            startDate: startYmd,
+            endDate: endYmd,
+          }),
+          Promise.allSettled(
+            overtimePeriods.map((period) =>
+              requestsService.getOvertimeDetailRequests({
+                month: period.month,
+                year: period.year,
+                page: 1,
+                limit: 1000,
+                status: "APPROVED",
+              }),
+            ),
+          ),
+        ]);
 
       setSchedule(
         Array.isArray(scheduleRes?.data)
@@ -355,88 +421,6 @@ export default function PersonalSchedulePage() {
             : [],
       );
       setHolidays(holidayRes?.data || []);
-
-      const [overtimeResults, attendanceResults] = await Promise.all([
-        Promise.allSettled(
-          overtimePeriods.map((period) =>
-            requestsService.getOvertimeDetailRequests({
-              month: period.month,
-              year: period.year,
-              page: 1,
-              limit: 1000,
-              status: "APPROVED",
-            }),
-          ),
-        ),
-        Promise.allSettled(
-          attendancePeriods.map(async (period) => {
-            const timesheetRes = await timesheetsService.getAll({
-              month: period.month,
-              year: period.year,
-              employeeId,
-              page: 1,
-              limit: 1,
-            });
-
-            const timesheet =
-              timesheetRes?.data?.items?.[0] ||
-              timesheetRes?.items?.[0] ||
-              timesheetRes?.data?.[0] ||
-              timesheetRes?.[0];
-            if (!timesheet?.id) return [];
-
-            const [detailRes, processedRes] = await Promise.all([
-              timesheetsService.getAttendanceDetails(timesheet.id),
-              timesheetsService.getProcessedMatrix({
-                month: period.month,
-                year: period.year,
-                search: employeeCode || undefined,
-                page: 1,
-                limit: 50,
-              }),
-            ]);
-
-            const processedItems = processedRes?.data?.items || [];
-            const processedRow =
-              processedItems.find(
-                (item) =>
-                  Number(item?.id) === Number(employeeId) ||
-                  item?.employeeCode === employeeCode,
-              ) || null;
-            const processedMap = new Map(
-              (processedRow?.dailyDetails || []).map((row) => [
-                normalizeAttendanceDateKey(row?.date),
-                row,
-              ]),
-            );
-
-            const rawRows =
-              detailRes?.data?.dailyDetails || detailRes?.dailyDetails || [];
-
-            return rawRows.map((row) => {
-              const key = normalizeAttendanceDateKey(row?.date);
-              const processed = processedMap.get(key);
-              if (!processed) return row;
-
-              return {
-                ...row,
-                attendanceStatus:
-                  processed.attendanceStatus || row.attendanceStatus,
-                workingDayValue:
-                  processed.workingHours != null
-                    ? Number(processed.workingHours)
-                    : row.workingDayValue,
-                working_day_value:
-                  processed.workingHours != null
-                    ? Number(processed.workingHours)
-                    : row.working_day_value,
-                requestId: processed.requestId ?? row.requestId ?? null,
-                isFinalized: processed.isFinalized ?? row.isFinalized ?? false,
-              };
-            });
-          }),
-        ),
-      ]);
 
       const overtimeRows = overtimeResults.flatMap((result) => {
         if (result.status !== "fulfilled") return [];
@@ -451,13 +435,15 @@ export default function PersonalSchedulePage() {
       setOvertimeSchedule(overtimeRows);
 
       const attendanceMap = {};
-      attendanceResults.forEach((result) => {
-        if (result.status !== "fulfilled") return;
-        const rows = Array.isArray(result.value) ? result.value : [];
-        rows.forEach((row) => {
-          const key = normalizeAttendanceDateKey(row?.date);
-          if (key) attendanceMap[key] = row;
-        });
+      const rows = Array.isArray(attendanceRes?.data)
+        ? attendanceRes.data
+        : Array.isArray(attendanceRes)
+          ? attendanceRes
+          : [];
+
+      rows.forEach((row) => {
+        const key = normalizeAttendanceDateKey(row?.workDate || row?.date);
+        if (key) attendanceMap[key] = row;
       });
 
       setAttendanceByDate(attendanceMap);
@@ -466,10 +452,14 @@ export default function PersonalSchedulePage() {
     } finally {
       setLoading(false);
     }
-  }, [employeeId, employeeCode, range, isReady, toastError]);
+  }, [employeeId, range, isReady, toastError]);
 
   useEffect(() => {
-    fetchData();
+    const timerId = window.setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
   }, [fetchData]);
 
   // Process holidays and compensatory days
@@ -558,7 +548,7 @@ export default function PersonalSchedulePage() {
     const dayAttendance =
       attendanceByDate[ymd] ||
       (dayShifts.length > 0 && dayHolidays.length === 0
-        ? { attendanceStatus: "ABSENT", workingDayValue: 0 }
+        ? { attendanceStatus: "INCOMPLETE" }
         : null);
 
     if (
@@ -586,7 +576,7 @@ export default function PersonalSchedulePage() {
     const attendance =
       attendanceByDate[ymd] ||
       (shifts.length > 0 && hInfo.length === 0
-        ? { attendanceStatus: "ABSENT", workingDayValue: 0 }
+        ? { attendanceStatus: "INCOMPLETE" }
         : null);
     const attendanceMeta = getAttendanceBadgeMeta(attendance);
 
@@ -1050,90 +1040,52 @@ export default function PersonalSchedulePage() {
                   <Clock8 className="w-4 h-4" /> Thông tin chấm công
                 </h4>
                 <div className="p-4 rounded-2xl border border-cyan-100 bg-cyan-50/35 space-y-3">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getAttendanceBadgeMeta(selectedDayInfo.attendance)?.className || "bg-slate-100 text-slate-700 border-slate-200"}`}
-                    >
-                      {getAttendanceBadgeMeta(selectedDayInfo.attendance)
-                        ?.label || "Chấm công"}
-                    </span>
-                    <span className="text-xs font-semibold text-slate-500">
-                      {selectedDayInfo.attendance.attendanceStatus ||
-                        selectedDayInfo.attendance.status ||
-                        "-"}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-xl border border-white bg-white/90 p-3">
+                  <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+                    <div className="rounded-xl border border-white bg-white/90 p-3 space-y-2">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                         Check-in
                       </p>
-                      <p className="mt-1 font-black text-slate-800">
-                        {selectedDayInfo.attendance.checkIn ||
-                          selectedDayInfo.attendance.check_in ||
-                          "-"}
+                      <p className="font-black text-slate-800">
+                        {selectedDayInfo.attendance.checkInTime ||
+                        selectedDayInfo.attendance.check_in_time
+                          ? "Đã check-in"
+                          : "Chưa check-in"}
+                      </p>
+                      <p className="text-sm font-semibold text-slate-600">
+                        {selectedDayInfo.attendance.checkInTime ||
+                        selectedDayInfo.attendance.check_in_time ||
+                        selectedDayInfo.attendance.checkIn ||
+                        selectedDayInfo.attendance.check_in
+                          ? formatAttendanceTime(
+                              selectedDayInfo.attendance.checkInTime ||
+                                selectedDayInfo.attendance.check_in_time ||
+                                selectedDayInfo.attendance.checkIn ||
+                                selectedDayInfo.attendance.check_in,
+                            )
+                          : "-"}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-white bg-white/90 p-3">
+                    <div className="rounded-xl border border-white bg-white/90 p-3 space-y-2">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                         Check-out
                       </p>
-                      <p className="mt-1 font-black text-slate-800">
-                        {selectedDayInfo.attendance.checkOut ||
-                          selectedDayInfo.attendance.check_out ||
-                          "-"}
+                      <p className="font-black text-slate-800">
+                        {selectedDayInfo.attendance.checkOutTime ||
+                        selectedDayInfo.attendance.check_out_time
+                          ? "Đã check-out"
+                          : "Chưa check-out"}
                       </p>
-                    </div>
-                    <div className="rounded-xl border border-white bg-white/90 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Giờ công
-                      </p>
-                      <p className="mt-1 font-black text-slate-800">
-                        {selectedDayInfo.attendance.workingHours != null
-                          ? `${Number(selectedDayInfo.attendance.workingHours).toFixed(2)} giờ`
-                          : "-"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white bg-white/90 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Ngày công
-                      </p>
-                      <p className="mt-1 font-black text-slate-800">
-                        {selectedDayInfo.attendance.workingDayValue != null
-                          ? Number(
-                              selectedDayInfo.attendance.workingDayValue,
-                            ).toFixed(2)
-                          : "-"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white bg-white/90 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Đi trễ
-                      </p>
-                      <p className="mt-1 font-black text-slate-800">
-                        {selectedDayInfo.attendance.lateMinutes > 0
-                          ? `${selectedDayInfo.attendance.lateMinutes} phút`
-                          : "-"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white bg-white/90 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Về sớm
-                      </p>
-                      <p className="mt-1 font-black text-slate-800">
-                        {selectedDayInfo.attendance.earlyLeaveMinutes > 0
-                          ? `${selectedDayInfo.attendance.earlyLeaveMinutes} phút`
-                          : "-"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white bg-white/90 p-3 col-span-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        OT chấm công
-                      </p>
-                      <p className="mt-1 font-black text-slate-800">
-                        {selectedDayInfo.attendance.overtimeHours != null
-                          ? `${Number(selectedDayInfo.attendance.overtimeHours).toFixed(2)} giờ`
+                      <p className="text-sm font-semibold text-slate-600">
+                        {selectedDayInfo.attendance.checkOutTime ||
+                        selectedDayInfo.attendance.check_out_time ||
+                        selectedDayInfo.attendance.checkOut ||
+                        selectedDayInfo.attendance.check_out
+                          ? formatAttendanceTime(
+                              selectedDayInfo.attendance.checkOutTime ||
+                                selectedDayInfo.attendance.check_out_time ||
+                                selectedDayInfo.attendance.checkOut ||
+                                selectedDayInfo.attendance.check_out,
+                            )
                           : "-"}
                       </p>
                     </div>
