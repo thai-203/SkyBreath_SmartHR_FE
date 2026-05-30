@@ -26,45 +26,55 @@ export default function DataManagementPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const currentUser = authService.getCurrentUser();
+    // Kiểm tra xem user hiện tại có phải là Nhân viên bình thường hay không (không có vai trò ADMIN hay HR)
     const isEmployeeOnly = currentUser?.roles?.includes('EMPLOYEE') && !currentUser?.roles?.some(r => ['ADMIN', 'HR'].includes(r));
 
-    const [matrixData, setMatrixData] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [search, setSearch] = useState("");
-    const [departments, setDepartments] = useState([]);
+    // ==========================================
+    // CÁC TRẠNG THÁI (STATE HOOKS) QUẢN LÝ DỮ LIỆU
+    // ==========================================
+    const [matrixData, setMatrixData] = useState([]); // Mảng chứa dữ liệu ma trận công của các nhân viên được tải về từ API
+    const [loading, setLoading] = useState(false); // Trạng thái hiển thị vòng quay loading khi tải dữ liệu từ API
+    const [search, setSearch] = useState(""); // Lưu từ khóa tìm kiếm nhân viên theo họ tên hoặc mã
+    const [departments, setDepartments] = useState([]); // Danh sách phòng ban phục vụ hiển thị ô lọc Dropdown
 
+    // Thiết lập bộ lọc mặc định ban đầu (lấy tháng và năm hiện tại của hệ thống)
     const defaultFilters = {
         month: currentDate.getMonth() + 1,
         year: currentDate.getFullYear(),
         departmentId: "",
         status: "",
+        showTerminated: false,
     };
+    
+    // Đọc các giá trị lọc từ URL Query Parameters nếu có (để giữ trạng thái lọc khi reload trang)
     const initialFilters = {
         month: parseInt(searchParams.get("month") || defaultFilters.month),
         year: parseInt(searchParams.get("year") || defaultFilters.year),
         departmentId: searchParams.get("departmentId") || "",
         status: searchParams.get("status") || "",
+        showTerminated: searchParams.get("showTerminated") === "true",
     };
     const [filters, setFilters] = useState({ ...initialFilters });
 
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-    const [totalPages, setTotalPages] = useState(0);
-    const [totalRecords, setTotalRecords] = useState(0);
-    const [viewMode, setViewMode] = useState("table");
-    const [calendarEmployeeId, setCalendarEmployeeId] = useState("");
-    const [calendarData, setCalendarData] = useState(null);
-    const [calendarLoading, setCalendarLoading] = useState(false);
-    const [employeeList, setEmployeeList] = useState([]);
+    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 }); // Phân trang ở Frontend (10 bản ghi mỗi trang)
+    const [totalPages, setTotalPages] = useState(0); // Tổng số trang nhận về từ API
+    const [totalRecords, setTotalRecords] = useState(0); // Tổng số bản ghi (nhân viên) khớp bộ lọc
+    const [viewMode, setViewMode] = useState("table"); // Chế độ xem: "table" (Ma trận công) hoặc "calendar" (Lịch cá nhân)
+    const [calendarEmployeeId, setCalendarEmployeeId] = useState(""); // ID nhân viên được chọn để hiển thị lịch cá nhân
+    const [calendarData, setCalendarData] = useState(null); // Chi tiết dữ liệu chấm công ngày của nhân viên được chọn xem lịch
+    const [calendarLoading, setCalendarLoading] = useState(false); // Vòng quay loading khi tải lịch
+    const [employeeList, setEmployeeList] = useState([]); // Danh sách toàn bộ nhân viên phục vụ dropdown ở chế độ xem Lịch
 
-    const [confirmModal, setConfirmModal] = useState({ open: false, data: null, action: null });
+    const [confirmModal, setConfirmModal] = useState({ open: false, data: null, action: null }); // Quản lý modal xác nhận chốt/tính lại công
     const [confirmLoading, setConfirmLoading] = useState(false);
-    const [syncLoading, setSyncLoading] = useState(false);
-    const [isInitialized, setIsInitialized] = useState(false);
-    const [cellModal, setCellModal] = useState({ open: false, cell: null });
-    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState(new Set());
+    const [syncLoading, setSyncLoading] = useState(false); // Vòng quay loading khi bấm đồng bộ công
+    const [isInitialized, setIsInitialized] = useState(false); // Tránh chạy fetch API trước khi component mount xong
+    const [cellModal, setCellModal] = useState({ open: false, cell: null }); // Modal hiển thị khi click vào ô công ngày để sửa tay
+    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState(new Set()); // Lưu danh sách ID nhân viên được tích chọn check-box
 
     const { success, error: toastError } = useToast();
 
+    // useEffect tải danh mục Phòng ban và Nhân viên ngay khi truy cập trang lần đầu
     useEffect(() => {
         const fetchDeps = async () => {
             try {
@@ -80,29 +90,37 @@ export default function DataManagementPage() {
         setIsInitialized(true);
     }, []);
 
+    // ========================================================
+    // BƯỚC 1: LẤY DỮ LIỆU MA TRẬN CÔNG TỪ API (FETCH DATA FLOW)
+    // ========================================================
     const fetchMatrix = useCallback(async () => {
         if (!isInitialized) return;
         setLoading(true);
         try {
+            // Gửi request HTTP GET lên API getProcessedMatrix của Backend
             const res = await timesheetsService.getProcessedMatrix({
-                page: pagination.pageIndex + 1,
+                page: pagination.pageIndex + 1, // API nhận page bắt đầu từ 1, MUI/ReactTable nhận từ 0
                 limit: pagination.pageSize,
                 search: search || undefined,
                 month: filters.month,
                 year: filters.year,
                 departmentId: filters.departmentId || undefined,
                 status: filters.status || undefined,
+                showTerminated: filters.showTerminated,
             });
             const data = res?.data || res || {};
-            setMatrixData(data.items || []);
-            setTotalPages(data.totalPages || 0);
-            setTotalRecords(data.total || 0);
+            // Gán dữ liệu trả về vào các State để React tự động re-render lên màn hình
+            setMatrixData(data.items || []); // Danh sách nhân viên kèm dailyDetails
+            setTotalPages(data.totalPages || 0); // Tổng số trang
+            setTotalRecords(data.total || 0); // Tổng số dòng dữ liệu
         } catch (err) { toastError("Lỗi khi tải dữ liệu"); }
         finally { setLoading(false); }
     }, [pagination, search, filters, isInitialized]);
 
+    // Tự động chạy lại fetchMatrix mỗi khi phân trang, bộ lọc hoặc từ khóa tìm kiếm thay đổi
     useEffect(() => { fetchMatrix(); }, [fetchMatrix]);
 
+    // Tải dữ liệu xem lịch cá nhân của một nhân viên được chọn
     const fetchCalendarData = useCallback(async () => {
         if (viewMode !== "calendar" || !calendarEmployeeId) return;
         setCalendarLoading(true);
@@ -139,6 +157,7 @@ export default function DataManagementPage() {
         excuseModal, handleViewExcuse, handleCreateExcuse, closeExcuseModal, handleExcuseSuccess,
     } = useTimesheetDetail({ fetchTimesheets: fetchMatrix, canEdit: !isEmployeeOnly });
 
+    // Gọi API để lấy chi tiết bảng công của một nhân viên phục vụ hiển thị Modal chi tiết
     const handleViewAttendanceDetailFromMatrix = useCallback(async (row) => {
         try {
             const res = await timesheetsService.getAll({
@@ -171,6 +190,7 @@ export default function DataManagementPage() {
         setConfirmModal({ open: true, data: null, action: "unfinalizeMatrix" });
     };
 
+    // Gọi API thực hiện đồng bộ dữ liệu điểm danh thô cho các nhân sự được tích chọn
     const handleSync = async () => {
         const ids = Array.from(selectedEmployeeIds);
         if (ids.length === 0) {
@@ -186,11 +206,12 @@ export default function DataManagementPage() {
             });
             success(`Đã đồng bộ ${res?.data?.syncedRecords || 0} bản ghi`);
             setSelectedEmployeeIds(new Set());
-            fetchMatrix();
+            fetchMatrix(); // Load lại ma trận công
         } catch (err) { toastError("Lỗi khi đồng bộ công"); }
         finally { setSyncLoading(false); }
     };
 
+    // Tích chọn hoặc bỏ chọn toàn bộ checkbox nhân viên trên trang hiện tại
     const toggleSelectAllOnPage = (checked) => {
         if (checked) {
             setSelectedEmployeeIds(prev => {
@@ -211,6 +232,7 @@ export default function DataManagementPage() {
         });
     };
 
+    // Tích chọn hoặc bỏ chọn checkbox của một nhân viên cụ thể
     const toggleSelectRow = (employeeId, checked) => {
         setSelectedEmployeeIds(prev => {
             const next = new Set(prev);
@@ -220,6 +242,7 @@ export default function DataManagementPage() {
         });
     };
 
+    // Gọi API xử lý các hành động chốt công, bỏ chốt công, tính toán lại công
     const handleConfirmAction = async () => {
         const { action } = confirmModal;
         setConfirmLoading(true);
@@ -298,6 +321,7 @@ export default function DataManagementPage() {
         if (f.year !== defaultFilters.year) params.set("year", f.year);
         if (f.departmentId) params.set("departmentId", f.departmentId);
         if (f.status) params.set("status", f.status);
+        if (f.showTerminated) params.set("showTerminated", "true");
         const qs = params.toString();
         router.replace(`/timesheets/data${qs ? `?${qs}` : ''}`, { scroll: false });
     }, [router]);
@@ -309,20 +333,27 @@ export default function DataManagementPage() {
         syncURL(defaultFilters);
     };
 
+    // ========================================================
+    // BƯỚC 2: TỰ ĐỘNG DỰNG TIÊU ĐỀ CÁC CỘT NGÀY (COLUMNS GENERATOR)
+    // ========================================================
+    // Lấy số ngày trong tháng được lọc (ví dụ tháng 4 có 30 ngày, tháng 5 có 31 ngày)
     const daysInMonth = new Date(filters.year, filters.month, 0).getDate();
+    
+    // Khởi tạo mảng cấu hình tiêu đề cột ngày
     const dayColumns = Array.from({ length: daysInMonth }, (_, i) => {
         const d = new Date(filters.year, filters.month - 1, i + 1);
         const dayOfWeek = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"][d.getDay()];
         const shortDateStr = `${String(i + 1).padStart(2, '0')}/${String(filters.month).padStart(2, '0')}`;
         return {
             id: `day-${i + 1}`,
-            label: dayOfWeek,
-            shortDateStr: shortDateStr,
-            isWeekend: d.getDay() === 0 || d.getDay() === 6,
-            dayIndex: i + 1,
+            label: dayOfWeek, // Thứ trong tuần (Thứ Hai, Thứ Ba...)
+            shortDateStr: shortDateStr, // Chuỗi ngày hiển thị dạng DD/MM
+            isWeekend: d.getDay() === 0 || d.getDay() === 6, // Cờ đánh dấu ngày cuối tuần để tô màu vàng nhạt
+            dayIndex: i + 1, // Chỉ số ngày từ 1 đến hết tháng
         };
     });
 
+    // Mở modal sửa tay công ngày khi click vào ô lưới
     const handleCellClick = (row, dayData) => {
         if (!dayData || dayData.attendanceStatus === 'WEEKEND') return;
         if (dayData.isFinalized) {
@@ -339,23 +370,32 @@ export default function DataManagementPage() {
         });
     };
 
+    // =========================================================================
+    // BƯỚC 3: MÁP KÝ HIỆU CHẤM CÔNG VÀO Ô LƯỚI MA TRẬN (CELL TO DAY MAPPER)
+    // =========================================================================
+    // Hàm tìm kiếm và gán ký hiệu chấm công chuẩn vào ô lưới theo từng ngày tương ứng của từng nhân viên
     const getDayCellContent = (dailyDetails, dayIndex) => {
         if (!dailyDetails || !Array.isArray(dailyDetails)) return '-';
+        // Tìm ngày trùng khớp trong mảng chi tiết ngày 'dailyDetails' của nhân viên
         const dayData = dailyDetails.find(d => {
             if (d.date) {
                 const parts = d.date.split('/');
                 if (parts.length === 3) {
-                    return parseInt(parts[0], 10) === dayIndex;
+                    return parseInt(parts[0], 10) === dayIndex; // So sánh chỉ số ngày
                 }
             }
             return false;
         });
 
         if (!dayData) return '-';
+        // Nếu là ngày nghỉ tuần, hiển thị ký hiệu 'N'
         if (dayData.attendanceStatus === 'WEEKEND' || dayData.attendanceStatus === 'N') return 'N';
+        
+        // Nếu là ngày vắng hoặc không đi làm, hiển thị số giờ làm thực tế (0 hoặc số giờ)
         if (['X', 'KL', 'ABSENT', '0'].includes(dayData.attendanceStatus)) {
             return dayData.workingHours !== undefined && dayData.workingHours !== null ? dayData.workingHours : 0;
         }
+        // Trả về ký hiệu công chuẩn (ví dụ: ON_TIME, LATE, LEAVE...)
         return dayData.attendanceStatus || '-';
     };
 
@@ -414,15 +454,21 @@ export default function DataManagementPage() {
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input placeholder="Tìm nhân viên..." value={search} onChange={(e) => { setSearch(e.target.value); setPagination(p => ({ ...p, pageIndex: 0 })); }} className="pl-9 w-full sm:w-64" />
                     </div>
+                    {!isEmployeeOnly && (
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer ml-2">
+                            <input
+                                type="checkbox"
+                                checked={filters.showTerminated}
+                                onChange={(e) => handleFilterChange('showTerminated', e.target.checked)}
+                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                            />
+                            Hiển thị nhân viên đã nghỉ việc
+                        </label>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
-
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border">
-                        {/* <button onClick={() => setViewMode("table")} className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm ${viewMode === "table" ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}>
-                            <LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Ma trận</span>
-                        </button> */}
-
                     </div>
                 </div>
             </div>
@@ -430,6 +476,9 @@ export default function DataManagementPage() {
             {viewMode === "table" ? (
                 <div className="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
                     <div className="overflow-x-auto">
+                        {/* =========================================================
+                            BƯỚC 4: RENDER BẢNG MA TRẬN 30 NGÀY CHO HR (RENDER THE GRID)
+                            ========================================================= */}
                         <table className="w-full text-sm text-left border-collapse" style={{ minWidth: "1500px" }}>
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
@@ -447,6 +496,7 @@ export default function DataManagementPage() {
                                     <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[330px] bg-slate-50 z-10 whitespace-nowrap" style={{ minWidth: '90px', maxWidth: '90px' }}>Mã NS</th>
                                     <th className="px-3 py-2 border-r border-slate-200 font-medium text-slate-600 sticky left-[420px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-slate-50 z-10 whitespace-nowrap" style={{ minWidth: '120px', maxWidth: '120px' }}>Chức danh</th>
 
+                                    {/* Map qua các ngày trong tháng để vẽ header ngày */}
                                     {dayColumns.map(col => (
                                         <th key={col.id} className={`px-1 py-1 border-r border-slate-200 font-medium text-center text-[10px] min-w-[50px] ${col.isWeekend ? 'bg-amber-50 text-amber-700' : 'text-slate-600'}`}>
                                             <div className="flex flex-col items-center">
@@ -465,6 +515,7 @@ export default function DataManagementPage() {
                                 ) : matrixData.length === 0 ? (
                                     <tr><td colSpan={dayColumns.length + 6} className="p-8 text-center text-slate-500">Không có dữ liệu bảng công cho kỳ này</td></tr>
                                 ) : (
+                                    // Duyệt qua từng nhân viên để render từng dòng thông tin
                                     matrixData.map((row, idx) => (
                                         <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
                                             <td className="px-2 py-2 border-r border-slate-200 sticky left-0 bg-white group-hover:bg-slate-50 z-20 text-center" style={{ minWidth: '45px', maxWidth: '45px' }}>
@@ -490,6 +541,7 @@ export default function DataManagementPage() {
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[330px] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap font-mono text-xs" style={{ minWidth: '90px', maxWidth: '90px' }}>{row.employeeCode}</td>
                                             <td className="px-3 py-2 border-r border-slate-200 sticky left-[420px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] bg-white group-hover:bg-slate-50 z-10 whitespace-nowrap text-xs text-slate-600" style={{ minWidth: '120px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.position || '-'}</td>
 
+                                            {/* Với từng nhân viên, duyệt qua 30 ngày để điền dữ liệu tương ứng */}
                                             {dayColumns.map(col => {
                                                 const dayData = row.dailyDetails?.find(d => {
                                                     if (!d.date) return false;
@@ -497,6 +549,7 @@ export default function DataManagementPage() {
                                                     return parts.length === 3 && parseInt(parts[0], 10) === col.dayIndex;
                                                 });
                                                 const cellContent = getDayCellContent(row.dailyDetails, col.dayIndex);
+                                                // Điều kiện click sửa tay: Có data ngày công, không phải cuối tuần, và ngày công đó chưa bị chốt (finalize)
                                                 const isClickable = dayData && dayData.attendanceStatus !== 'WEEKEND' && !dayData.isFinalized;
                                                 return (
                                                     <td

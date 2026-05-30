@@ -121,7 +121,7 @@ export default function EmployeeTable({
             ACTIVE: "Hoạt động",
             PROBATION: "Thử việc",
             ON_LEAVE: "Nghỉ phép",
-            TERMINATED: "Đã nghỉ",
+            TERMINATED: "Đã nghỉ việc",
           };
           return (
             <span
@@ -161,7 +161,7 @@ export default function EmployeeTable({
                 variant="ghost"
                 size="icon"
                 onClick={() => onDelete(row.original)}
-                title="Xóa"
+                title="Cho nghỉ việc"
               >
                 <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
