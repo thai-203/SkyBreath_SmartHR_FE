@@ -17,7 +17,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Edit2, Eye, Search, Trash2, ArrowRightLeft } from "lucide-react";
+import { Edit2, Eye, Search, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 
 export default function DepartmentTable({
@@ -35,7 +35,6 @@ export default function DepartmentTable({
   onEdit,
   onDelete,
   onViewDetail,
-  onTransfer,
 }) {
   const columns = useMemo(
     () => [
@@ -90,16 +89,6 @@ export default function DepartmentTable({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onTransfer(row.original)}
-                title="Chuyển nhân viên"
-              >
-                <ArrowRightLeft className="h-4 w-4 text-indigo-500" />
-              </Button>
-            </PermissionGate>
-            <PermissionGate permission="DEPARTMENT_UPDATE">
-              <Button
-                variant="ghost"
-                size="icon"
                 onClick={() => onEdit(row.original)}
                 title="Chỉnh sửa"
               >
@@ -120,7 +109,7 @@ export default function DepartmentTable({
         ),
       },
     ],
-    [onEdit, onDelete, onViewDetail, onTransfer, pagination],
+    [onEdit, onDelete, onViewDetail, pagination],
   );
 
   const table = useReactTable({
