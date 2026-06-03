@@ -108,7 +108,15 @@ export default function ContractTable({
               <div className="flex flex-col">
                 <span className="font-medium text-slate-900">{name}</span>
                 <span className="text-[11px] text-slate-500">
-                  {row.original.position || "Nhân viên"}
+                  {row.original.departmentName ||
+                    row.original.department?.departmentName ||
+                    row.original.employee?.department?.departmentName ||
+                    "Phòng ban chưa xác định"}
+                  {" • "}
+                  {row.original.positionName ||
+                    row.original.position?.positionName ||
+                    row.original.employee?.position?.positionName ||
+                    "Vị trí chưa xác định"}
                 </span>
               </div>
             </div>

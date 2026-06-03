@@ -161,18 +161,21 @@ export default function ContractsPage() {
       const salaryData = response.data || response;
 
       if (salaryData) {
-        setFormData((prev) => ({
-          ...prev,
-          baseSalary: salaryData.baseSalary || 0,
-          performanceSalary: salaryData.performanceSalary || 0,
-          lunchAllowance: salaryData.lunchAllowance || 0,
-          fuelAllowance: salaryData.fuelAllowance || 0,
-          phoneAllowance: salaryData.phoneAllowance || 0,
-          otherAllowance: salaryData.otherAllowance || 0,
-          jobGradeId: salaryData.jobGradeId || prev.jobGradeId,
-          positionId: salaryData.employee?.positionId || prev.positionId,
-          departmentId: salaryData.employee?.departmentId || prev.departmentId,
-        }));
+        setFormData((prev) => {
+          const hasVal = (v) => v !== undefined && v !== null && v !== "";
+          return {
+            ...prev,
+            baseSalary: hasVal(prev.baseSalary) ? prev.baseSalary : (salaryData.baseSalary || 0),
+            performanceSalary: hasVal(prev.performanceSalary) ? prev.performanceSalary : (salaryData.performanceSalary || 0),
+            lunchAllowance: hasVal(prev.lunchAllowance) ? prev.lunchAllowance : (salaryData.lunchAllowance || 0),
+            fuelAllowance: hasVal(prev.fuelAllowance) ? prev.fuelAllowance : (salaryData.fuelAllowance || 0),
+            phoneAllowance: hasVal(prev.phoneAllowance) ? prev.phoneAllowance : (salaryData.phoneAllowance || 0),
+            otherAllowance: hasVal(prev.otherAllowance) ? prev.otherAllowance : (salaryData.otherAllowance || 0),
+            jobGradeId: hasVal(prev.jobGradeId) ? prev.jobGradeId : (salaryData.jobGradeId || ""),
+            positionId: hasVal(prev.positionId) ? prev.positionId : (salaryData.employee?.positionId || ""),
+            departmentId: hasVal(prev.departmentId) ? prev.departmentId : (salaryData.employee?.departmentId || ""),
+          };
+        });
       }
     } catch (err) {
       console.error("Không tìm thấy thông tin lương cho nhân viên này:", err);
@@ -186,17 +189,21 @@ export default function ContractsPage() {
       const employee = response.data || response;
 
       if (employee) {
-        setFormData((prev) => ({
-          ...prev,
-          departmentId:
-            employee.departmentId ||
-            employee.department?.id ||
-            prev.departmentId,
-          positionId:
-            employee.positionId || employee.position?.id || prev.positionId,
-          jobGradeId:
-            employee.jobGradeId || employee.jobGrade?.id || prev.jobGradeId,
-        }));
+        setFormData((prev) => {
+          const hasVal = (v) => v !== undefined && v !== null && v !== "";
+          return {
+            ...prev,
+            departmentId: hasVal(prev.departmentId)
+              ? prev.departmentId
+              : (employee.departmentId || employee.department?.id || ""),
+            positionId: hasVal(prev.positionId)
+              ? prev.positionId
+              : (employee.positionId || employee.position?.id || ""),
+            jobGradeId: hasVal(prev.jobGradeId)
+              ? prev.jobGradeId
+              : (employee.jobGradeId || employee.jobGrade?.id || ""),
+          };
+        });
       }
     } catch (err) {
       console.error("Không thể lấy chi tiết nhân viên:", err);
@@ -301,24 +308,16 @@ export default function ContractsPage() {
   };
 
   const handleView = (contract) => {
-    const dept = departmentsList.find(
-      (d) => d.value === contract.employee.departmentId,
-    );
-    const pos = positionsList.find(
-      (p) => p.value === contract.employee.positionId,
-    );
-    const grade = jobGradesList.find(
-      (g) => g.value === contract.employee.jobGradeId,
-    );
-    const emp = employeeList.find((e) => e.value === contract.employeeId);
     const enrichedContract = {
       ...contract,
-      // Ánh xạ tên hiển thị
-      employeeName: emp?.label || contract.employee?.fullName || "N/A",
+      employeeName:
+        contract.employee?.fullName || contract.employeeName || "N/A",
       departmentName:
-        dept?.label || contract.department?.departmentName || "---",
-      positionName: pos?.label || contract.position?.positionName || "---",
-      jobGradeName: grade?.label || "---",
+        contract.departmentName || contract.department?.departmentName || "---",
+      positionName:
+        contract.positionName || contract.position?.positionName || "---",
+      jobGradeName:
+        contract.jobGradeName || contract.jobGrade?.gradeName || "---",
 
       // Đảm bảo định dạng ngày tháng giống Edit (Y-m-d) để hiển thị đồng nhất
       startDate: contract.startDate ? contract.startDate.split("T")[0] : "",
@@ -352,9 +351,14 @@ export default function ContractsPage() {
       importSource: "",
       contractNumber: contract.contractNumber,
       contractType: contract.contractType,
-      departmentId: contract.departmentId,
-      positionId: contract.positionId,
-      jobGradeId: contract.jobGradeId,
+      departmentId: contract.departmentId || contract.department?.id || "",
+      positionId: contract.positionId || contract.position?.id || "",
+      jobGradeId: contract.jobGradeId || contract.jobGrade?.id || "",
+      departmentName:
+        contract.departmentName || contract.department?.departmentName || "",
+      positionName:
+        contract.positionName || contract.position?.positionName || "",
+      jobGradeName: contract.jobGradeName || contract.jobGrade?.gradeName || "",
       startDate: contract.startDate ? contract.startDate.split("T")[0] : "",
       endDate: contract.endDate ? contract.endDate.split("T")[0] : "",
       signedDate: contract.signedDate ? contract.signedDate.split("T")[0] : "",

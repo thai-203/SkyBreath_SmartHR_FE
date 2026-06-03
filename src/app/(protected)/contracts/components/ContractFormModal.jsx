@@ -41,7 +41,6 @@ export default function ContractFormModal({
   positionsList = [],
   departmentsList = [],
   loading,
-  importing = false,
   onImportFile,
   mode = "create",
   selectedContract = null,
@@ -50,14 +49,8 @@ export default function ContractFormModal({
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [errors, setErrors] = useState({});
-  const [importState, setImportState] = useState({
-    fileName: "",
-    warnings: [],
-    employeeName: "",
-  });
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
-  const importInputRef = useRef(null);
 
   const contractTypeLabels = {
     probation: "Hợp đồng thử việc",
@@ -102,6 +95,18 @@ export default function ContractFormModal({
     const date = new Date(startDate);
     date.setMonth(date.getMonth() + 2);
     return date.toISOString().split("T")[0];
+  };
+
+  const buildContractNumber = (employeeCode, signedDate) => {
+    const code = String(employeeCode || "")
+      .trim()
+      .toUpperCase();
+    if (!code) return "";
+    const baseDate = signedDate ? new Date(signedDate) : new Date();
+    const year = Number.isNaN(baseDate.getTime())
+      ? new Date().getFullYear()
+      : baseDate.getFullYear();
+    return `HDLD/${year}/${code}`;
   };
 
   const resetFormData = () => {
@@ -151,20 +156,37 @@ export default function ContractFormModal({
     } else {
       setErrors({});
       setSearchTerm("");
-      setImportState({ fileName: "", warnings: [], employeeName: "" });
     }
-  }, [isOpen, formData.employeeId, employeeList, mode, selectedContract]);
+  }, [
+    isOpen,
+    formData.employeeId,
+    formData.employeeDisplayName,
+    employeeList,
+    mode,
+    selectedContract,
+  ]);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    if (isDropdownOpen)
-      document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isDropdownOpen]);
+    if (mode !== "create" || !formData.employeeId) return;
+
+    const currentEmployee = employeeList.find(
+      (employee) => String(employee.value) === String(formData.employeeId),
+    );
+    const expectedContractNumber = buildContractNumber(
+      currentEmployee?.data?.employeeCode,
+      formData.signedDate,
+    );
+
+    if (
+      expectedContractNumber &&
+      expectedContractNumber !== formData.contractNumber
+    ) {
+      onFormChange({
+        ...formData,
+        contractNumber: expectedContractNumber,
+      });
+    }
+  }, [formData, employeeList, mode, onFormChange]);
 
   // --- MEMOIZED DATA ---
   const filteredEmployees = useMemo(() => {
@@ -219,6 +241,10 @@ export default function ContractFormModal({
 
   const handleSelectEmployee = (emp) => {
     const empData = emp.data || {};
+    const contractNumber = buildContractNumber(
+      empData.employeeCode,
+      formData.signedDate,
+    );
 
     const departmentId =
       empData.departmentId ||
@@ -241,6 +267,7 @@ export default function ContractFormModal({
       employeeId: emp.value,
       employeeDisplayName: emp.label,
       importSource: "",
+      contractNumber: contractNumber || formData.contractNumber,
       departmentId,
       positionId,
       jobGradeId,
@@ -261,83 +288,6 @@ export default function ContractFormModal({
     const files = Array.from(e.target.files);
     const currentFiles = formData.attachments || [];
     onFormChange({ ...formData, attachments: [...currentFiles, ...files] });
-  };
-
-  const handleImportChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || typeof onImportFile !== "function") {
-      e.target.value = "";
-      return;
-    }
-
-    try {
-      const draft = await onImportFile(file);
-      if (!draft) return;
-
-      const toStringValue = (value, fallback = "") =>
-        value === undefined || value === null || value === ""
-          ? fallback
-          : String(value);
-
-      const nextData = {
-        ...formData,
-        employeeId: toStringValue(draft.employeeId),
-        employeeDisplayName:
-          draft.employeeName ||
-          draft.employeeCode ||
-          formData.employeeDisplayName ||
-          "",
-        importSource: "file",
-        contractNumber: toStringValue(draft.contractNumber),
-        contractType: draft.contractType || "fixed_term",
-        signedDate: toStringValue(draft.signedDate),
-        startDate: toStringValue(draft.startDate),
-        endDate: toStringValue(draft.endDate),
-        workingHours: toStringValue(draft.workingHours, "40"),
-        departmentId: toStringValue(draft.departmentId),
-        positionId: toStringValue(draft.positionId),
-        jobGradeId: toStringValue(draft.jobGradeId),
-        baseSalary: toStringValue(draft.baseSalary),
-        performanceSalary: toStringValue(draft.performanceSalary),
-        lunchAllowance: toStringValue(draft.lunchAllowance),
-        fuelAllowance: toStringValue(draft.fuelAllowance),
-        phoneAllowance: toStringValue(draft.phoneAllowance),
-        otherAllowance: toStringValue(draft.otherAllowance),
-        note: draft.note || "",
-      };
-
-      if (nextData.contractType === "permanent") {
-        nextData.endDate = "";
-      }
-      if (nextData.contractType === "probation" && nextData.startDate) {
-        nextData.endDate = calculateProbationEndDate(nextData.startDate);
-      }
-
-      onFormChange(nextData);
-      setSearchTerm(draft.employeeName || draft.employeeCode || "");
-      setImportState({
-        fileName: draft.sourceFileName || file.name,
-        warnings: Array.isArray(draft.warnings) ? draft.warnings : [],
-        employeeName: draft.employeeName || draft.employeeCode || "",
-      });
-      setActiveTab("general");
-      setErrors({});
-    } catch (error) {
-      setImportState({
-        fileName: file.name,
-        warnings: [],
-        employeeName: "",
-      });
-      setErrors((prev) => ({
-        ...prev,
-        import:
-          error.response?.data?.message ||
-          error.message ||
-          "Không thể import file",
-      }));
-    } finally {
-      e.target.value = "";
-    }
   };
 
   const removeFile = (index) => {
@@ -614,7 +564,7 @@ export default function ContractFormModal({
                   }
                   placeholder="HĐLĐ/2024/001"
                   className={errors.contractNumber ? "border-red-500" : ""}
-                  disabled={mode === "edit"}
+                  disabled={mode === "create" || mode === "edit"}
                 />
                 <ErrorMsg name="contractNumber" />
               </div>
@@ -645,6 +595,7 @@ export default function ContractFormModal({
                     handleInputChange("departmentId", e.target.value)
                   }
                   className={errors.departmentId ? "border-red-500" : ""}
+                  disabled={true}
                 />
                 <ErrorMsg name="departmentId" />
               </div>
@@ -655,7 +606,7 @@ export default function ContractFormModal({
                 </Label>
                 <Select
                   value={formData.positionId || ""}
-                  disabled={!formData.departmentId}
+                  disabled={true}
                   options={positionsList}
                   onChange={(e) =>
                     handleInputChange("positionId", e.target.value)
@@ -676,6 +627,7 @@ export default function ContractFormModal({
                     handleInputChange("jobGradeId", e.target.value)
                   }
                   className={errors.jobGradeId ? "border-red-500" : ""}
+                  disabled={true}
                 />
                 <ErrorMsg name="jobGradeId" />
               </div>
