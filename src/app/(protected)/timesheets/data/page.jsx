@@ -370,8 +370,15 @@ export default function DataManagementPage() {
                         <h1 className="text-2xl font-bold text-slate-900">
                             {isEmployeeOnly ? "bảng công cá nhân" : "Dữ liệu chấm công"}
                         </h1>
-                        <p className="text-sm text-slate-500">
-                            {isEmployeeOnly ? "Xem chi tiết dữ liệu công của bạn" : "Hiển thị dữ liệu công dạng theo tháng"}
+                        <p className="text-sm text-slate-500 mt-1">
+                            {isEmployeeOnly 
+                                ? "Xem chi tiết dữ liệu công của bạn" 
+                                : `Kỳ công: Tháng ${filters.month}/${filters.year} • ${
+                                    filters.departmentId 
+                                        ? (departments.find(d => d.id?.toString() === filters.departmentId)?.departmentName || "Phòng ban đã chọn") 
+                                        : "Tất cả phòng ban"
+                                  }`
+                            }
                         </p>
                     </div>
                 </div>

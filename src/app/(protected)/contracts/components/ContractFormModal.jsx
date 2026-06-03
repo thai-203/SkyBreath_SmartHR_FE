@@ -474,7 +474,7 @@ export default function ContractFormModal({
 
         {/* Form Content */}
         <div className="flex-1 min-h-[480px] pr-2">
-          {mode === "create" && (
+          {/* {mode === "create" && (
             <div className="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -540,7 +540,7 @@ export default function ContractFormModal({
                 </div>
               )}
             </div>
-          )}
+          )} */}
 
           {activeTab === "general" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
