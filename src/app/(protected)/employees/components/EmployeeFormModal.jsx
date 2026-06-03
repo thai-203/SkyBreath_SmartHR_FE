@@ -125,6 +125,17 @@ export default function EmployeeFormModal({
         }
     ];
 
+    if (isEdit) {
+        sections.push({
+            title: "Thông tin tài khoản ngân hàng",
+            fields: [
+                { id: "bankName", label: "Tên ngân hàng", type: "text", placeholder: "Ví dụ: Vietcombank" },
+                { id: "accountNumber", label: "Số tài khoản", type: "text", placeholder: "Nhập số tài khoản" },
+                { id: "accountHolderName", label: "Tên chủ tài khoản (trong ngân hàng)", type: "text", placeholder: "Ví dụ: NGUYEN VAN A" },
+            ]
+        });
+    }
+
     const handleChange = (id, value) => {
         onFormChange({ ...formData, [id]: value });
     };
