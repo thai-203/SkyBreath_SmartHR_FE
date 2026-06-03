@@ -70,7 +70,7 @@ export default function OnboardingPage() {
         const [progsRes, statsRes, empRes, depRes, tmpRes] = await Promise.all([
           onboardingsService.getProgress(),
           onboardingsService.getProgressStats(),
-          employeesService.getEmployeeNoPlanId(),
+          employeesService.getEmployeeNoPlanId({ excludeInactive: true }),
           departmentsService.getList(),
           onboardingsService.getPlanTemplates(),
         ]);

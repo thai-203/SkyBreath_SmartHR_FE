@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Download, Users } from "lucide-react";
+import { Plus, Download, Users, FilterX } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
@@ -140,7 +140,7 @@ export default function EmployeesPage() {
         const rules = {
             employeeCode: [
                 required("Mã nhân viên là bắt buộc"),
-                regex(/^[A-Za-z0-9-]+$/, "Mã nhân viên chỉ được chứa chữ, số và dấu gạch ngang"),
+                regex(/^[A-Za-z0-9.-]+$/, "Mã nhân viên chỉ được chứa chữ, số, dấu gạch ngang và dấu chấm"),
                 uniqueField(validationData, "employeeCode", selectedEmployee?.id, "Mã nhân viên đã tồn tại"),
             ],
             fullName: [
@@ -234,11 +234,11 @@ export default function EmployeesPage() {
         setSubmitting(true);
         try {
             await employeesService.delete(selectedEmployee.id);
-            success("Đã xóa nhân viên");
+            success("Đã cập nhật trạng thái nhân viên sang đã nghỉ việc");
             setIsDeleteOpen(false);
             fetchEmployees();
         } catch (error) {
-            toastError("Không thể xóa nhân viên");
+            toastError("Không thể cập nhật trạng thái nhân viên sang đã nghỉ việc");
         } finally {
             setSubmitting(false);
         }
@@ -262,6 +262,15 @@ export default function EmployeesPage() {
         } finally {
             setExportLoading(false);
         }
+    };
+
+    const handleClearFilters = () => {
+        setFilters({
+            departmentId: "",
+            positionId: "",
+            employmentStatus: "",
+        });
+        setSearch("");
     };
 
     return (
@@ -294,7 +303,7 @@ export default function EmployeesPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg border border-slate-200">
+            <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg border border-slate-200 items-end">
                 <div className="w-48">
                     <Select
                         label="Phòng ban"
@@ -328,6 +337,13 @@ export default function EmployeesPage() {
                         }
                     />
                 </div>
+                <button
+                    onClick={handleClearFilters}
+                    className="text-slate-400 hover:text-rose-500 p-2 mb-1"
+                    title="Xóa tất cả các tìm kiếm"
+                >
+                    <FilterX className="h-5 w-5" />
+                </button>
             </div>
 
             <EmployeeTable

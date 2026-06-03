@@ -7,16 +7,10 @@ export default function OnboardingIndex() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [
-          progsRes,
-          statsRes,
-          empRes,
-          depRes,
-          tmpRes,
-        ] = await Promise.all([
+        const [progsRes, statsRes, empRes, depRes, tmpRes] = await Promise.all([
           onboardingsService.getProgress(),
           onboardingsService.getProgressStats(),
-          employeesService.getEmployeeNoPlanId(),
+          employeesService.getEmployeeNoPlanId({ excludeInactive: true }),
           departmentsService.getList(),
           onboardingsService.getPlanTemplates(),
         ]);
@@ -59,7 +53,7 @@ export default function OnboardingIndex() {
 
   const safeProgress = useMemo(
     () => (Array.isArray(progress) ? progress : []),
-    [progress]
+    [progress],
   );
 
   /* ===================== FILTER TABS ===================== */
@@ -70,26 +64,23 @@ export default function OnboardingIndex() {
       {
         id: "NOT_STARTED",
         label: "Chưa bắt đầu",
-        count: safeProgress.filter(
-          (p) => p.overallStatus === "NOT_STARTED"
-        ).length,
+        count: safeProgress.filter((p) => p.overallStatus === "NOT_STARTED")
+          .length,
       },
       {
         id: "IN_PROGRESS",
         label: "Đang thực hiện",
-        count: safeProgress.filter(
-          (p) => p.overallStatus === "IN_PROGRESS"
-        ).length,
+        count: safeProgress.filter((p) => p.overallStatus === "IN_PROGRESS")
+          .length,
       },
       {
         id: "COMPLETED",
         label: "Đã hoàn thành",
-        count: safeProgress.filter(
-          (p) => p.overallStatus === "COMPLETED"
-        ).length,
+        count: safeProgress.filter((p) => p.overallStatus === "COMPLETED")
+          .length,
       },
     ],
-    [safeProgress]
+    [safeProgress],
   );
 
   /* ===================== FILTER LOGIC ===================== */
@@ -98,15 +89,13 @@ export default function OnboardingIndex() {
     let result = safeProgress;
 
     if (activeFilter !== "all") {
-      result = result.filter(
-        (p) => p.overallStatus === activeFilter
-      );
+      result = result.filter((p) => p.overallStatus === activeFilter);
     }
 
     if (searchTerm.trim()) {
       const keyword = searchTerm.toLowerCase();
       result = result.filter((p) =>
-        p.employee?.fullName?.toLowerCase().includes(keyword)
+        p.employee?.fullName?.toLowerCase().includes(keyword),
       );
     }
 
@@ -118,7 +107,6 @@ export default function OnboardingIndex() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900">
       <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
-
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -172,17 +160,17 @@ export default function OnboardingIndex() {
         {/* TABLE */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="flex flex-col lg:flex-row items-center justify-between p-4 gap-4 bg-slate-50/50 border-b border-slate-100">
-
             {/* Tabs */}
             <div className="flex p-1 bg-slate-200/50 rounded-xl w-full lg:w-auto overflow-x-auto">
               {filterTabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveFilter(tab.id)}
-                  className={`whitespace-nowrap px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeFilter === tab.id
-                    ? "bg-white text-indigo-600 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                    }`}
+                  className={`whitespace-nowrap px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+                    activeFilter === tab.id
+                      ? "bg-white text-indigo-600 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
                 >
                   {tab.label}
                   <span className="ml-1 opacity-60 text-xs font-normal">

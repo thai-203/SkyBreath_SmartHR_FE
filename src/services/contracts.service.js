@@ -16,6 +16,11 @@ export const contractsService = {
     return response.data;
   },
 
+  getMine: async () => {
+    const response = await api.get("/contracts/my");
+    return response.data;
+  },
+
   create: async (data) => {
     const response = await api.post("/contracts", data);
     return response.data;

@@ -43,17 +43,17 @@ export default function AttendanceSecurityConfigForm({
     const loadData = async () => {
       try {
         setDataLoading(true);
+        // Dùng endpoint list (nhẹ hơn và không phân trang) thay vì getAll
         const [depsRes, empsRes] = await Promise.all([
-          departmentsService.getAll(),
-          employeesService.getAll({ limit: 1000 }),
+          departmentsService.getList(),
+          employeesService.getList(),
         ]);
 
-        // Xử lý dữ liệu trả về linh hoạt (hỗ trợ các cấu trúc: [], {data: []}, {data: {items: []}})
+        // Xử lý dữ liệu trả về linh hoạt
         const extractArray = (res) => {
           if (Array.isArray(res)) return res;
           if (Array.isArray(res?.data)) return res.data;
-          if (Array.isArray(res?.data?.items)) return res.data.items;
-          if (Array.isArray(res?.items)) return res.items;
+          // Endpoint list thường trả về array trực tiếp trong data field
           return [];
         };
 

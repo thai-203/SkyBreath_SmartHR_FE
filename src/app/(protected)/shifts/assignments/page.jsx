@@ -76,7 +76,11 @@ export default function AssignmentsPage() {
   const fetchOptions = useCallback(async () => {
     try {
       const [empAllRes, deptRes, shiftRes] = await Promise.all([
-        employeesService.getAllForPublic({ page: 1, limit: 1000 }),
+        employeesService.getAllForPublic({
+          page: 1,
+          limit: 1000,
+          excludeInactive: true,
+        }),
         departmentsService.getList(),
         workingShiftsService.getList(),
       ]);
