@@ -1,7 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/common/Modal";
-import { User, Building2, Briefcase, Calendar, Mail, Phone, MapPin, FileText, Image } from "lucide-react";
+import { User, Building2, Briefcase, Calendar, Mail, Phone, MapPin, FileText, Image, CreditCard } from "lucide-react";
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -124,6 +124,13 @@ export default function EmployeeDetailModal({ isOpen, onClose, employee }) {
                     <InfoItem icon={User} label="HR Mentor" value={employee.hrMentor?.fullName} />
                     <InfoItem icon={Calendar} label="Ngày vào làm" value={formatDate(employee.joinDate)} />
                     <InfoItem icon={Calendar} label="Ngày chính thức" value={formatDate(employee.officialStartDate)} />
+                </Section>
+
+                {/* Bank Account */}
+                <Section title="Thông tin tài khoản ngân hàng">
+                    <InfoItem icon={Building2} label="Tên ngân hàng" value={employee.bankAccount?.bankName} />
+                    <InfoItem icon={CreditCard} label="Số tài khoản" value={employee.bankAccount?.accountNumber} />
+                    <InfoItem icon={User} label="Tên chủ tài khoản" value={employee.bankAccount?.accountHolderName} />
                 </Section>
 
                 {/* ID Card Images */}

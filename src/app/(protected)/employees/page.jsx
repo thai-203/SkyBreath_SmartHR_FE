@@ -106,6 +106,15 @@ export default function EmployeesPage() {
         try {
             const result = await employeesService.getById(employee.id);
             const fullData = result.data || {};
+            if (fullData.bankAccount) {
+                fullData.accountNumber = fullData.bankAccount.accountNumber || "";
+                fullData.bankName = fullData.bankAccount.bankName || "";
+                fullData.accountHolderName = fullData.bankAccount.accountHolderName || "";
+            } else {
+                fullData.accountNumber = "";
+                fullData.bankName = "";
+                fullData.accountHolderName = "";
+            }
             setSelectedEmployee(fullData);
             setFormData(fullData);
             setModalMode("edit");
@@ -204,7 +213,7 @@ export default function EmployeesPage() {
         setSubmitting(true);
         try {
             const data = new FormData();
-            const excludeKeys = ['id', 'createdAt', 'updatedAt', 'deletedAt', 'isDeleted', 'user', 'department', 'position', 'jobGrade', 'directManager', 'hrMentor'];
+            const excludeKeys = ['id', 'createdAt', 'updatedAt', 'deletedAt', 'isDeleted', 'user', 'department', 'position', 'jobGrade', 'directManager', 'hrMentor', 'bankAccount'];
 
             Object.keys(formData).forEach((key) => {
                 if (excludeKeys.includes(key)) return;
