@@ -6,7 +6,7 @@ import { useToast } from "@/components/common/Toast";
 import { PermissionGate } from "@/components/common/AuthGuard";
 import { regex, required, unique, validate } from "@/lib/validation";
 import { departmentsService, employeesService } from "@/services";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, History } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // Local components
@@ -14,6 +14,8 @@ import DepartmentDeleteModal from "./components/DepartmentDeleteModal";
 import DepartmentDetailModal from "./components/DepartmentDetailModal";
 import DepartmentFormModal from "./components/DepartmentFormModal";
 import DepartmentTable from "./components/DepartmentTable";
+import TransferEmployeesModal from "./components/TransferEmployeesModal";
+import TransferHistoryModal from "./components/TransferHistoryModal";
 
 const initialFormData = {
     departmentName: "",
@@ -41,7 +43,10 @@ export default function DepartmentsPage() {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [isTransferOpen, setIsTransferOpen] = useState(false);
+    const [isTransferHistoryOpen, setIsTransferHistoryOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState(null);
+    const [selectedTransferDepartment, setSelectedTransferDepartment] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
 
@@ -139,6 +144,15 @@ export default function DepartmentsPage() {
     const handleViewDetail = (department) => {
         setSelectedDepartment(department);
         setIsDetailOpen(true);
+    };
+
+    const handleTransfer = (department) => {
+        setSelectedTransferDepartment(department);
+        setIsTransferOpen(true);
+    };
+
+    const handleTransferSuccess = () => {
+        fetchDepartments();
     };
 
     const validateForm = () => {
@@ -246,6 +260,12 @@ export default function DepartmentsPage() {
                     <p className="text-slate-500">Danh sách tất cả phòng ban trong công ty</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <PermissionGate permission="DEPARTMENT_UPDATE">
+                        <Button variant="outline" onClick={() => setIsTransferHistoryOpen(true)}>
+                            <History className="mr-2 h-4 w-4" />
+                            Lịch sử chuyển
+                        </Button>
+                    </PermissionGate>
                     <PermissionGate permission="DEPARTMENT_EXPORT">
                         <Button variant="outline" onClick={handleExport} loading={exportLoading}>
                             <Download className="mr-2 h-4 w-4" />
@@ -277,6 +297,7 @@ export default function DepartmentsPage() {
                 onEdit={handleEdit}
                 onDelete={handleDeleteClick}
                 onViewDetail={handleViewDetail}
+                onTransfer={handleTransfer}
             />
 
             {/* Create Modal */}
@@ -322,6 +343,21 @@ export default function DepartmentsPage() {
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
                 department={selectedDepartment}
+            />
+
+            {/* Transfer Modal */}
+            <TransferEmployeesModal
+                isOpen={isTransferOpen}
+                onClose={() => setIsTransferOpen(false)}
+                onSuccess={handleTransferSuccess}
+                departmentList={departmentList}
+                selectedDepartment={selectedTransferDepartment}
+            />
+
+            {/* Transfer History Modal */}
+            <TransferHistoryModal
+                isOpen={isTransferHistoryOpen}
+                onClose={() => setIsTransferHistoryOpen(false)}
             />
         </div>
     );

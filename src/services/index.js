@@ -16,6 +16,7 @@ export * from "./penalties.service";
 export * from "./user.service";
 export * from "./shift-groups.service";
 export * from "./working-shifts.service";
+export * from "./department-transfers.service";
 export * from "./shift-assignments.service";
 export * from "./requests.service";
 export * from "./holiday.service";
