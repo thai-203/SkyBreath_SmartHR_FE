@@ -6,6 +6,11 @@ export const attendanceService = {
     return response.data;
   },
 
+  getMyRecords: async (params = {}) => {
+    const response = await api.get("/attendance/records", { params });
+    return response.data;
+  },
+
   checkIn: async (lat, lng, images) => {
     const formData = new FormData();
     formData.append("lat", lat);

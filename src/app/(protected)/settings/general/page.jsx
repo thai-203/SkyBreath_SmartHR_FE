@@ -135,14 +135,19 @@ export default function ProfilePage() {
         contract.employeeName || contract.employee?.fullName || "N/A",
       departmentName:
         contract.departmentName ||
+        contract.department?.departmentName ||
         contract.employee?.department?.departmentName ||
         "---",
       positionName:
         contract.positionName ||
+        contract.position?.positionName ||
         contract.employee?.position?.positionName ||
         "---",
       jobGradeName:
-        contract.jobGradeName || contract.employee?.jobGrade?.gradeName || "---",
+        contract.jobGradeName ||
+        contract.jobGrade?.gradeName ||
+        contract.employee?.jobGrade?.gradeName ||
+        "---",
     });
     setIsContractModalOpen(true);
   };

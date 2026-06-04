@@ -53,6 +53,8 @@ const STATUS_CONFIG = {
   },
 };
 
+const isValidVal = (v) => v !== undefined && v !== null && v !== "" && v !== "---";
+
 export default function ViewContractModal({
   isOpen,
   onClose,
@@ -96,26 +98,43 @@ export default function ViewContractModal({
   };
 
   const getSalaryValue = (key) => {
-    const formValue = formData?.[key];
-    if (formValue !== undefined && formValue !== null && formValue !== "") {
-      return Number(formValue) || 0;
-    }
+    // 1. Prioritize contract direct fields (if set and non-zero)
     if (
       data?.[key] !== undefined &&
       data?.[key] !== null &&
-      data?.[key] !== ""
+      data?.[key] !== "" &&
+      data?.[key] !== "---" &&
+      Number(data[key]) !== 0
     ) {
-      return Number(data[key]) || 0;
+      return Number(data[key]);
     }
+
+    // 2. Fallback to employee salary details from various relationships
+    const empSalary =
+      data?.employeeSalary ||
+      data?.salary ||
+      data?.employee?.employeeSalary ||
+      data?.employee?.salary;
     if (
-      data?.employeeSalary?.[key] !== undefined &&
-      data?.employeeSalary?.[key] !== null
+      empSalary?.[key] !== undefined &&
+      empSalary?.[key] !== null &&
+      empSalary?.[key] !== "" &&
+      empSalary?.[key] !== "---"
     ) {
-      return Number(data.employeeSalary[key]) || 0;
+      return Number(empSalary[key]) || 0;
     }
-    if (data?.salary?.[key] !== undefined && data?.salary?.[key] !== null) {
-      return Number(data.salary[key]) || 0;
+
+    // 3. Fallback to page level formData
+    const formValue = formData?.[key];
+    if (
+      formValue !== undefined &&
+      formValue !== null &&
+      formValue !== "" &&
+      formValue !== "---"
+    ) {
+      return Number(formValue) || 0;
     }
+
     return 0;
   };
 
@@ -181,7 +200,6 @@ export default function ViewContractModal({
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error("Lỗi khi tải file:", error);
-      // Fallback: Nếu fetch lỗi (CORS), thử mở link trực tiếp
       window.open(getFullUrl(fileUrl), "_blank");
     }
   };
@@ -248,6 +266,9 @@ export default function ViewContractModal({
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;border:1px solid #cbd5e1;border-radius:8px;padding:12px;">
           <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Nhân viên</div><div style="font-weight:700;">${escapeHtml(data.employeeName || "---")}</div></div>
           <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Mã hợp đồng</div><div style="font-weight:700;">${escapeHtml(data.contractNumber || "---")}</div></div>
+          <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Phòng ban</div><div style="font-weight:700;">${escapeHtml(isValidVal(data.departmentName) ? data.departmentName : (data.department?.departmentName || data.employee?.department?.departmentName || "---"))}</div></div>
+          <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Vị trí</div><div style="font-weight:700;">${escapeHtml(isValidVal(data.positionName) ? data.positionName : (data.position?.positionName || data.employee?.position?.positionName || "---"))}</div></div>
+          <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Ngạch lương</div><div style="font-weight:700;">${escapeHtml(isValidVal(data.jobGradeName) ? data.jobGradeName : (data.jobGrade?.gradeName || data.employee?.jobGrade?.name || data.employee?.jobGrade?.gradeName || data.employeeSalary?.jobGrade?.name || data.employeeSalary?.jobGrade?.gradeName || "---"))}</div></div>
           <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Loại hợp đồng</div><div style="font-weight:700;">${escapeHtml(CONTRACT_TYPE_LABELS[data.contractType] || "---")}</div></div>
           <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Trạng thái</div><div style="font-weight:700;">${escapeHtml(statusInfo.label || "---")}</div></div>
           <div><div style="color:#64748b;font-size:12px;margin-bottom:4px;">Ngày ký</div><div style="font-weight:700;">${escapeHtml(formatDate(data.signedDate))}</div></div>
@@ -377,18 +398,22 @@ export default function ViewContractModal({
                   <InfoItem
                     label="Phòng ban"
                     value={
-                      data.departmentName ||
-                      data.employee?.department?.departmentName ||
-                      "---"
+                      isValidVal(data.departmentName)
+                        ? data.departmentName
+                        : (data.department?.departmentName ||
+                           data.employee?.department?.departmentName ||
+                           "---")
                     }
                     highlight
                   />
                   <InfoItem
                     label="Vị trí"
                     value={
-                      data.positionName ||
-                      data.employee?.position?.positionName ||
-                      "---"
+                      isValidVal(data.positionName)
+                        ? data.positionName
+                        : (data.position?.positionName ||
+                           data.employee?.position?.positionName ||
+                           "---")
                     }
                     highlight
                   />
@@ -436,10 +461,14 @@ export default function ViewContractModal({
                 <InfoItem
                   label="Ngạch lương"
                   value={
-                    data.jobGradeName ||
-                    data.employee?.jobGrade?.name ||
-                    data.employeeSalary?.jobGrade?.name ||
-                    "---"
+                    isValidVal(data.jobGradeName)
+                      ? data.jobGradeName
+                      : (data.jobGrade?.gradeName ||
+                         data.employee?.jobGrade?.name ||
+                         data.employee?.jobGrade?.gradeName ||
+                         data.employeeSalary?.jobGrade?.name ||
+                         data.employeeSalary?.jobGrade?.gradeName ||
+                         "---")
                   }
                 />
               </div>
