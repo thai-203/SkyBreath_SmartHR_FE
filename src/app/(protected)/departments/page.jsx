@@ -177,8 +177,8 @@ export default function DepartmentsPage() {
         try {
             const response = await departmentsService.create({
                 departmentName: formData.departmentName,
-                parentDepartmentId: formData.parentDepartmentId ? Number(formData.parentDepartmentId) : undefined,
-                managerEmployeeId: formData.managerEmployeeId ? Number(formData.managerEmployeeId) : undefined,
+                parentDepartmentId: formData.parentDepartmentId ? Number(formData.parentDepartmentId) : null,
+                managerEmployeeId: formData.managerEmployeeId ? Number(formData.managerEmployeeId) : null,
             });
             success(response.message);
             setIsCreateOpen(false);
@@ -198,8 +198,8 @@ export default function DepartmentsPage() {
         try {
             const response = await departmentsService.update(selectedDepartment.id, {
                 departmentName: formData.departmentName,
-                parentDepartmentId: formData.parentDepartmentId ? Number(formData.parentDepartmentId) : undefined,
-                managerEmployeeId: formData.managerEmployeeId ? Number(formData.managerEmployeeId) : undefined,
+                parentDepartmentId: formData.parentDepartmentId ? Number(formData.parentDepartmentId) : null,
+                managerEmployeeId: formData.managerEmployeeId ? Number(formData.managerEmployeeId) : null,
             });
             success(response.message);
             setIsEditOpen(false);
