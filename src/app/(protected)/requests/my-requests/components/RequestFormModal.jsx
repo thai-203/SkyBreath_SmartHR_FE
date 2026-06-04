@@ -297,7 +297,7 @@ export default function RequestFormModal({ isOpen, onClose, employeeId, requestI
     // Quota logic
     const unitLabel = { DAY: 'ngày', HOUR: 'giờ', HALF_DAY: 'nửa ngày', TIME: 'lần' };
     const cycleLabel = { YEAR: 'năm', MONTH: 'tháng', WEEK: 'tuần', DAY: 'hôm nay' };
-    const quotaExceeded = quotaStatus?.hasQuota && requestedQty > quotaStatus.remainingQuantity;
+    const quotaExceeded = quotaStatus?.hasQuota && (quotaStatus.remainingQuantity <= 0 || requestedQty > quotaStatus.remainingQuantity);
     const quotaWarning = quotaStatus?.hasQuota && requestedQty > 0 && requestedQty > quotaStatus.remainingQuantity / 2 && !quotaExceeded;
     const canSubmit = !quotaExceeded;
 
