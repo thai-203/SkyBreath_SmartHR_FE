@@ -113,7 +113,8 @@ export default function EmployeeFormModal({
                     id: "directManagerId",
                     label: "Quản lý trực tiếp *",
                     type: "select",
-                    options: metadata.managers?.map(m => ({ value: m.id, label: m.fullName }))
+                    options: metadata.managers?.map(m => ({ value: m.id, label: m.fullName })),
+                    disabled: true
                 },
                 {
                     id: "hrMentorId",
@@ -137,7 +138,16 @@ export default function EmployeeFormModal({
     }
 
     const handleChange = (id, value) => {
-        onFormChange({ ...formData, [id]: value });
+        let updatedData = { ...formData, [id]: value };
+        if (id === "departmentId") {
+            const selectedDept = (metadata.departments || []).find(d => String(d.id) === String(value));
+            if (selectedDept && selectedDept.managerEmployeeId) {
+                updatedData.directManagerId = selectedDept.managerEmployeeId;
+            } else {
+                updatedData.directManagerId = "";
+            }
+        }
+        onFormChange(updatedData);
     };
 
     return (
@@ -161,6 +171,7 @@ export default function EmployeeFormModal({
                                                 options={field.options || []}
                                                 placeholder={`-- Chọn ${field.label.replace(' *', '')} --`}
                                                 error={errors[field.id]}
+                                                disabled={field.disabled}
                                             />
                                         ) : field.type === "file" ? (
                                             <div className="space-y-2">

@@ -14,6 +14,7 @@ export default function DepartmentFormModal({
     onFormChange,
     departmentList,
     employeeList,
+    rawDepartments = [],
     loading,
     errors = {},
     mode = "create", // "create" | "edit"
@@ -27,6 +28,17 @@ export default function DepartmentFormModal({
     const parentOptions = isEdit
         ? departmentList.filter((d) => d.value !== selectedDepartment?.id)
         : departmentList;
+
+    // Filter out managers who are currently managing other departments
+    const availableEmployees = employeeList.filter(e => {
+        if (isEdit && selectedDepartment?.managerEmployeeId === e.value) {
+            return true;
+        }
+        const isBusy = rawDepartments.some(
+            (d) => d.managerEmployeeId === e.value && d.id !== selectedDepartment?.id
+        );
+        return !isBusy;
+    });
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={title}>
@@ -61,7 +73,7 @@ export default function DepartmentFormModal({
                         onChange={(e) =>
                             onFormChange({ ...formData, managerEmployeeId: e.target.value })
                         }
-                        options={employeeList}
+                        options={availableEmployees}
                         placeholder="Chọn quản lý"
                         error={errors.managerEmployeeId}
                     />

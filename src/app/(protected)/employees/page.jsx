@@ -6,7 +6,7 @@ import { Button } from "@/components/common/Button";
 import { PageTitle } from "@/components/common/PageTitle";
 import { useToast } from "@/components/common/Toast";
 import { PermissionGate } from "@/components/common/AuthGuard";
-import { employeesService } from "@/services";
+import { authService, employeesService } from "@/services";
 import { validate, required, email, uniqueField, regex } from "@/lib/validation";
 import { Select } from "@/components/common/Select";
 
@@ -18,6 +18,7 @@ import EmployeeDetailModal from "./components/EmployeeDetailModal";
 
 export default function EmployeesPage() {
     const { success, error: toastError } = useToast();
+    const isManager = authService.hasRole("MANAGER") && !authService.hasRole("ADMIN") && !authService.hasRole("HR");
 
     // Data state
     const [employees, setEmployees] = useState([]);
@@ -190,7 +191,7 @@ export default function EmployeesPage() {
             educationLevel: [required("Trình độ học vấn là bắt buộc")],
             joinDate: [required("Ngày gia nhập là bắt buộc")],
             officialStartDate: [required("Ngày chính thức là bắt buộc")],
-            directManagerId: [required("Quản lý trực tiếp là bắt buộc")],
+            directManagerId: [],
             hrMentorId: [required("HR Mentor là bắt buộc")],
             frontIdCard: modalMode === "create" ? [required("Ảnh CCCD mặt trước là bắt buộc")] : [],
             backIdCard: modalMode === "create" ? [required("Ảnh CCCD mặt sau là bắt buộc")] : [],
@@ -247,7 +248,7 @@ export default function EmployeesPage() {
             setIsDeleteOpen(false);
             fetchEmployees();
         } catch (error) {
-            toastError("Không thể cập nhật trạng thái nhân viên sang đã nghỉ việc");
+            toastError(error.response?.data?.message);
         } finally {
             setSubmitting(false);
         }
@@ -313,17 +314,19 @@ export default function EmployeesPage() {
 
             {/* Filters */}
             <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg border border-slate-200 items-end">
-                <div className="w-48">
-                    <Select
-                        label="Phòng ban"
-                        placeholder="-- Tất cả phòng ban --"
-                        value={filters.departmentId}
-                        onChange={(e) => setFilters({ ...filters, departmentId: e.target.value })}
-                        options={
-                            (metadata.departments || []).map(d => ({ value: d.id, label: d.departmentName }))
-                        }
-                    />
-                </div>
+                {!isManager && (
+                    <div className="w-48">
+                        <Select
+                            label="Phòng ban"
+                            placeholder="-- Tất cả phòng ban --"
+                            value={filters.departmentId}
+                            onChange={(e) => setFilters({ ...filters, departmentId: e.target.value })}
+                            options={
+                                (metadata.departments || []).map(d => ({ value: d.id, label: d.departmentName }))
+                            }
+                        />
+                    </div>
+                )}
                 <div className="w-48">
                     <Select
                         label="Vị trí"

@@ -52,6 +52,7 @@ export default function DepartmentsPage() {
     // Dropdown data
     const [departmentList, setDepartmentList] = useState([]);
     const [employeeList, setEmployeeList] = useState([]);
+    const [rawDepartments, setRawDepartments] = useState([]);
 
     // ==================== API Calls ====================
     const fetchDepartments = async () => {
@@ -81,15 +82,17 @@ export default function DepartmentsPage() {
                 console.error("Error fetching departments list:", err);
                 return { data: [] };
             });
-            const empPromise = employeesService.getList().catch(err => {
+            const empPromise = employeesService.getList({ role: 'MANAGER' }).catch(err => {
                 console.error("Error fetching employees list:", err);
                 return { data: [] };
             });
 
             const [deptRes, empRes] = await Promise.all([deptPromise, empPromise]);
 
+            const depts = deptRes.data || [];
+            setRawDepartments(depts);
             setDepartmentList(
-                (deptRes.data || []).map((d) => ({
+                depts.map((d) => ({
                     value: d.id,
                     label: d.departmentName,
                 }))
@@ -148,8 +151,18 @@ export default function DepartmentsPage() {
                 regex(/^[a-zA-Z0-9À-ỹ\s]+$/, "Tên phòng ban chỉ được chứa chữ cái, số và khoảng trắng"),
                 unique(departmentList, selectedDepartment?.id, "Tên phòng ban đã tồn tại"),
             ],
-        });
-        if (validationErrors) {
+        }) || {};
+
+        if (formData.managerEmployeeId) {
+            const isBusy = rawDepartments.some(
+                d => d.managerEmployeeId === Number(formData.managerEmployeeId) && d.id !== selectedDepartment?.id
+            );
+            if (isBusy) {
+                validationErrors.managerEmployeeId = "Người quản lý này đã quản lý một phòng ban khác.";
+            }
+        }
+
+        if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
             return false;
         }
@@ -289,6 +302,7 @@ export default function DepartmentsPage() {
                 errors={errors}
                 departmentList={departmentList}
                 employeeList={employeeList}
+                rawDepartments={rawDepartments}
                 loading={formLoading}
                 mode="create"
             />
@@ -303,6 +317,7 @@ export default function DepartmentsPage() {
                 errors={errors}
                 departmentList={departmentList}
                 employeeList={employeeList}
+                rawDepartments={rawDepartments}
                 loading={formLoading}
                 mode="edit"
                 selectedDepartment={selectedDepartment}
