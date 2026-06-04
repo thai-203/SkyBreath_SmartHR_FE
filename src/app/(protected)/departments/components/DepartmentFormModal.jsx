@@ -40,6 +40,11 @@ export default function DepartmentFormModal({
         return !isBusy;
     });
 
+    const managerOptions = [
+        { value: "", label: isEdit ? "Bỏ quản lý (Không có quản lý)" : "Chọn quản lý" },
+        ...availableEmployees
+    ];
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={title}>
             <div className="space-y-4">
@@ -69,12 +74,12 @@ export default function DepartmentFormModal({
                 <div className="space-y-2">
                     <Label>Quản lý</Label>
                     <Select
-                        value={formData.managerEmployeeId}
+                        value={formData.managerEmployeeId || ""}
                         onChange={(e) =>
                             onFormChange({ ...formData, managerEmployeeId: e.target.value })
                         }
-                        options={availableEmployees}
-                        placeholder="Chọn quản lý"
+                        options={managerOptions}
+                        hidePlaceholder={true}
                         error={errors.managerEmployeeId}
                     />
                 </div>
