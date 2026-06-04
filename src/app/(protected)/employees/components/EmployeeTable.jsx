@@ -156,16 +156,18 @@ export default function EmployeeTable({
                 <Edit2 className="h-4 w-4 text-blue-500" />
               </Button>
             </PermissionGate>
-            <PermissionGate permission="EMPLOYEE_DELETE">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDelete(row.original)}
-                title="Cho nghỉ việc"
-              >
-                <Trash2 className="h-4 w-4 text-red-500" />
-              </Button>
-            </PermissionGate>
+            {row.original.employmentStatus !== 'TERMINATED' && (
+              <PermissionGate permission="EMPLOYEE_DELETE">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onDelete(row.original)}
+                  title="Cho nghỉ việc"
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </PermissionGate>
+            )}
           </div>
         ),
       },
