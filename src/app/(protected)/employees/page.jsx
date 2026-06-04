@@ -373,7 +373,20 @@ export default function EmployeesPage() {
                 onClose={() => setIsFormOpen(false)}
                 onSubmit={handleFormSubmit}
                 formData={formData}
-                onFormChange={setFormData}
+                onFormChange={(newData) => {
+                    setFormData(newData);
+                    const updatedErrors = { ...errors };
+                    let hasChanges = false;
+                    for (const key of Object.keys(newData)) {
+                        if (newData[key] !== formData[key] && updatedErrors[key]) {
+                            delete updatedErrors[key];
+                            hasChanges = true;
+                        }
+                    }
+                    if (hasChanges) {
+                        setErrors(updatedErrors);
+                    }
+                }}
                 metadata={metadata}
                 loading={submitting}
                 errors={errors}
