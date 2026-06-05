@@ -26,7 +26,7 @@ const ROUTE_PERMISSIONS = {
 
   // Department
   "/departments": { permissions: ["DEPARTMENT_READ"] },
-  "/departments/chart": { permissions: ["DEPARTMENT_READ"] },
+  "/departments/chart": { permissions: ["DEPARTMENT_CHART_READ"] },
 
   // Contracts
   "/contracts": { permissions: ["CONTRACT_READ"] },
