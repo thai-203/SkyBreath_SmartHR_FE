@@ -108,7 +108,7 @@ const menuItems = [
     title: "Đánh giá KPI",
     icon: ClipboardCheck,
     href: "/performance-reviews",
-    roles: ["ADMIN", "HR", "MANAGER"],
+    permissions: ["PERFORMANCE_REVIEW_READ"],
   },
   {
     title: "Bảng chấm công",
@@ -167,7 +167,6 @@ const menuItems = [
     title: "Ca làm việc",
     icon: CalendarClock,
     href: "/shifts",
-    role: ["ADMIN", "HR"],
     permissions: [
       "SHIFT_GROUP_READ",
       "SHIFT_READ",
@@ -241,13 +240,11 @@ const menuItems = [
     title: "Việc cần làm",
     icon: ClipboardCheck,
     href: "/onboardings/employee",
-    role: ["EMPLOYEE"],
     permissions: ["ONBOARDING_PROGRESS_READ_OWN"],
   },
   {
     title: "Quản lý tiếp nhận nhân sự mới",
     icon: UserPlus,
-    role: ["ADMIN", "HR"],
     href: "/onboardings",
     permissions: ["ONBOARDING_PLAN_READ", "ONBOARDING_PROGRESS_READ"],
     children: [
@@ -354,7 +351,6 @@ const menuItems = [
     icon: ShieldAlert,
     href: "/roles",
     role: ["ADMIN"],
-    // permissions: ["ROLE_READ"],
     children: [
       { title: "Vai trò", href: "/roles" },
       {
@@ -367,7 +363,6 @@ const menuItems = [
     title: "Thông báo",
     icon: Bell,
     href: "/notifications/manual",
-    roles: ["ADMIN", "HR"],
     permissions: ["SEND_MANUAL_NOTIFICATION", "VIEW_NOTIFICATION_HISTORY"],
     children: [
       {
@@ -386,7 +381,6 @@ const menuItems = [
     title: "Cấu hình hệ thống",
     icon: Settings,
     href: "/configurations",
-    roles: ["ADMIN"],
     permissions: [
       "ATTENDANCE_FACE_RECOGNITION_CONFIG_READ",
       "ATTENDANCE_SECURITY_CONFIG_READ",
@@ -402,14 +396,12 @@ const menuItems = [
     icon: Bot,
     href: "/ai-configurations",
     permissions: ["AI_CONFIGURATION_READ"],
-    roles: ["ADMIN"],
   },
   {
     title: "AI Prompts",
     icon: FileText,
     href: "/ai-prompts",
     permissions: ["AI_PROMPT_READ"],
-    roles: ["ADMIN"],
   },
   {
     title: "Cài đặt",

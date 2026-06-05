@@ -125,6 +125,7 @@ const ROUTE_PERMISSIONS = {
   "/notifications/history": { permissions: ["VIEW_NOTIFICATION_HISTORY"] },
   "/ai-configurations": { permissions: ["AI_CONFIGURATION_READ"] },
   "/ai-prompts": { permissions: ["AI_PROMPT_READ"] },
+  "/performance-reviews": { permissions: ["PERFORMANCE_REVIEW_READ"] },
 };
 
 export function AuthGuard({ children }) {
