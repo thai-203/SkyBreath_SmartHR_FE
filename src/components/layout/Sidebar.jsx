@@ -81,7 +81,7 @@ const menuItems = [
       {
         title: "Sơ đồ tổ chức",
         href: "/departments/chart",
-        permissions: ["DEPARTMENT_READ"],
+        permissions: ["DEPARTMENT_CHART_READ"],
       },
     ],
   },
