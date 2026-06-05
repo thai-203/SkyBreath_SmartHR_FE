@@ -7,6 +7,7 @@ import { Label } from "@/components/common/Label";
 import { Select } from "@/components/common/Select";
 import { Modal } from "@/components/common/Modal";
 import { Image } from "lucide-react";
+import { employeesService } from "@/services";
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -150,6 +151,23 @@ export default function EmployeeFormModal({
         onFormChange(updatedData);
     };
 
+    const handleBlur = async (id, value) => {
+        if (id === "fullName" && mode === "create" && value && value.trim()) {
+            try {
+                const response = await employeesService.generateCode(value.trim());
+                if (response?.data?.employeeCode) {
+                    onFormChange({
+                        ...formData,
+                        fullName: value,
+                        employeeCode: response.data.employeeCode
+                    });
+                }
+            } catch (error) {
+                console.error("Lỗi tự động sinh mã nhân viên:", error);
+            }
+        }
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={title} size="xl">
             <div className="max-h-[70vh] overflow-y-auto px-1 pr-3 custom-scrollbar">
@@ -194,6 +212,7 @@ export default function EmployeeFormModal({
                                                 type={field.type}
                                                 value={formData[field.id] || ""}
                                                 onChange={(e) => handleChange(field.id, e.target.value)}
+                                                onBlur={(e) => handleBlur(field.id, e.target.value)}
                                                 placeholder={field.placeholder}
                                                 error={errors[field.id]}
                                                 disabled={field.disabled}
