@@ -57,4 +57,9 @@ export const employeesService = {
     const response = await api.get("/employees/no-plan", { params });
     return response.data;
   },
+
+  generateCode: async (fullName) => {
+    const response = await api.get("/employees/generate-code", { params: { fullName } });
+    return response.data;
+  },
 };
